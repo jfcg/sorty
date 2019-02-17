@@ -6,7 +6,7 @@ package sorty
 import "sync"
 
 // Min array size for concurrent Sort()
-const S = 24
+const S = 25
 
 // Array to be sorted
 var Ar []uint64
@@ -21,7 +21,7 @@ func forSort(ar []uint64) {
 	}
 }
 
-func median(l, h int) (int, int, uint64) {
+func median(l, h int) uint64 {
 	m := int(uint(l+h) >> 1) // avoid overflow
 	vl, pv, vh := Ar[l], Ar[m], Ar[h]
 
@@ -37,23 +37,19 @@ func median(l, h int) (int, int, uint64) {
 		}
 
 		Ar[l], Ar[h] = vl, vh
-		h-- // update indices
-		l++
 	} else {
 		if pv > vh {
 			vh, pv = pv, vh
 			Ar[m] = pv
 			Ar[h] = vh
-			h--
 		} else if pv < vl {
 			vl, pv = pv, vl
 			Ar[m] = pv
 			Ar[l] = vl
-			l++
 		}
 	}
 
-	return l, h, pv
+	return pv
 }
 
 var wg sync.WaitGroup
@@ -74,7 +70,8 @@ func srt(lo, hi int) {
 	var l, h int
 	var pv uint64
 start:
-	l, h, pv = median(lo, hi)
+	pv = median(lo, hi)
+	l, h = lo+1, hi-1 // median handles lo,hi positions
 
 	for l <= h {
 		ct := false
