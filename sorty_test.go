@@ -5,6 +5,7 @@ package sorty
 
 import (
 	"fmt"
+	"github.com/twotwotwo/sorts/sortutil"
 	"math/rand"
 	"sort"
 	"testing"
@@ -46,8 +47,9 @@ func afst(name string, srt func()) {
 func Test1(t *testing.T) {
 	tst = t
 	afst("sort.Slice", func() { sort.Slice(Ar, func(i, k int) bool { return Ar[i] < Ar[k] }) })
-	ar := Ar
 	afst("sorty", Sort)
+	ar := Ar
+	afst("sortutil", func() { sortutil.Uint64s(Ar) })
 
 	for i := N - 1; i >= 0; i-- {
 		if ar[i] != Ar[i] {
