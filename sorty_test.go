@@ -12,28 +12,28 @@ import (
 	"time"
 )
 
-const N = 1 << 27
+const N = 1 << 28
 
 var tst *testing.T
 
 func fill() {
 	rand.Seed(1)
-	for i := len(Ar) - 1; i >= 0; i-- {
-		Ar[i] = rand.Uint64()
+	for i := len(ArU4) - 1; i >= 0; i-- {
+		ArU4[i] = rand.Uint32()
 	}
 }
 
 func isSorted(name string) {
-	for i := len(Ar) - 1; i > 0; i-- {
-		if Ar[i] < Ar[i-1] {
-			tst.Fatal(name, "not sorted:", i, Ar[i], Ar[i-1])
+	for i := len(ArU4) - 1; i > 0; i-- {
+		if ArU4[i] < ArU4[i-1] {
+			tst.Fatal(name, "not sorted:", i, ArU4[i], ArU4[i-1])
 		}
 	}
 }
 
 // allocate fill sort test
 func afst(name string, srt func()) {
-	Ar = make([]uint64, N)
+	ArU4 = make([]uint32, N)
 	fill()
 
 	now := time.Now()
@@ -44,16 +44,21 @@ func afst(name string, srt func()) {
 	isSorted(name)
 }
 
-func Test1(t *testing.T) {
-	tst = t
-	afst("sort.Slice", func() { sort.Slice(Ar, func(i, k int) bool { return Ar[i] < Ar[k] }) })
-	afst("sorty", Sort)
-	ar := Ar
-	afst("sortutil", func() { sortutil.Uint64s(Ar) })
-
-	for i := N - 1; i >= 0; i-- {
-		if ar[i] != Ar[i] {
-			t.Fatal("Sorted arrays mismatch:", i, ar[i], Ar[i])
+func compare(ar []uint32) {
+	for i := len(ar) - 1; i >= 0; i-- {
+		if ar[i] != ArU4[i] {
+			tst.Fatal("Sorted arrays mismatch:", i, ar[i], ArU4[i])
 		}
 	}
+}
+
+func Test1(t *testing.T) {
+	tst = t
+	afst("sort.Slice", func() { sort.Slice(ArU4, func(i, k int) bool { return ArU4[i] < ArU4[k] }) })
+	ar := ArU4
+
+	afst("sorty", SortU4)
+	compare(ar)
+	afst("sortutil", func() { sortutil.Uint32s(ArU4) })
+	compare(ar)
 }
