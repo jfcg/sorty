@@ -8,13 +8,14 @@ sorty.SortS()
 ```
 There is no limit on number of goroutines to create, though sorty does it sparingly.
 
-### 'go test' results on various computers (64-bit Manjaro Linux)
+### 'go test' results on various computers
+All computers run 64-bit Manjaro Linux. Comparing against [sort.Slice](https://golang.org/pkg/sort) and [sortutil](https://github.com/twotwotwo/sorts).
 
 Acer TravelMate netbook with Intel Celeron N3160:
 ```
-[sort.Slice](https://golang.org/pkg/sort) took 145s
+sort.Slice took 145s
 sorty took 19.4s
-[sortutil](https://github.com/twotwotwo/sorts) took 65s
+sortutil took 65s
 ```
 
 Casper laptop with Intel Core i5-4210M:
