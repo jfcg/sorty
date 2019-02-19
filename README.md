@@ -5,7 +5,7 @@ Call corresponding Sort\*() to sort your slice in ascending order. For example:
 ```
 sorty.SortS(your_string_slice)
 ```
-A Sort\*() function should not be called by multiple goroutines at the same time. There is no limit on the number of goroutines to be created (could be many thousands depending on data), though sorty does it sparingly.
+A Sort\*() function should not be called by multiple goroutines at the same time. There is no limit on the number of goroutines to be created \(could be many thousands depending on data\), though sorty does it sparingly.
 
 ### 'go test' results on various computers
 All computers run 64-bit Manjaro Linux. Comparing against [sort.Slice](https://golang.org/pkg/sort) and [sortutil](https://github.com/twotwotwo/sorts).
