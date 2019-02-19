@@ -1,9 +1,8 @@
 // Type-specific concurrent sorting library
 //
-// Assign your slice to Ar* and call Sort*() to sort ascending. For example:
-//  sorty.ArS = your_string_slice
-//  sorty.SortS()
-// There is no limit on number of goroutines to create, though sorty does it sparingly.
+// Call corresponding Sort\*() to sort your slice in ascending order. For example:
+//  sorty.SortS(your_string_slice)
+// A Sort\*() function should not be called by multiple goroutines at the same time. There is no limit on the number of goroutines to be created (could be many thousands depending on data), though sorty does it sparingly.
 package sorty
 
 // Minimum array size for Quick Sort*()
