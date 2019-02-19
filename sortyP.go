@@ -6,7 +6,7 @@ package sorty
 import "sync"
 
 // uintptr array to be sorted
-var ArP []uintptr
+var arP []uintptr
 
 func forSortP(ar []uintptr) {
 	for h := len(ar) - 1; h > 0; h-- {
@@ -20,29 +20,29 @@ func forSortP(ar []uintptr) {
 
 func medianP(l, h int) uintptr {
 	m := int(uint(l+h) >> 1) // avoid overflow
-	vl, pv, vh := ArP[l], ArP[m], ArP[h]
+	vl, pv, vh := arP[l], arP[m], arP[h]
 
-	if vh < vl { // choose pivot as median of ArP[l,m,h]
+	if vh < vl { // choose pivot as median of arP[l,m,h]
 		vl, vh = vh, vl
 
 		if pv > vh {
 			vh, pv = pv, vh
-			ArP[m] = pv
+			arP[m] = pv
 		} else if pv < vl {
 			vl, pv = pv, vl
-			ArP[m] = pv
+			arP[m] = pv
 		}
 
-		ArP[l], ArP[h] = vl, vh
+		arP[l], arP[h] = vl, vh
 	} else {
 		if pv > vh {
 			vh, pv = pv, vh
-			ArP[m] = pv
-			ArP[h] = vh
+			arP[m] = pv
+			arP[h] = vh
 		} else if pv < vl {
 			vl, pv = pv, vl
-			ArP[m] = pv
-			ArP[l] = vl
+			arP[m] = pv
+			arP[l] = vl
 		}
 	}
 
@@ -51,15 +51,19 @@ func medianP(l, h int) uintptr {
 
 var wgP sync.WaitGroup
 
-// Concurrently sorts ArP of type []uintptr
-func SortP() {
-	if len(ArP) < S {
-		forSortP(ArP)
+// Concurrently sorts ar. Should not be called by multiple goroutines at the same time.
+func SortP(ar []uintptr) {
+	if len(ar) < S {
+		forSortP(ar)
 		return
 	}
+	arP = ar
+
 	wgP.Add(1) // count self
-	srtP(0, len(ArP)-1)
+	srtP(0, len(arP)-1)
 	wgP.Wait()
+
+	arP = nil
 }
 
 // assumes hi-lo >= S-1
@@ -72,11 +76,11 @@ start:
 
 	for l <= h {
 		ct := false
-		if ArP[h] >= pv { // extend ranges in balance
+		if arP[h] >= pv { // extend ranges in balance
 			h--
 			ct = true
 		}
-		if ArP[l] <= pv {
+		if arP[l] <= pv {
 			l++
 			ct = true
 		}
@@ -84,16 +88,16 @@ start:
 			continue
 		}
 
-		ArP[l], ArP[h] = ArP[h], ArP[l]
+		arP[l], arP[h] = arP[h], arP[l]
 		h--
 		l++
 	}
 
 	if hi-l < S-1 { // hi range small?
-		forSortP(ArP[l : hi+1])
+		forSortP(arP[l : hi+1])
 
 		if h-lo < S-1 { // lo range small?
-			forSortP(ArP[lo : h+1])
+			forSortP(arP[lo : h+1])
 
 			wgP.Done() // signal finish
 			return      // done with two small ranges
@@ -104,7 +108,7 @@ start:
 	}
 
 	if h-lo < S-1 { // lo range small?
-		forSortP(ArP[lo : h+1])
+		forSortP(arP[lo : h+1])
 	} else {
 		wgP.Add(1)
 		go srtP(lo, h) // two big ranges, handle big lo range in another goroutine

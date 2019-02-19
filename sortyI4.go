@@ -6,7 +6,7 @@ package sorty
 import "sync"
 
 // int32 array to be sorted
-var ArI4 []int32
+var arI4 []int32
 
 func forSortI4(ar []int32) {
 	for h := len(ar) - 1; h > 0; h-- {
@@ -20,29 +20,29 @@ func forSortI4(ar []int32) {
 
 func medianI4(l, h int) int32 {
 	m := int(uint(l+h) >> 1) // avoid overflow
-	vl, pv, vh := ArI4[l], ArI4[m], ArI4[h]
+	vl, pv, vh := arI4[l], arI4[m], arI4[h]
 
-	if vh < vl { // choose pivot as median of ArI4[l,m,h]
+	if vh < vl { // choose pivot as median of arI4[l,m,h]
 		vl, vh = vh, vl
 
 		if pv > vh {
 			vh, pv = pv, vh
-			ArI4[m] = pv
+			arI4[m] = pv
 		} else if pv < vl {
 			vl, pv = pv, vl
-			ArI4[m] = pv
+			arI4[m] = pv
 		}
 
-		ArI4[l], ArI4[h] = vl, vh
+		arI4[l], arI4[h] = vl, vh
 	} else {
 		if pv > vh {
 			vh, pv = pv, vh
-			ArI4[m] = pv
-			ArI4[h] = vh
+			arI4[m] = pv
+			arI4[h] = vh
 		} else if pv < vl {
 			vl, pv = pv, vl
-			ArI4[m] = pv
-			ArI4[l] = vl
+			arI4[m] = pv
+			arI4[l] = vl
 		}
 	}
 
@@ -51,15 +51,19 @@ func medianI4(l, h int) int32 {
 
 var wgI4 sync.WaitGroup
 
-// Concurrently sorts ArI4 of type []int32
-func SortI4() {
-	if len(ArI4) < S {
-		forSortI4(ArI4)
+// Concurrently sorts ar. Should not be called by multiple goroutines at the same time.
+func SortI4(ar []int32) {
+	if len(ar) < S {
+		forSortI4(ar)
 		return
 	}
+	arI4 = ar
+
 	wgI4.Add(1) // count self
-	srtI4(0, len(ArI4)-1)
+	srtI4(0, len(arI4)-1)
 	wgI4.Wait()
+
+	arI4 = nil
 }
 
 // assumes hi-lo >= S-1
@@ -72,11 +76,11 @@ start:
 
 	for l <= h {
 		ct := false
-		if ArI4[h] >= pv { // extend ranges in balance
+		if arI4[h] >= pv { // extend ranges in balance
 			h--
 			ct = true
 		}
-		if ArI4[l] <= pv {
+		if arI4[l] <= pv {
 			l++
 			ct = true
 		}
@@ -84,16 +88,16 @@ start:
 			continue
 		}
 
-		ArI4[l], ArI4[h] = ArI4[h], ArI4[l]
+		arI4[l], arI4[h] = arI4[h], arI4[l]
 		h--
 		l++
 	}
 
 	if hi-l < S-1 { // hi range small?
-		forSortI4(ArI4[l : hi+1])
+		forSortI4(arI4[l : hi+1])
 
 		if h-lo < S-1 { // lo range small?
-			forSortI4(ArI4[lo : h+1])
+			forSortI4(arI4[lo : h+1])
 
 			wgI4.Done() // signal finish
 			return      // done with two small ranges
@@ -104,7 +108,7 @@ start:
 	}
 
 	if h-lo < S-1 { // lo range small?
-		forSortI4(ArI4[lo : h+1])
+		forSortI4(arI4[lo : h+1])
 	} else {
 		wgI4.Add(1)
 		go srtI4(lo, h) // two big ranges, handle big lo range in another goroutine

@@ -6,7 +6,7 @@ package sorty
 import "sync"
 
 // string array to be sorted
-var ArS []string
+var arS []string
 
 func forSortS(ar []string) {
 	for h := len(ar) - 1; h > 0; h-- {
@@ -20,29 +20,29 @@ func forSortS(ar []string) {
 
 func medianS(l, h int) string {
 	m := int(uint(l+h) >> 1) // avoid overflow
-	vl, pv, vh := ArS[l], ArS[m], ArS[h]
+	vl, pv, vh := arS[l], arS[m], arS[h]
 
-	if vh < vl { // choose pivot as median of ArS[l,m,h]
+	if vh < vl { // choose pivot as median of arS[l,m,h]
 		vl, vh = vh, vl
 
 		if pv > vh {
 			vh, pv = pv, vh
-			ArS[m] = pv
+			arS[m] = pv
 		} else if pv < vl {
 			vl, pv = pv, vl
-			ArS[m] = pv
+			arS[m] = pv
 		}
 
-		ArS[l], ArS[h] = vl, vh
+		arS[l], arS[h] = vl, vh
 	} else {
 		if pv > vh {
 			vh, pv = pv, vh
-			ArS[m] = pv
-			ArS[h] = vh
+			arS[m] = pv
+			arS[h] = vh
 		} else if pv < vl {
 			vl, pv = pv, vl
-			ArS[m] = pv
-			ArS[l] = vl
+			arS[m] = pv
+			arS[l] = vl
 		}
 	}
 
@@ -51,15 +51,19 @@ func medianS(l, h int) string {
 
 var wgS sync.WaitGroup
 
-// Concurrently sorts ArS of type []string
-func SortS() {
-	if len(ArS) < S {
-		forSortS(ArS)
+// Concurrently sorts ar. Should not be called by multiple goroutines at the same time.
+func SortS(ar []string) {
+	if len(ar) < S {
+		forSortS(ar)
 		return
 	}
+	arS = ar
+
 	wgS.Add(1) // count self
-	srtS(0, len(ArS)-1)
+	srtS(0, len(arS)-1)
 	wgS.Wait()
+
+	arS = nil
 }
 
 // assumes hi-lo >= S-1
@@ -72,11 +76,11 @@ start:
 
 	for l <= h {
 		ct := false
-		if ArS[h] >= pv { // extend ranges in balance
+		if arS[h] >= pv { // extend ranges in balance
 			h--
 			ct = true
 		}
-		if ArS[l] <= pv {
+		if arS[l] <= pv {
 			l++
 			ct = true
 		}
@@ -84,16 +88,16 @@ start:
 			continue
 		}
 
-		ArS[l], ArS[h] = ArS[h], ArS[l]
+		arS[l], arS[h] = arS[h], arS[l]
 		h--
 		l++
 	}
 
 	if hi-l < S-1 { // hi range small?
-		forSortS(ArS[l : hi+1])
+		forSortS(arS[l : hi+1])
 
 		if h-lo < S-1 { // lo range small?
-			forSortS(ArS[lo : h+1])
+			forSortS(arS[lo : h+1])
 
 			wgS.Done() // signal finish
 			return      // done with two small ranges
@@ -104,7 +108,7 @@ start:
 	}
 
 	if h-lo < S-1 { // lo range small?
-		forSortS(ArS[lo : h+1])
+		forSortS(arS[lo : h+1])
 	} else {
 		wgS.Add(1)
 		go srtS(lo, h) // two big ranges, handle big lo range in another goroutine

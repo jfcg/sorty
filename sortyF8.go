@@ -6,7 +6,7 @@ package sorty
 import "sync"
 
 // float64 array to be sorted
-var ArF8 []float64
+var arF8 []float64
 
 func forSortF8(ar []float64) {
 	for h := len(ar) - 1; h > 0; h-- {
@@ -20,29 +20,29 @@ func forSortF8(ar []float64) {
 
 func medianF8(l, h int) float64 {
 	m := int(uint(l+h) >> 1) // avoid overflow
-	vl, pv, vh := ArF8[l], ArF8[m], ArF8[h]
+	vl, pv, vh := arF8[l], arF8[m], arF8[h]
 
-	if vh < vl { // choose pivot as median of ArF8[l,m,h]
+	if vh < vl { // choose pivot as median of arF8[l,m,h]
 		vl, vh = vh, vl
 
 		if pv > vh {
 			vh, pv = pv, vh
-			ArF8[m] = pv
+			arF8[m] = pv
 		} else if pv < vl {
 			vl, pv = pv, vl
-			ArF8[m] = pv
+			arF8[m] = pv
 		}
 
-		ArF8[l], ArF8[h] = vl, vh
+		arF8[l], arF8[h] = vl, vh
 	} else {
 		if pv > vh {
 			vh, pv = pv, vh
-			ArF8[m] = pv
-			ArF8[h] = vh
+			arF8[m] = pv
+			arF8[h] = vh
 		} else if pv < vl {
 			vl, pv = pv, vl
-			ArF8[m] = pv
-			ArF8[l] = vl
+			arF8[m] = pv
+			arF8[l] = vl
 		}
 	}
 
@@ -51,15 +51,19 @@ func medianF8(l, h int) float64 {
 
 var wgF8 sync.WaitGroup
 
-// Concurrently sorts ArF8 of type []float64
-func SortF8() {
-	if len(ArF8) < S {
-		forSortF8(ArF8)
+// Concurrently sorts ar. Should not be called by multiple goroutines at the same time.
+func SortF8(ar []float64) {
+	if len(ar) < S {
+		forSortF8(ar)
 		return
 	}
+	arF8 = ar
+
 	wgF8.Add(1) // count self
-	srtF8(0, len(ArF8)-1)
+	srtF8(0, len(arF8)-1)
 	wgF8.Wait()
+
+	arF8 = nil
 }
 
 // assumes hi-lo >= S-1
@@ -72,11 +76,11 @@ start:
 
 	for l <= h {
 		ct := false
-		if ArF8[h] >= pv { // extend ranges in balance
+		if arF8[h] >= pv { // extend ranges in balance
 			h--
 			ct = true
 		}
-		if ArF8[l] <= pv {
+		if arF8[l] <= pv {
 			l++
 			ct = true
 		}
@@ -84,16 +88,16 @@ start:
 			continue
 		}
 
-		ArF8[l], ArF8[h] = ArF8[h], ArF8[l]
+		arF8[l], arF8[h] = arF8[h], arF8[l]
 		h--
 		l++
 	}
 
 	if hi-l < S-1 { // hi range small?
-		forSortF8(ArF8[l : hi+1])
+		forSortF8(arF8[l : hi+1])
 
 		if h-lo < S-1 { // lo range small?
-			forSortF8(ArF8[lo : h+1])
+			forSortF8(arF8[lo : h+1])
 
 			wgF8.Done() // signal finish
 			return      // done with two small ranges
@@ -104,7 +108,7 @@ start:
 	}
 
 	if h-lo < S-1 { // lo range small?
-		forSortF8(ArF8[lo : h+1])
+		forSortF8(arF8[lo : h+1])
 	} else {
 		wgF8.Add(1)
 		go srtF8(lo, h) // two big ranges, handle big lo range in another goroutine

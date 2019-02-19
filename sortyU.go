@@ -6,7 +6,7 @@ package sorty
 import "sync"
 
 // uint array to be sorted
-var ArU []uint
+var arU []uint
 
 func forSortU(ar []uint) {
 	for h := len(ar) - 1; h > 0; h-- {
@@ -20,29 +20,29 @@ func forSortU(ar []uint) {
 
 func medianU(l, h int) uint {
 	m := int(uint(l+h) >> 1) // avoid overflow
-	vl, pv, vh := ArU[l], ArU[m], ArU[h]
+	vl, pv, vh := arU[l], arU[m], arU[h]
 
-	if vh < vl { // choose pivot as median of ArU[l,m,h]
+	if vh < vl { // choose pivot as median of arU[l,m,h]
 		vl, vh = vh, vl
 
 		if pv > vh {
 			vh, pv = pv, vh
-			ArU[m] = pv
+			arU[m] = pv
 		} else if pv < vl {
 			vl, pv = pv, vl
-			ArU[m] = pv
+			arU[m] = pv
 		}
 
-		ArU[l], ArU[h] = vl, vh
+		arU[l], arU[h] = vl, vh
 	} else {
 		if pv > vh {
 			vh, pv = pv, vh
-			ArU[m] = pv
-			ArU[h] = vh
+			arU[m] = pv
+			arU[h] = vh
 		} else if pv < vl {
 			vl, pv = pv, vl
-			ArU[m] = pv
-			ArU[l] = vl
+			arU[m] = pv
+			arU[l] = vl
 		}
 	}
 
@@ -51,15 +51,19 @@ func medianU(l, h int) uint {
 
 var wgU sync.WaitGroup
 
-// Concurrently sorts ArU of type []uint
-func SortU() {
-	if len(ArU) < S {
-		forSortU(ArU)
+// Concurrently sorts ar. Should not be called by multiple goroutines at the same time.
+func SortU(ar []uint) {
+	if len(ar) < S {
+		forSortU(ar)
 		return
 	}
+	arU = ar
+
 	wgU.Add(1) // count self
-	srtU(0, len(ArU)-1)
+	srtU(0, len(arU)-1)
 	wgU.Wait()
+
+	arU = nil
 }
 
 // assumes hi-lo >= S-1
@@ -72,11 +76,11 @@ start:
 
 	for l <= h {
 		ct := false
-		if ArU[h] >= pv { // extend ranges in balance
+		if arU[h] >= pv { // extend ranges in balance
 			h--
 			ct = true
 		}
-		if ArU[l] <= pv {
+		if arU[l] <= pv {
 			l++
 			ct = true
 		}
@@ -84,16 +88,16 @@ start:
 			continue
 		}
 
-		ArU[l], ArU[h] = ArU[h], ArU[l]
+		arU[l], arU[h] = arU[h], arU[l]
 		h--
 		l++
 	}
 
 	if hi-l < S-1 { // hi range small?
-		forSortU(ArU[l : hi+1])
+		forSortU(arU[l : hi+1])
 
 		if h-lo < S-1 { // lo range small?
-			forSortU(ArU[lo : h+1])
+			forSortU(arU[lo : h+1])
 
 			wgU.Done() // signal finish
 			return      // done with two small ranges
@@ -104,7 +108,7 @@ start:
 	}
 
 	if h-lo < S-1 { // lo range small?
-		forSortU(ArU[lo : h+1])
+		forSortU(arU[lo : h+1])
 	} else {
 		wgU.Add(1)
 		go srtU(lo, h) // two big ranges, handle big lo range in another goroutine

@@ -6,7 +6,7 @@ package sorty
 import "sync"
 
 // uint64 array to be sorted
-var ArU8 []uint64
+var arU8 []uint64
 
 func forSortU8(ar []uint64) {
 	for h := len(ar) - 1; h > 0; h-- {
@@ -20,29 +20,29 @@ func forSortU8(ar []uint64) {
 
 func medianU8(l, h int) uint64 {
 	m := int(uint(l+h) >> 1) // avoid overflow
-	vl, pv, vh := ArU8[l], ArU8[m], ArU8[h]
+	vl, pv, vh := arU8[l], arU8[m], arU8[h]
 
-	if vh < vl { // choose pivot as median of ArU8[l,m,h]
+	if vh < vl { // choose pivot as median of arU8[l,m,h]
 		vl, vh = vh, vl
 
 		if pv > vh {
 			vh, pv = pv, vh
-			ArU8[m] = pv
+			arU8[m] = pv
 		} else if pv < vl {
 			vl, pv = pv, vl
-			ArU8[m] = pv
+			arU8[m] = pv
 		}
 
-		ArU8[l], ArU8[h] = vl, vh
+		arU8[l], arU8[h] = vl, vh
 	} else {
 		if pv > vh {
 			vh, pv = pv, vh
-			ArU8[m] = pv
-			ArU8[h] = vh
+			arU8[m] = pv
+			arU8[h] = vh
 		} else if pv < vl {
 			vl, pv = pv, vl
-			ArU8[m] = pv
-			ArU8[l] = vl
+			arU8[m] = pv
+			arU8[l] = vl
 		}
 	}
 
@@ -51,15 +51,19 @@ func medianU8(l, h int) uint64 {
 
 var wgU8 sync.WaitGroup
 
-// Concurrently sorts ArU8 of type []uint64
-func SortU8() {
-	if len(ArU8) < S {
-		forSortU8(ArU8)
+// Concurrently sorts ar. Should not be called by multiple goroutines at the same time.
+func SortU8(ar []uint64) {
+	if len(ar) < S {
+		forSortU8(ar)
 		return
 	}
+	arU8 = ar
+
 	wgU8.Add(1) // count self
-	srtU8(0, len(ArU8)-1)
+	srtU8(0, len(arU8)-1)
 	wgU8.Wait()
+
+	arU8 = nil
 }
 
 // assumes hi-lo >= S-1
@@ -72,11 +76,11 @@ start:
 
 	for l <= h {
 		ct := false
-		if ArU8[h] >= pv { // extend ranges in balance
+		if arU8[h] >= pv { // extend ranges in balance
 			h--
 			ct = true
 		}
-		if ArU8[l] <= pv {
+		if arU8[l] <= pv {
 			l++
 			ct = true
 		}
@@ -84,16 +88,16 @@ start:
 			continue
 		}
 
-		ArU8[l], ArU8[h] = ArU8[h], ArU8[l]
+		arU8[l], arU8[h] = arU8[h], arU8[l]
 		h--
 		l++
 	}
 
 	if hi-l < S-1 { // hi range small?
-		forSortU8(ArU8[l : hi+1])
+		forSortU8(arU8[l : hi+1])
 
 		if h-lo < S-1 { // lo range small?
-			forSortU8(ArU8[lo : h+1])
+			forSortU8(arU8[lo : h+1])
 
 			wgU8.Done() // signal finish
 			return      // done with two small ranges
@@ -104,7 +108,7 @@ start:
 	}
 
 	if h-lo < S-1 { // lo range small?
-		forSortU8(ArU8[lo : h+1])
+		forSortU8(arU8[lo : h+1])
 	} else {
 		wgU8.Add(1)
 		go srtU8(lo, h) // two big ranges, handle big lo range in another goroutine

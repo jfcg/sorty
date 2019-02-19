@@ -6,7 +6,7 @@ package sorty
 import "sync"
 
 // int array to be sorted
-var ArI []int
+var arI []int
 
 func forSortI(ar []int) {
 	for h := len(ar) - 1; h > 0; h-- {
@@ -20,29 +20,29 @@ func forSortI(ar []int) {
 
 func medianI(l, h int) int {
 	m := int(uint(l+h) >> 1) // avoid overflow
-	vl, pv, vh := ArI[l], ArI[m], ArI[h]
+	vl, pv, vh := arI[l], arI[m], arI[h]
 
-	if vh < vl { // choose pivot as median of ArI[l,m,h]
+	if vh < vl { // choose pivot as median of arI[l,m,h]
 		vl, vh = vh, vl
 
 		if pv > vh {
 			vh, pv = pv, vh
-			ArI[m] = pv
+			arI[m] = pv
 		} else if pv < vl {
 			vl, pv = pv, vl
-			ArI[m] = pv
+			arI[m] = pv
 		}
 
-		ArI[l], ArI[h] = vl, vh
+		arI[l], arI[h] = vl, vh
 	} else {
 		if pv > vh {
 			vh, pv = pv, vh
-			ArI[m] = pv
-			ArI[h] = vh
+			arI[m] = pv
+			arI[h] = vh
 		} else if pv < vl {
 			vl, pv = pv, vl
-			ArI[m] = pv
-			ArI[l] = vl
+			arI[m] = pv
+			arI[l] = vl
 		}
 	}
 
@@ -51,15 +51,19 @@ func medianI(l, h int) int {
 
 var wgI sync.WaitGroup
 
-// Concurrently sorts ArI of type []int
-func SortI() {
-	if len(ArI) < S {
-		forSortI(ArI)
+// Concurrently sorts ar. Should not be called by multiple goroutines at the same time.
+func SortI(ar []int) {
+	if len(ar) < S {
+		forSortI(ar)
 		return
 	}
+	arI = ar
+
 	wgI.Add(1) // count self
-	srtI(0, len(ArI)-1)
+	srtI(0, len(arI)-1)
 	wgI.Wait()
+
+	arI = nil
 }
 
 // assumes hi-lo >= S-1
@@ -72,11 +76,11 @@ start:
 
 	for l <= h {
 		ct := false
-		if ArI[h] >= pv { // extend ranges in balance
+		if arI[h] >= pv { // extend ranges in balance
 			h--
 			ct = true
 		}
-		if ArI[l] <= pv {
+		if arI[l] <= pv {
 			l++
 			ct = true
 		}
@@ -84,16 +88,16 @@ start:
 			continue
 		}
 
-		ArI[l], ArI[h] = ArI[h], ArI[l]
+		arI[l], arI[h] = arI[h], arI[l]
 		h--
 		l++
 	}
 
 	if hi-l < S-1 { // hi range small?
-		forSortI(ArI[l : hi+1])
+		forSortI(arI[l : hi+1])
 
 		if h-lo < S-1 { // lo range small?
-			forSortI(ArI[lo : h+1])
+			forSortI(arI[lo : h+1])
 
 			wgI.Done() // signal finish
 			return      // done with two small ranges
@@ -104,7 +108,7 @@ start:
 	}
 
 	if h-lo < S-1 { // lo range small?
-		forSortI(ArI[lo : h+1])
+		forSortI(arI[lo : h+1])
 	} else {
 		wgI.Add(1)
 		go srtI(lo, h) // two big ranges, handle big lo range in another goroutine

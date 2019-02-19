@@ -6,7 +6,7 @@ package sorty
 import "sync"
 
 // float32 array to be sorted
-var ArF4 []float32
+var arF4 []float32
 
 func forSortF4(ar []float32) {
 	for h := len(ar) - 1; h > 0; h-- {
@@ -20,29 +20,29 @@ func forSortF4(ar []float32) {
 
 func medianF4(l, h int) float32 {
 	m := int(uint(l+h) >> 1) // avoid overflow
-	vl, pv, vh := ArF4[l], ArF4[m], ArF4[h]
+	vl, pv, vh := arF4[l], arF4[m], arF4[h]
 
-	if vh < vl { // choose pivot as median of ArF4[l,m,h]
+	if vh < vl { // choose pivot as median of arF4[l,m,h]
 		vl, vh = vh, vl
 
 		if pv > vh {
 			vh, pv = pv, vh
-			ArF4[m] = pv
+			arF4[m] = pv
 		} else if pv < vl {
 			vl, pv = pv, vl
-			ArF4[m] = pv
+			arF4[m] = pv
 		}
 
-		ArF4[l], ArF4[h] = vl, vh
+		arF4[l], arF4[h] = vl, vh
 	} else {
 		if pv > vh {
 			vh, pv = pv, vh
-			ArF4[m] = pv
-			ArF4[h] = vh
+			arF4[m] = pv
+			arF4[h] = vh
 		} else if pv < vl {
 			vl, pv = pv, vl
-			ArF4[m] = pv
-			ArF4[l] = vl
+			arF4[m] = pv
+			arF4[l] = vl
 		}
 	}
 
@@ -51,15 +51,19 @@ func medianF4(l, h int) float32 {
 
 var wgF4 sync.WaitGroup
 
-// Concurrently sorts ArF4 of type []float32
-func SortF4() {
-	if len(ArF4) < S {
-		forSortF4(ArF4)
+// Concurrently sorts ar. Should not be called by multiple goroutines at the same time.
+func SortF4(ar []float32) {
+	if len(ar) < S {
+		forSortF4(ar)
 		return
 	}
+	arF4 = ar
+
 	wgF4.Add(1) // count self
-	srtF4(0, len(ArF4)-1)
+	srtF4(0, len(arF4)-1)
 	wgF4.Wait()
+
+	arF4 = nil
 }
 
 // assumes hi-lo >= S-1
@@ -72,11 +76,11 @@ start:
 
 	for l <= h {
 		ct := false
-		if ArF4[h] >= pv { // extend ranges in balance
+		if arF4[h] >= pv { // extend ranges in balance
 			h--
 			ct = true
 		}
-		if ArF4[l] <= pv {
+		if arF4[l] <= pv {
 			l++
 			ct = true
 		}
@@ -84,16 +88,16 @@ start:
 			continue
 		}
 
-		ArF4[l], ArF4[h] = ArF4[h], ArF4[l]
+		arF4[l], arF4[h] = arF4[h], arF4[l]
 		h--
 		l++
 	}
 
 	if hi-l < S-1 { // hi range small?
-		forSortF4(ArF4[l : hi+1])
+		forSortF4(arF4[l : hi+1])
 
 		if h-lo < S-1 { // lo range small?
-			forSortF4(ArF4[lo : h+1])
+			forSortF4(arF4[lo : h+1])
 
 			wgF4.Done() // signal finish
 			return      // done with two small ranges
@@ -104,7 +108,7 @@ start:
 	}
 
 	if h-lo < S-1 { // lo range small?
-		forSortF4(ArF4[lo : h+1])
+		forSortF4(arF4[lo : h+1])
 	} else {
 		wgF4.Add(1)
 		go srtF4(lo, h) // two big ranges, handle big lo range in another goroutine
