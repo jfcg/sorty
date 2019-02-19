@@ -90,16 +90,13 @@ start:
 	}
 
 	if hi-l < S-1 { // hi range small?
-		if hi > l {
-			forSortP(ArP[l : hi+1])
-		}
+		forSortP(ArP[l : hi+1])
 
 		if h-lo < S-1 { // lo range small?
-			if h > lo {
-				forSortP(ArP[lo : h+1])
-			}
+			forSortP(ArP[lo : h+1])
+
 			wgP.Done() // signal finish
-			return    // done with two small ranges
+			return      // done with two small ranges
 		}
 
 		hi = h // continue with big lo range
@@ -107,9 +104,7 @@ start:
 	}
 
 	if h-lo < S-1 { // lo range small?
-		if h > lo {
-			forSortP(ArP[lo : h+1])
-		}
+		forSortP(ArP[lo : h+1])
 	} else {
 		wgP.Add(1)
 		go srtP(lo, h) // two big ranges, handle big lo range in another goroutine

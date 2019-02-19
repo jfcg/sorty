@@ -90,16 +90,13 @@ start:
 	}
 
 	if hi-l < S-1 { // hi range small?
-		if hi > l {
-			forSortU(ArU[l : hi+1])
-		}
+		forSortU(ArU[l : hi+1])
 
 		if h-lo < S-1 { // lo range small?
-			if h > lo {
-				forSortU(ArU[lo : h+1])
-			}
+			forSortU(ArU[lo : h+1])
+
 			wgU.Done() // signal finish
-			return    // done with two small ranges
+			return      // done with two small ranges
 		}
 
 		hi = h // continue with big lo range
@@ -107,9 +104,7 @@ start:
 	}
 
 	if h-lo < S-1 { // lo range small?
-		if h > lo {
-			forSortU(ArU[lo : h+1])
-		}
+		forSortU(ArU[lo : h+1])
 	} else {
 		wgU.Add(1)
 		go srtU(lo, h) // two big ranges, handle big lo range in another goroutine

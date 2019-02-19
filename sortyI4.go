@@ -90,16 +90,13 @@ start:
 	}
 
 	if hi-l < S-1 { // hi range small?
-		if hi > l {
-			forSortI4(ArI4[l : hi+1])
-		}
+		forSortI4(ArI4[l : hi+1])
 
 		if h-lo < S-1 { // lo range small?
-			if h > lo {
-				forSortI4(ArI4[lo : h+1])
-			}
+			forSortI4(ArI4[lo : h+1])
+
 			wgI4.Done() // signal finish
-			return    // done with two small ranges
+			return      // done with two small ranges
 		}
 
 		hi = h // continue with big lo range
@@ -107,9 +104,7 @@ start:
 	}
 
 	if h-lo < S-1 { // lo range small?
-		if h > lo {
-			forSortI4(ArI4[lo : h+1])
-		}
+		forSortI4(ArI4[lo : h+1])
 	} else {
 		wgI4.Add(1)
 		go srtI4(lo, h) // two big ranges, handle big lo range in another goroutine
