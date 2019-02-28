@@ -8,6 +8,16 @@ import "sync"
 // uint32 array to be sorted
 var arU4 []uint32
 
+// Checks if ar is sorted in ascending order.
+func IsSortedU4(ar []uint32) bool {
+	for i := len(ar) - 1; i > 0; i-- {
+		if ar[i] < ar[i-1] {
+			return false
+		}
+	}
+	return true
+}
+
 func forSortU4(ar []uint32) {
 	for h := len(ar) - 1; h > 0; h-- {
 		for l := h - 1; l >= 0; l-- {
@@ -51,7 +61,7 @@ func medianU4(l, h int) uint32 {
 
 var wgU4 sync.WaitGroup
 
-// Concurrently sorts ar. Should not be called by multiple goroutines at the same time.
+// Concurrently sorts ar in ascending order. Should not be called by multiple goroutines at the same time.
 func SortU4(ar []uint32) {
 	if len(ar) < S {
 		forSortU4(ar)

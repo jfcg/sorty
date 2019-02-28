@@ -31,22 +31,6 @@ func fill2(ar []float32) {
 	}
 }
 
-func isSorted(name string, ar []uint32) {
-	for i := len(ar) - 1; i > 0; i-- {
-		if ar[i] < ar[i-1] {
-			tst.Fatal(name, "not sorted:", i, ar[i], ar[i-1])
-		}
-	}
-}
-
-func isSorted2(name string, ar []float32) {
-	for i := len(ar) - 1; i > 0; i-- {
-		if ar[i] < ar[i-1] {
-			tst.Fatal(name, "not sorted:", i, ar[i], ar[i-1])
-		}
-	}
-}
-
 // allocate fill sort test
 func afst(name string, srt func([]uint32)) []uint32 {
 	ar := make([]uint32, N)
@@ -57,7 +41,9 @@ func afst(name string, srt func([]uint32)) []uint32 {
 	dur := time.Now().Sub(now)
 	fmt.Println(name, "took", dur)
 
-	isSorted(name, ar)
+	if !IsSortedU4(ar) {
+		tst.Fatal(name, "not sorted")
+	}
 	return ar
 }
 
@@ -71,7 +57,9 @@ func afst2(name string, srt func([]float32)) []float32 {
 	dur := time.Now().Sub(now)
 	fmt.Println(name, "took", dur)
 
-	isSorted2(name, ar)
+	if !IsSortedF4(ar) {
+		tst.Fatal(name, "not sorted")
+	}
 	return ar
 }
 

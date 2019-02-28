@@ -8,6 +8,16 @@ import "sync"
 // uintptr array to be sorted
 var arP []uintptr
 
+// Checks if ar is sorted in ascending order.
+func IsSortedP(ar []uintptr) bool {
+	for i := len(ar) - 1; i > 0; i-- {
+		if ar[i] < ar[i-1] {
+			return false
+		}
+	}
+	return true
+}
+
 func forSortP(ar []uintptr) {
 	for h := len(ar) - 1; h > 0; h-- {
 		for l := h - 1; l >= 0; l-- {
@@ -51,7 +61,7 @@ func medianP(l, h int) uintptr {
 
 var wgP sync.WaitGroup
 
-// Concurrently sorts ar. Should not be called by multiple goroutines at the same time.
+// Concurrently sorts ar in ascending order. Should not be called by multiple goroutines at the same time.
 func SortP(ar []uintptr) {
 	if len(ar) < S {
 		forSortP(ar)

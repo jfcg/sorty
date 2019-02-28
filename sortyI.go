@@ -8,6 +8,16 @@ import "sync"
 // int array to be sorted
 var arI []int
 
+// Checks if ar is sorted in ascending order.
+func IsSortedI(ar []int) bool {
+	for i := len(ar) - 1; i > 0; i-- {
+		if ar[i] < ar[i-1] {
+			return false
+		}
+	}
+	return true
+}
+
 func forSortI(ar []int) {
 	for h := len(ar) - 1; h > 0; h-- {
 		for l := h - 1; l >= 0; l-- {
@@ -51,7 +61,7 @@ func medianI(l, h int) int {
 
 var wgI sync.WaitGroup
 
-// Concurrently sorts ar. Should not be called by multiple goroutines at the same time.
+// Concurrently sorts ar in ascending order. Should not be called by multiple goroutines at the same time.
 func SortI(ar []int) {
 	if len(ar) < S {
 		forSortI(ar)
