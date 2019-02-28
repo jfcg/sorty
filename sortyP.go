@@ -75,22 +75,21 @@ start:
 	l, h = lo+1, hi-1 // medianP handles lo,hi positions
 
 	for l <= h {
-		ct := false
+		swap := true
 		if arP[h] >= pv { // extend ranges in balance
 			h--
-			ct = true
+			swap = false
 		}
 		if arP[l] <= pv {
 			l++
-			ct = true
-		}
-		if ct {
-			continue
+			swap = false
 		}
 
-		arP[l], arP[h] = arP[h], arP[l]
-		h--
-		l++
+		if swap {
+			arP[l], arP[h] = arP[h], arP[l]
+			h--
+			l++
+		}
 	}
 
 	if hi-l < S-1 { // hi range small?

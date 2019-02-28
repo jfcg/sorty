@@ -75,22 +75,21 @@ start:
 	l, h = lo+1, hi-1 // medianS handles lo,hi positions
 
 	for l <= h {
-		ct := false
+		swap := true
 		if arS[h] >= pv { // extend ranges in balance
 			h--
-			ct = true
+			swap = false
 		}
 		if arS[l] <= pv {
 			l++
-			ct = true
-		}
-		if ct {
-			continue
+			swap = false
 		}
 
-		arS[l], arS[h] = arS[h], arS[l]
-		h--
-		l++
+		if swap {
+			arS[l], arS[h] = arS[h], arS[l]
+			h--
+			l++
+		}
 	}
 
 	if hi-l < S-1 { // hi range small?

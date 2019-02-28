@@ -75,22 +75,21 @@ start:
 	l, h = lo+1, hi-1 // medianF4 handles lo,hi positions
 
 	for l <= h {
-		ct := false
+		swap := true
 		if arF4[h] >= pv { // extend ranges in balance
 			h--
-			ct = true
+			swap = false
 		}
 		if arF4[l] <= pv {
 			l++
-			ct = true
-		}
-		if ct {
-			continue
+			swap = false
 		}
 
-		arF4[l], arF4[h] = arF4[h], arF4[l]
-		h--
-		l++
+		if swap {
+			arF4[l], arF4[h] = arF4[h], arF4[l]
+			h--
+			l++
+		}
 	}
 
 	if hi-l < S-1 { // hi range small?

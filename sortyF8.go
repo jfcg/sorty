@@ -75,22 +75,21 @@ start:
 	l, h = lo+1, hi-1 // medianF8 handles lo,hi positions
 
 	for l <= h {
-		ct := false
+		swap := true
 		if arF8[h] >= pv { // extend ranges in balance
 			h--
-			ct = true
+			swap = false
 		}
 		if arF8[l] <= pv {
 			l++
-			ct = true
-		}
-		if ct {
-			continue
+			swap = false
 		}
 
-		arF8[l], arF8[h] = arF8[h], arF8[l]
-		h--
-		l++
+		if swap {
+			arF8[l], arF8[h] = arF8[h], arF8[l]
+			h--
+			l++
+		}
 	}
 
 	if hi-l < S-1 { // hi range small?

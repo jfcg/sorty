@@ -75,22 +75,21 @@ start:
 	l, h = lo+1, hi-1 // medianI4 handles lo,hi positions
 
 	for l <= h {
-		ct := false
+		swap := true
 		if arI4[h] >= pv { // extend ranges in balance
 			h--
-			ct = true
+			swap = false
 		}
 		if arI4[l] <= pv {
 			l++
-			ct = true
-		}
-		if ct {
-			continue
+			swap = false
 		}
 
-		arI4[l], arI4[h] = arI4[h], arI4[l]
-		h--
-		l++
+		if swap {
+			arI4[l], arI4[h] = arI4[h], arI4[l]
+			h--
+			l++
+		}
 	}
 
 	if hi-l < S-1 { // hi range small?

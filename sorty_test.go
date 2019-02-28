@@ -5,6 +5,7 @@ package sorty
 
 import (
 	"fmt"
+	"github.com/shawnsmithdev/zermelo"
 	"github.com/twotwotwo/sorts/sortutil"
 	"math/rand"
 	"sort"
@@ -62,6 +63,8 @@ func Test1(t *testing.T) {
 	ar := afst("sort.Slice", func(ar []uint32) { sort.Slice(ar, func(i, k int) bool { return ar[i] < ar[k] }) })
 
 	ap := afst("sortutil", sortutil.Uint32s)
+	compare(ap, ar)
+	ap = afst("zermelo", func(ar []uint32) { zermelo.Sort(ar) })
 	compare(ap, ar)
 	ap = afst("sorty", SortU4)
 	compare(ap, ar)
