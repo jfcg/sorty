@@ -1,9 +1,9 @@
-// Type-specific concurrent sorting library
+// Package sorty provides type-specific concurrent sorting functionality
 //
 // Call corresponding Sort*() to sort your slice in ascending order. For example:
-//  sorty.SortS(your_string_slice)
-// A Sort*() function should not be called by multiple goroutines at the same time. There is no limit on the number of goroutines to be created (could be many thousands depending on data), though sorty does it sparingly.
+//  sorty.SortS(your_string_slice, mx)
+// A Sort*() function should not be called by multiple goroutines at the same time. mx is the maximum number of goroutines used for sorting simultaneously.
 package sorty
 
-// Minimum array size for Quick Sort*()
+// S is the minimum array size for Quick Sort*()
 const S = 25

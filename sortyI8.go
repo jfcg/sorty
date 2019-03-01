@@ -3,12 +3,12 @@ package sorty
 // Concurrent Sorting
 // Author: Serhat Şevki Dinçer, jfcgaussATgmail
 
-import "sync"
+import "sync/atomic"
 
 // int64 array to be sorted
 var arI8 []int64
 
-// Checks if ar is sorted in ascending order.
+// IsSortedI8 checks if ar is sorted in ascending order.
 func IsSortedI8(ar []int64) bool {
 	for i := len(ar) - 1; i > 0; i-- {
 		if ar[i] < ar[i-1] {
@@ -59,19 +59,29 @@ func medianI8(l, h int) int64 {
 	return pv
 }
 
-var wgI8 sync.WaitGroup
+var ngI8, mxI8 int32 // number of sorting goroutines, max limit
+var doneI8 = make(chan bool, 1)
 
-// Concurrently sorts ar in ascending order. Should not be called by multiple goroutines at the same time.
-func SortI8(ar []int64) {
+// SortI8 concurrently sorts ar in ascending order. Should not be called by multiple goroutines at the same time.
+// mx is the maximum number of goroutines used for sorting, saturated to [2, 65536].
+func SortI8(ar []int64, mx int32) {
 	if len(ar) < S {
 		forSortI8(ar)
 		return
 	}
+
+	if mx < 2 { // 2..65536 goroutines
+		mxI8 = 2
+	} else if mx > 65536 {
+		mxI8 = 65536
+	} else {
+		mxI8 = mx
+	}
 	arI8 = ar
 
-	wgI8.Add(1) // count self
+	ngI8 = 1 // count self
 	srtI8(0, len(arI8)-1)
-	wgI8.Wait()
+	<-doneI8
 
 	arI8 = nil
 }
@@ -80,6 +90,13 @@ func SortI8(ar []int64) {
 func srtI8(lo, hi int) {
 	var l, h int
 	var pv int64
+
+	dec := true
+	if hi < 0 { // negative hi indice means this is a recursive (slave) call
+		dec = false // will not decrease counter
+		hi = -hi
+	}
+
 start:
 	pv = medianI8(lo, hi)
 	l, h = lo+1, hi-1 // medianI8 handles lo,hi positions
@@ -108,8 +125,10 @@ start:
 		if h-lo < S-1 { // lo range small?
 			forSortI8(arI8[lo : h+1])
 
-			wgI8.Done() // signal finish
-			return      // done with two small ranges
+			if dec && atomic.AddInt32(&ngI8, -1) == 0 { // decrease goroutine counter
+				doneI8 <- false // we are the last, all done
+			}
+			return // done with two small ranges
 		}
 
 		hi = h // continue with big lo range
@@ -118,9 +137,17 @@ start:
 
 	if h-lo < S-1 { // lo range small?
 		forSortI8(arI8[lo : h+1])
+
+	} else if ngI8 < mxI8 { // start a goroutine? not atomic but good enough
+		atomic.AddInt32(&ngI8, 1) // increase goroutine counter
+		go srtI8(lo, h)           // two big ranges, handle big lo range in another goroutine
+
+	} else if h-lo < hi-l { // on the shorter range..
+		srtI8(lo, -h) // ..start a recursive (slave) sort
 	} else {
-		wgI8.Add(1)
-		go srtI8(lo, h) // two big ranges, handle big lo range in another goroutine
+		srtI8(l, -hi)
+		hi = h
+		goto start
 	}
 
 	lo = l // continue with big hi range

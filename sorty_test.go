@@ -87,6 +87,8 @@ func compare2(ap, ar []float32) {
 	}
 }
 
+var name = []byte("sorty-00")
+
 func Test1(t *testing.T) {
 	tst = t
 	fmt.Println("Sorting uint32")
@@ -96,8 +98,14 @@ func Test1(t *testing.T) {
 	compare(ap, ar)
 	ap = afst("zermelo", func(ar []uint32) { zermelo.Sort(ar) })
 	compare(ap, ar)
-	ap = afst("sorty", SortU4)
-	compare(ap, ar)
+
+	for i := 2; i <= 16; i *= 2 {
+		name[6] = byte(i/10) + '0'
+		name[7] = byte(i%10) + '0'
+		ap = afst(string(name), func(ar []uint32) { SortU4(ar, int32(i)) })
+		compare(ap, ar)
+	}
+	fmt.Println()
 }
 
 func Test2(t *testing.T) {
@@ -109,6 +117,12 @@ func Test2(t *testing.T) {
 	compare2(ap, ar)
 	ap = afst2("zermelo", func(ar []float32) { zermelo.Sort(ar) })
 	compare2(ap, ar)
-	ap = afst2("sorty", SortF4)
-	compare2(ap, ar)
+
+	for i := 2; i <= 16; i *= 2 {
+		name[6] = byte(i/10) + '0'
+		name[7] = byte(i%10) + '0'
+		ap = afst2(string(name), func(ar []float32) { SortF4(ar, int32(i)) })
+		compare2(ap, ar)
+	}
+	fmt.Println()
 }

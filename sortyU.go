@@ -3,12 +3,12 @@ package sorty
 // Concurrent Sorting
 // Author: Serhat Şevki Dinçer, jfcgaussATgmail
 
-import "sync"
+import "sync/atomic"
 
 // uint array to be sorted
 var arU []uint
 
-// Checks if ar is sorted in ascending order.
+// IsSortedU checks if ar is sorted in ascending order.
 func IsSortedU(ar []uint) bool {
 	for i := len(ar) - 1; i > 0; i-- {
 		if ar[i] < ar[i-1] {
@@ -59,19 +59,29 @@ func medianU(l, h int) uint {
 	return pv
 }
 
-var wgU sync.WaitGroup
+var ngU, mxU int32 // number of sorting goroutines, max limit
+var doneU = make(chan bool, 1)
 
-// Concurrently sorts ar in ascending order. Should not be called by multiple goroutines at the same time.
-func SortU(ar []uint) {
+// SortU concurrently sorts ar in ascending order. Should not be called by multiple goroutines at the same time.
+// mx is the maximum number of goroutines used for sorting, saturated to [2, 65536].
+func SortU(ar []uint, mx int32) {
 	if len(ar) < S {
 		forSortU(ar)
 		return
 	}
+
+	if mx < 2 { // 2..65536 goroutines
+		mxU = 2
+	} else if mx > 65536 {
+		mxU = 65536
+	} else {
+		mxU = mx
+	}
 	arU = ar
 
-	wgU.Add(1) // count self
+	ngU = 1 // count self
 	srtU(0, len(arU)-1)
-	wgU.Wait()
+	<-doneU
 
 	arU = nil
 }
@@ -80,6 +90,13 @@ func SortU(ar []uint) {
 func srtU(lo, hi int) {
 	var l, h int
 	var pv uint
+
+	dec := true
+	if hi < 0 { // negative hi indice means this is a recursive (slave) call
+		dec = false // will not decrease counter
+		hi = -hi
+	}
+
 start:
 	pv = medianU(lo, hi)
 	l, h = lo+1, hi-1 // medianU handles lo,hi positions
@@ -108,8 +125,10 @@ start:
 		if h-lo < S-1 { // lo range small?
 			forSortU(arU[lo : h+1])
 
-			wgU.Done() // signal finish
-			return      // done with two small ranges
+			if dec && atomic.AddInt32(&ngU, -1) == 0 { // decrease goroutine counter
+				doneU <- false // we are the last, all done
+			}
+			return // done with two small ranges
 		}
 
 		hi = h // continue with big lo range
@@ -118,9 +137,17 @@ start:
 
 	if h-lo < S-1 { // lo range small?
 		forSortU(arU[lo : h+1])
+
+	} else if ngU < mxU { // start a goroutine? not atomic but good enough
+		atomic.AddInt32(&ngU, 1) // increase goroutine counter
+		go srtU(lo, h)           // two big ranges, handle big lo range in another goroutine
+
+	} else if h-lo < hi-l { // on the shorter range..
+		srtU(lo, -h) // ..start a recursive (slave) sort
 	} else {
-		wgU.Add(1)
-		go srtU(lo, h) // two big ranges, handle big lo range in another goroutine
+		srtU(l, -hi)
+		hi = h
+		goto start
 	}
 
 	lo = l // continue with big hi range
