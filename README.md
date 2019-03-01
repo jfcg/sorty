@@ -1,4 +1,4 @@
-## sorty
+## sorty [![Go Report Card](https://goreportcard.com/badge/github.com/jfcg/sorty)](https://goreportcard.com/report/github.com/jfcg/sorty)
 Type-specific concurrent sorting library
 
 Call corresponding Sort\*() to sort your slice in ascending order. For example:
