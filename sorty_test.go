@@ -31,15 +31,28 @@ func fill2(ar []float32) {
 	}
 }
 
+// fill sort
+func fs(ar []uint32, srt func([]uint32)) time.Duration {
+	fill(ar)
+	now := time.Now()
+	srt(ar)
+	return time.Now().Sub(now)
+}
+
+// fill sort
+func fs2(ar []float32, srt func([]float32)) time.Duration {
+	fill2(ar)
+	now := time.Now()
+	srt(ar)
+	return time.Now().Sub(now)
+}
+
 // allocate fill sort test
 func afst(name string, srt func([]uint32)) []uint32 {
 	ar := make([]uint32, N)
-	fill(ar)
-
-	now := time.Now()
-	srt(ar)
-	dur := time.Now().Sub(now)
-	fmt.Println(name, "took", dur)
+	dur := fs(ar, srt)
+	dur = (fs(ar, srt) + dur) / 2 // take average of two sorts
+	fmt.Printf("%s took %.1fs\n", name, dur.Seconds())
 
 	if !IsSortedU4(ar) {
 		tst.Fatal(name, "not sorted")
@@ -50,12 +63,9 @@ func afst(name string, srt func([]uint32)) []uint32 {
 // allocate fill sort test
 func afst2(name string, srt func([]float32)) []float32 {
 	ar := make([]float32, N)
-	fill2(ar)
-
-	now := time.Now()
-	srt(ar)
-	dur := time.Now().Sub(now)
-	fmt.Println(name, "took", dur)
+	dur := fs2(ar, srt)
+	dur = (fs2(ar, srt) + dur) / 2 // take average of two sorts
+	fmt.Printf("%s took %.1fs\n", name, dur.Seconds())
 
 	if !IsSortedF4(ar) {
 		tst.Fatal(name, "not sorted")
@@ -102,7 +112,7 @@ func Test1(t *testing.T) {
 	for i := 2; i <= 16; i *= 2 {
 		name[6] = byte(i/10) + '0'
 		name[7] = byte(i%10) + '0'
-		ap = afst(string(name), func(ar []uint32) { SortU4(ar, int32(i)) })
+		ap = afst(string(name), func(ar []uint32) { SortU4(ar, uint32(i)) })
 		compare(ap, ar)
 	}
 	fmt.Println()
@@ -121,7 +131,7 @@ func Test2(t *testing.T) {
 	for i := 2; i <= 16; i *= 2 {
 		name[6] = byte(i/10) + '0'
 		name[7] = byte(i%10) + '0'
-		ap = afst2(string(name), func(ar []float32) { SortF4(ar, int32(i)) })
+		ap = afst2(string(name), func(ar []float32) { SortF4(ar, uint32(i)) })
 		compare2(ap, ar)
 	}
 	fmt.Println()
