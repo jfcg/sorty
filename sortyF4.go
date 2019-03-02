@@ -59,12 +59,12 @@ func medianF4(l, h int) float32 {
 	return pv
 }
 
-var ngF4, mxF4 int32 // number of sorting goroutines, max limit
+var ngF4, mxF4 uint32 // number of sorting goroutines, max limit
 var doneF4 = make(chan bool, 1)
 
 // SortF4 concurrently sorts ar in ascending order. Should not be called by multiple goroutines at the same time.
 // mx is the maximum number of goroutines used for sorting, saturated to [2, 65536].
-func SortF4(ar []float32, mx int32) {
+func SortF4(ar []float32, mx uint32) {
 	if len(ar) < S {
 		forSortF4(ar)
 		return
@@ -80,28 +80,27 @@ func SortF4(ar []float32, mx int32) {
 	arF4 = ar
 
 	ngF4 = 1 // count self
-	srtF4(0, len(arF4)-1)
+	gsrtF4(0, len(arF4)-1)
 	<-doneF4
 
 	arF4 = nil
 }
 
+func gsrtF4(lo, hi int) {
+	srtF4(lo, hi)
+
+	if atomic.AddUint32(&ngF4, ^uint32(0)) == 0 { // decrease goroutine counter
+		doneF4 <- false // we are the last, all done
+	}
+}
+
 // assumes hi-lo >= S-1
 func srtF4(lo, hi int) {
 	var l, h int
-	var pv float32
-
-	dec := true
-	if hi < 0 { // negative hi indice means this is a recursive (slave) call
-		dec = false // will not decrease counter
-		hi = -hi
-	}
-
 start:
-	pv = medianF4(lo, hi)
 	l, h = lo+1, hi-1 // medianF4 handles lo,hi positions
 
-	for l <= h {
+	for pv := medianF4(lo, hi); l <= h; {
 		swap := true
 		if arF4[h] >= pv { // extend ranges in balance
 			h--
@@ -119,37 +118,32 @@ start:
 		}
 	}
 
-	if hi-l < S-1 { // hi range small?
-		forSortF4(arF4[l : hi+1])
+	if h-lo < hi-l {
+		h, hi = hi, h // [lo,h] is the bigger range
+		l, lo = lo, l
+	}
 
-		if h-lo < S-1 { // lo range small?
-			forSortF4(arF4[lo : h+1])
+	if hi-l >= S-1 { // two big ranges?
 
-			if dec && atomic.AddInt32(&ngF4, -1) == 0 { // decrease goroutine counter
-				doneF4 <- false // we are the last, all done
-			}
-			return // done with two small ranges
+		if ngF4 >= mxF4 { // max number of goroutines? not atomic but good enough
+			srtF4(l, hi) // start a recursive (slave) sort on the smaller range
+			hi = h
+			goto start
 		}
 
-		hi = h // continue with big lo range
+		atomic.AddUint32(&ngF4, 1) // increase goroutine counter
+		go gsrtF4(lo, h)           // start a goroutine on the bigger range
+		lo = l
 		goto start
 	}
 
-	if h-lo < S-1 { // lo range small?
+	forSortF4(arF4[l : hi+1])
+
+	if h-lo < S-1 { // two small ranges?
 		forSortF4(arF4[lo : h+1])
-
-	} else if ngF4 < mxF4 { // start a goroutine? not atomic but good enough
-		atomic.AddInt32(&ngF4, 1) // increase goroutine counter
-		go srtF4(lo, h)           // two big ranges, handle big lo range in another goroutine
-
-	} else if h-lo < hi-l { // on the shorter range..
-		srtF4(lo, -h) // ..start a recursive (slave) sort
-	} else {
-		srtF4(l, -hi)
-		hi = h
-		goto start
+		return
 	}
 
-	lo = l // continue with big hi range
+	hi = h
 	goto start
 }

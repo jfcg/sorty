@@ -59,12 +59,12 @@ func medianF8(l, h int) float64 {
 	return pv
 }
 
-var ngF8, mxF8 int32 // number of sorting goroutines, max limit
+var ngF8, mxF8 uint32 // number of sorting goroutines, max limit
 var doneF8 = make(chan bool, 1)
 
 // SortF8 concurrently sorts ar in ascending order. Should not be called by multiple goroutines at the same time.
 // mx is the maximum number of goroutines used for sorting, saturated to [2, 65536].
-func SortF8(ar []float64, mx int32) {
+func SortF8(ar []float64, mx uint32) {
 	if len(ar) < S {
 		forSortF8(ar)
 		return
@@ -80,28 +80,27 @@ func SortF8(ar []float64, mx int32) {
 	arF8 = ar
 
 	ngF8 = 1 // count self
-	srtF8(0, len(arF8)-1)
+	gsrtF8(0, len(arF8)-1)
 	<-doneF8
 
 	arF8 = nil
 }
 
+func gsrtF8(lo, hi int) {
+	srtF8(lo, hi)
+
+	if atomic.AddUint32(&ngF8, ^uint32(0)) == 0 { // decrease goroutine counter
+		doneF8 <- false // we are the last, all done
+	}
+}
+
 // assumes hi-lo >= S-1
 func srtF8(lo, hi int) {
 	var l, h int
-	var pv float64
-
-	dec := true
-	if hi < 0 { // negative hi indice means this is a recursive (slave) call
-		dec = false // will not decrease counter
-		hi = -hi
-	}
-
 start:
-	pv = medianF8(lo, hi)
 	l, h = lo+1, hi-1 // medianF8 handles lo,hi positions
 
-	for l <= h {
+	for pv := medianF8(lo, hi); l <= h; {
 		swap := true
 		if arF8[h] >= pv { // extend ranges in balance
 			h--
@@ -119,37 +118,32 @@ start:
 		}
 	}
 
-	if hi-l < S-1 { // hi range small?
-		forSortF8(arF8[l : hi+1])
+	if h-lo < hi-l {
+		h, hi = hi, h // [lo,h] is the bigger range
+		l, lo = lo, l
+	}
 
-		if h-lo < S-1 { // lo range small?
-			forSortF8(arF8[lo : h+1])
+	if hi-l >= S-1 { // two big ranges?
 
-			if dec && atomic.AddInt32(&ngF8, -1) == 0 { // decrease goroutine counter
-				doneF8 <- false // we are the last, all done
-			}
-			return // done with two small ranges
+		if ngF8 >= mxF8 { // max number of goroutines? not atomic but good enough
+			srtF8(l, hi) // start a recursive (slave) sort on the smaller range
+			hi = h
+			goto start
 		}
 
-		hi = h // continue with big lo range
+		atomic.AddUint32(&ngF8, 1) // increase goroutine counter
+		go gsrtF8(lo, h)           // start a goroutine on the bigger range
+		lo = l
 		goto start
 	}
 
-	if h-lo < S-1 { // lo range small?
+	forSortF8(arF8[l : hi+1])
+
+	if h-lo < S-1 { // two small ranges?
 		forSortF8(arF8[lo : h+1])
-
-	} else if ngF8 < mxF8 { // start a goroutine? not atomic but good enough
-		atomic.AddInt32(&ngF8, 1) // increase goroutine counter
-		go srtF8(lo, h)           // two big ranges, handle big lo range in another goroutine
-
-	} else if h-lo < hi-l { // on the shorter range..
-		srtF8(lo, -h) // ..start a recursive (slave) sort
-	} else {
-		srtF8(l, -hi)
-		hi = h
-		goto start
+		return
 	}
 
-	lo = l // continue with big hi range
+	hi = h
 	goto start
 }

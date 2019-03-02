@@ -59,12 +59,12 @@ func medianP(l, h int) uintptr {
 	return pv
 }
 
-var ngP, mxP int32 // number of sorting goroutines, max limit
+var ngP, mxP uint32 // number of sorting goroutines, max limit
 var doneP = make(chan bool, 1)
 
 // SortP concurrently sorts ar in ascending order. Should not be called by multiple goroutines at the same time.
 // mx is the maximum number of goroutines used for sorting, saturated to [2, 65536].
-func SortP(ar []uintptr, mx int32) {
+func SortP(ar []uintptr, mx uint32) {
 	if len(ar) < S {
 		forSortP(ar)
 		return
@@ -80,28 +80,27 @@ func SortP(ar []uintptr, mx int32) {
 	arP = ar
 
 	ngP = 1 // count self
-	srtP(0, len(arP)-1)
+	gsrtP(0, len(arP)-1)
 	<-doneP
 
 	arP = nil
 }
 
+func gsrtP(lo, hi int) {
+	srtP(lo, hi)
+
+	if atomic.AddUint32(&ngP, ^uint32(0)) == 0 { // decrease goroutine counter
+		doneP <- false // we are the last, all done
+	}
+}
+
 // assumes hi-lo >= S-1
 func srtP(lo, hi int) {
 	var l, h int
-	var pv uintptr
-
-	dec := true
-	if hi < 0 { // negative hi indice means this is a recursive (slave) call
-		dec = false // will not decrease counter
-		hi = -hi
-	}
-
 start:
-	pv = medianP(lo, hi)
 	l, h = lo+1, hi-1 // medianP handles lo,hi positions
 
-	for l <= h {
+	for pv := medianP(lo, hi); l <= h; {
 		swap := true
 		if arP[h] >= pv { // extend ranges in balance
 			h--
@@ -119,37 +118,32 @@ start:
 		}
 	}
 
-	if hi-l < S-1 { // hi range small?
-		forSortP(arP[l : hi+1])
+	if h-lo < hi-l {
+		h, hi = hi, h // [lo,h] is the bigger range
+		l, lo = lo, l
+	}
 
-		if h-lo < S-1 { // lo range small?
-			forSortP(arP[lo : h+1])
+	if hi-l >= S-1 { // two big ranges?
 
-			if dec && atomic.AddInt32(&ngP, -1) == 0 { // decrease goroutine counter
-				doneP <- false // we are the last, all done
-			}
-			return // done with two small ranges
+		if ngP >= mxP { // max number of goroutines? not atomic but good enough
+			srtP(l, hi) // start a recursive (slave) sort on the smaller range
+			hi = h
+			goto start
 		}
 
-		hi = h // continue with big lo range
+		atomic.AddUint32(&ngP, 1) // increase goroutine counter
+		go gsrtP(lo, h)           // start a goroutine on the bigger range
+		lo = l
 		goto start
 	}
 
-	if h-lo < S-1 { // lo range small?
+	forSortP(arP[l : hi+1])
+
+	if h-lo < S-1 { // two small ranges?
 		forSortP(arP[lo : h+1])
-
-	} else if ngP < mxP { // start a goroutine? not atomic but good enough
-		atomic.AddInt32(&ngP, 1) // increase goroutine counter
-		go srtP(lo, h)           // two big ranges, handle big lo range in another goroutine
-
-	} else if h-lo < hi-l { // on the shorter range..
-		srtP(lo, -h) // ..start a recursive (slave) sort
-	} else {
-		srtP(l, -hi)
-		hi = h
-		goto start
+		return
 	}
 
-	lo = l // continue with big hi range
+	hi = h
 	goto start
 }
