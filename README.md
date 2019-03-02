@@ -13,7 +13,7 @@ All computers run 64-bit Manjaro Linux. Comparing against [sort.Slice](https://g
 Sorting uint32 array (in seconds):
 
 Library|Acer TravelMate netbook with Intel Celeron N3160|Casper laptop with Intel Core i5-4210M|Server with AMD Ryzen 5 1600
-:---|---|---|---
+:---|:---:|:---:|:---:
 sort.Slice|144.4|68.6|67.2
 sortutil  | 65.6|26.0|18.0
 zermelo   | 38.6|11.7|10.3
@@ -25,7 +25,7 @@ sorty-16  | 18.2|12.6| 5.8
 Sorting float32 array (in seconds):
 
 Library|Acer TravelMate netbook with Intel Celeron N3160|Casper laptop with Intel Core i5-4210M|Server with AMD Ryzen 5 1600
-:---|---|---|---
+:---|:---:|:---:|:---:
 sort.Slice|147.8|69.9|72.0
 sortutil  | 60.8|24.0|16.6
 zermelo   | 30.3| 8.7|14.5
