@@ -28,34 +28,51 @@ func forSortU8(ar []uint64) {
 	}
 }
 
+// given vl <= vh, inserts pv in the middle
+// returns vl <= pv <= vh
+func ipU8(pv, vl, vh uint64) (a, b, c uint64, r int) {
+	if pv > vh {
+		vh, pv = pv, vh
+		r = 1
+	} else if pv < vl {
+		vl, pv = pv, vl
+		r = -1
+	}
+	return vl, pv, vh, r
+}
+
+// return pivot as median of five scattered values
 func medianU8(l, h int) uint64 {
-	m := int(uint(l+h) >> 1) // avoid overflow
+	// lo, med, hi
+	m := mean(l, h)
 	vl, pv, vh := arU8[l], arU8[m], arU8[h]
 
-	if vh < vl { // choose pivot as median of arU8[l,m,h]
+	// intermediates
+	a, b := mean(l, m), mean(m, h)
+	va, vb := arU8[a], arU8[b]
+
+	// put lo, med, hi in order
+	if vh < vl {
 		vl, vh = vh, vl
+	}
+	vl, pv, vh, _ = ipU8(pv, vl, vh)
 
-		if pv > vh {
-			vh, pv = pv, vh
-			arU8[m] = pv
-		} else if pv < vl {
-			vl, pv = pv, vl
-			arU8[m] = pv
-		}
+	// update pivot with intermediates
+	if vb < va {
+		va, vb = vb, va
+	}
+	va, pv, vb, r := ipU8(pv, va, vb)
 
-		arU8[l], arU8[h] = vl, vh
-	} else {
-		if pv > vh {
-			vh, pv = pv, vh
-			arU8[m] = pv
-			arU8[h] = vh
-		} else if pv < vl {
-			vl, pv = pv, vl
-			arU8[m] = pv
-			arU8[l] = vl
-		}
+	// if pivot was out of [va, vb]
+	if r == 1 {
+		vl, va, pv, _ = ipU8(vl, va, pv)
+	} else if r == -1 {
+		pv, vb, vh, _ = ipU8(vh, pv, vb)
 	}
 
+	// here: vl <= va <= pv <= vb <= vh
+	arU8[l], arU8[m], arU8[h] = vl, pv, vh
+	arU8[a], arU8[b] = va, vb
 	return pv
 }
 
@@ -63,20 +80,14 @@ var ngU8, mxU8 uint32 // number of sorting goroutines, max limit
 var doneU8 = make(chan bool, 1)
 
 // SortU8 concurrently sorts ar in ascending order. Should not be called by multiple goroutines at the same time.
-// mx is the maximum number of goroutines used for sorting, saturated to [2, 65536].
+// mx is the maximum number of goroutines used for sorting simultaneously, saturated to [2, 65535].
 func SortU8(ar []uint64, mx uint32) {
 	if len(ar) < S {
 		forSortU8(ar)
 		return
 	}
 
-	if mx < 2 { // 2..65536 goroutines
-		mxU8 = 2
-	} else if mx > 65536 {
-		mxU8 = 65536
-	} else {
-		mxU8 = mx
-	}
+	mxU8 = sat(mx)
 	arU8 = ar
 
 	ngU8 = 1 // count self

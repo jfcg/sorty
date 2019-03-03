@@ -28,34 +28,51 @@ func forSortF8(ar []float64) {
 	}
 }
 
+// given vl <= vh, inserts pv in the middle
+// returns vl <= pv <= vh
+func ipF8(pv, vl, vh float64) (a, b, c float64, r int) {
+	if pv > vh {
+		vh, pv = pv, vh
+		r = 1
+	} else if pv < vl {
+		vl, pv = pv, vl
+		r = -1
+	}
+	return vl, pv, vh, r
+}
+
+// return pivot as median of five scattered values
 func medianF8(l, h int) float64 {
-	m := int(uint(l+h) >> 1) // avoid overflow
+	// lo, med, hi
+	m := mean(l, h)
 	vl, pv, vh := arF8[l], arF8[m], arF8[h]
 
-	if vh < vl { // choose pivot as median of arF8[l,m,h]
+	// intermediates
+	a, b := mean(l, m), mean(m, h)
+	va, vb := arF8[a], arF8[b]
+
+	// put lo, med, hi in order
+	if vh < vl {
 		vl, vh = vh, vl
+	}
+	vl, pv, vh, _ = ipF8(pv, vl, vh)
 
-		if pv > vh {
-			vh, pv = pv, vh
-			arF8[m] = pv
-		} else if pv < vl {
-			vl, pv = pv, vl
-			arF8[m] = pv
-		}
+	// update pivot with intermediates
+	if vb < va {
+		va, vb = vb, va
+	}
+	va, pv, vb, r := ipF8(pv, va, vb)
 
-		arF8[l], arF8[h] = vl, vh
-	} else {
-		if pv > vh {
-			vh, pv = pv, vh
-			arF8[m] = pv
-			arF8[h] = vh
-		} else if pv < vl {
-			vl, pv = pv, vl
-			arF8[m] = pv
-			arF8[l] = vl
-		}
+	// if pivot was out of [va, vb]
+	if r == 1 {
+		vl, va, pv, _ = ipF8(vl, va, pv)
+	} else if r == -1 {
+		pv, vb, vh, _ = ipF8(vh, pv, vb)
 	}
 
+	// here: vl <= va <= pv <= vb <= vh
+	arF8[l], arF8[m], arF8[h] = vl, pv, vh
+	arF8[a], arF8[b] = va, vb
 	return pv
 }
 
@@ -63,20 +80,14 @@ var ngF8, mxF8 uint32 // number of sorting goroutines, max limit
 var doneF8 = make(chan bool, 1)
 
 // SortF8 concurrently sorts ar in ascending order. Should not be called by multiple goroutines at the same time.
-// mx is the maximum number of goroutines used for sorting, saturated to [2, 65536].
+// mx is the maximum number of goroutines used for sorting simultaneously, saturated to [2, 65535].
 func SortF8(ar []float64, mx uint32) {
 	if len(ar) < S {
 		forSortF8(ar)
 		return
 	}
 
-	if mx < 2 { // 2..65536 goroutines
-		mxF8 = 2
-	} else if mx > 65536 {
-		mxF8 = 65536
-	} else {
-		mxF8 = mx
-	}
+	mxF8 = sat(mx)
 	arF8 = ar
 
 	ngF8 = 1 // count self

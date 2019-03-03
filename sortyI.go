@@ -28,34 +28,51 @@ func forSortI(ar []int) {
 	}
 }
 
+// given vl <= vh, inserts pv in the middle
+// returns vl <= pv <= vh
+func ipI(pv, vl, vh int) (a, b, c int, r int) {
+	if pv > vh {
+		vh, pv = pv, vh
+		r = 1
+	} else if pv < vl {
+		vl, pv = pv, vl
+		r = -1
+	}
+	return vl, pv, vh, r
+}
+
+// return pivot as median of five scattered values
 func medianI(l, h int) int {
-	m := int(uint(l+h) >> 1) // avoid overflow
+	// lo, med, hi
+	m := mean(l, h)
 	vl, pv, vh := arI[l], arI[m], arI[h]
 
-	if vh < vl { // choose pivot as median of arI[l,m,h]
+	// intermediates
+	a, b := mean(l, m), mean(m, h)
+	va, vb := arI[a], arI[b]
+
+	// put lo, med, hi in order
+	if vh < vl {
 		vl, vh = vh, vl
+	}
+	vl, pv, vh, _ = ipI(pv, vl, vh)
 
-		if pv > vh {
-			vh, pv = pv, vh
-			arI[m] = pv
-		} else if pv < vl {
-			vl, pv = pv, vl
-			arI[m] = pv
-		}
+	// update pivot with intermediates
+	if vb < va {
+		va, vb = vb, va
+	}
+	va, pv, vb, r := ipI(pv, va, vb)
 
-		arI[l], arI[h] = vl, vh
-	} else {
-		if pv > vh {
-			vh, pv = pv, vh
-			arI[m] = pv
-			arI[h] = vh
-		} else if pv < vl {
-			vl, pv = pv, vl
-			arI[m] = pv
-			arI[l] = vl
-		}
+	// if pivot was out of [va, vb]
+	if r == 1 {
+		vl, va, pv, _ = ipI(vl, va, pv)
+	} else if r == -1 {
+		pv, vb, vh, _ = ipI(vh, pv, vb)
 	}
 
+	// here: vl <= va <= pv <= vb <= vh
+	arI[l], arI[m], arI[h] = vl, pv, vh
+	arI[a], arI[b] = va, vb
 	return pv
 }
 
@@ -63,20 +80,14 @@ var ngI, mxI uint32 // number of sorting goroutines, max limit
 var doneI = make(chan bool, 1)
 
 // SortI concurrently sorts ar in ascending order. Should not be called by multiple goroutines at the same time.
-// mx is the maximum number of goroutines used for sorting, saturated to [2, 65536].
+// mx is the maximum number of goroutines used for sorting simultaneously, saturated to [2, 65535].
 func SortI(ar []int, mx uint32) {
 	if len(ar) < S {
 		forSortI(ar)
 		return
 	}
 
-	if mx < 2 { // 2..65536 goroutines
-		mxI = 2
-	} else if mx > 65536 {
-		mxI = 65536
-	} else {
-		mxI = mx
-	}
+	mxI = sat(mx)
 	arI = ar
 
 	ngI = 1 // count self

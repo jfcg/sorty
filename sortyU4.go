@@ -28,34 +28,51 @@ func forSortU4(ar []uint32) {
 	}
 }
 
+// given vl <= vh, inserts pv in the middle
+// returns vl <= pv <= vh
+func ipU4(pv, vl, vh uint32) (a, b, c uint32, r int) {
+	if pv > vh {
+		vh, pv = pv, vh
+		r = 1
+	} else if pv < vl {
+		vl, pv = pv, vl
+		r = -1
+	}
+	return vl, pv, vh, r
+}
+
+// return pivot as median of five scattered values
 func medianU4(l, h int) uint32 {
-	m := int(uint(l+h) >> 1) // avoid overflow
+	// lo, med, hi
+	m := mean(l, h)
 	vl, pv, vh := arU4[l], arU4[m], arU4[h]
 
-	if vh < vl { // choose pivot as median of arU4[l,m,h]
+	// intermediates
+	a, b := mean(l, m), mean(m, h)
+	va, vb := arU4[a], arU4[b]
+
+	// put lo, med, hi in order
+	if vh < vl {
 		vl, vh = vh, vl
+	}
+	vl, pv, vh, _ = ipU4(pv, vl, vh)
 
-		if pv > vh {
-			vh, pv = pv, vh
-			arU4[m] = pv
-		} else if pv < vl {
-			vl, pv = pv, vl
-			arU4[m] = pv
-		}
+	// update pivot with intermediates
+	if vb < va {
+		va, vb = vb, va
+	}
+	va, pv, vb, r := ipU4(pv, va, vb)
 
-		arU4[l], arU4[h] = vl, vh
-	} else {
-		if pv > vh {
-			vh, pv = pv, vh
-			arU4[m] = pv
-			arU4[h] = vh
-		} else if pv < vl {
-			vl, pv = pv, vl
-			arU4[m] = pv
-			arU4[l] = vl
-		}
+	// if pivot was out of [va, vb]
+	if r == 1 {
+		vl, va, pv, _ = ipU4(vl, va, pv)
+	} else if r == -1 {
+		pv, vb, vh, _ = ipU4(vh, pv, vb)
 	}
 
+	// here: vl <= va <= pv <= vb <= vh
+	arU4[l], arU4[m], arU4[h] = vl, pv, vh
+	arU4[a], arU4[b] = va, vb
 	return pv
 }
 
@@ -63,20 +80,14 @@ var ngU4, mxU4 uint32 // number of sorting goroutines, max limit
 var doneU4 = make(chan bool, 1)
 
 // SortU4 concurrently sorts ar in ascending order. Should not be called by multiple goroutines at the same time.
-// mx is the maximum number of goroutines used for sorting, saturated to [2, 65536].
+// mx is the maximum number of goroutines used for sorting simultaneously, saturated to [2, 65535].
 func SortU4(ar []uint32, mx uint32) {
 	if len(ar) < S {
 		forSortU4(ar)
 		return
 	}
 
-	if mx < 2 { // 2..65536 goroutines
-		mxU4 = 2
-	} else if mx > 65536 {
-		mxU4 = 65536
-	} else {
-		mxU4 = mx
-	}
+	mxU4 = sat(mx)
 	arU4 = ar
 
 	ngU4 = 1 // count self

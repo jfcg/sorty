@@ -28,34 +28,51 @@ func forSortP(ar []uintptr) {
 	}
 }
 
+// given vl <= vh, inserts pv in the middle
+// returns vl <= pv <= vh
+func ipP(pv, vl, vh uintptr) (a, b, c uintptr, r int) {
+	if pv > vh {
+		vh, pv = pv, vh
+		r = 1
+	} else if pv < vl {
+		vl, pv = pv, vl
+		r = -1
+	}
+	return vl, pv, vh, r
+}
+
+// return pivot as median of five scattered values
 func medianP(l, h int) uintptr {
-	m := int(uint(l+h) >> 1) // avoid overflow
+	// lo, med, hi
+	m := mean(l, h)
 	vl, pv, vh := arP[l], arP[m], arP[h]
 
-	if vh < vl { // choose pivot as median of arP[l,m,h]
+	// intermediates
+	a, b := mean(l, m), mean(m, h)
+	va, vb := arP[a], arP[b]
+
+	// put lo, med, hi in order
+	if vh < vl {
 		vl, vh = vh, vl
+	}
+	vl, pv, vh, _ = ipP(pv, vl, vh)
 
-		if pv > vh {
-			vh, pv = pv, vh
-			arP[m] = pv
-		} else if pv < vl {
-			vl, pv = pv, vl
-			arP[m] = pv
-		}
+	// update pivot with intermediates
+	if vb < va {
+		va, vb = vb, va
+	}
+	va, pv, vb, r := ipP(pv, va, vb)
 
-		arP[l], arP[h] = vl, vh
-	} else {
-		if pv > vh {
-			vh, pv = pv, vh
-			arP[m] = pv
-			arP[h] = vh
-		} else if pv < vl {
-			vl, pv = pv, vl
-			arP[m] = pv
-			arP[l] = vl
-		}
+	// if pivot was out of [va, vb]
+	if r == 1 {
+		vl, va, pv, _ = ipP(vl, va, pv)
+	} else if r == -1 {
+		pv, vb, vh, _ = ipP(vh, pv, vb)
 	}
 
+	// here: vl <= va <= pv <= vb <= vh
+	arP[l], arP[m], arP[h] = vl, pv, vh
+	arP[a], arP[b] = va, vb
 	return pv
 }
 
@@ -63,20 +80,14 @@ var ngP, mxP uint32 // number of sorting goroutines, max limit
 var doneP = make(chan bool, 1)
 
 // SortP concurrently sorts ar in ascending order. Should not be called by multiple goroutines at the same time.
-// mx is the maximum number of goroutines used for sorting, saturated to [2, 65536].
+// mx is the maximum number of goroutines used for sorting simultaneously, saturated to [2, 65535].
 func SortP(ar []uintptr, mx uint32) {
 	if len(ar) < S {
 		forSortP(ar)
 		return
 	}
 
-	if mx < 2 { // 2..65536 goroutines
-		mxP = 2
-	} else if mx > 65536 {
-		mxP = 65536
-	} else {
-		mxP = mx
-	}
+	mxP = sat(mx)
 	arP = ar
 
 	ngP = 1 // count self

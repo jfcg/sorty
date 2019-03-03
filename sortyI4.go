@@ -28,34 +28,51 @@ func forSortI4(ar []int32) {
 	}
 }
 
+// given vl <= vh, inserts pv in the middle
+// returns vl <= pv <= vh
+func ipI4(pv, vl, vh int32) (a, b, c int32, r int) {
+	if pv > vh {
+		vh, pv = pv, vh
+		r = 1
+	} else if pv < vl {
+		vl, pv = pv, vl
+		r = -1
+	}
+	return vl, pv, vh, r
+}
+
+// return pivot as median of five scattered values
 func medianI4(l, h int) int32 {
-	m := int(uint(l+h) >> 1) // avoid overflow
+	// lo, med, hi
+	m := mean(l, h)
 	vl, pv, vh := arI4[l], arI4[m], arI4[h]
 
-	if vh < vl { // choose pivot as median of arI4[l,m,h]
+	// intermediates
+	a, b := mean(l, m), mean(m, h)
+	va, vb := arI4[a], arI4[b]
+
+	// put lo, med, hi in order
+	if vh < vl {
 		vl, vh = vh, vl
+	}
+	vl, pv, vh, _ = ipI4(pv, vl, vh)
 
-		if pv > vh {
-			vh, pv = pv, vh
-			arI4[m] = pv
-		} else if pv < vl {
-			vl, pv = pv, vl
-			arI4[m] = pv
-		}
+	// update pivot with intermediates
+	if vb < va {
+		va, vb = vb, va
+	}
+	va, pv, vb, r := ipI4(pv, va, vb)
 
-		arI4[l], arI4[h] = vl, vh
-	} else {
-		if pv > vh {
-			vh, pv = pv, vh
-			arI4[m] = pv
-			arI4[h] = vh
-		} else if pv < vl {
-			vl, pv = pv, vl
-			arI4[m] = pv
-			arI4[l] = vl
-		}
+	// if pivot was out of [va, vb]
+	if r == 1 {
+		vl, va, pv, _ = ipI4(vl, va, pv)
+	} else if r == -1 {
+		pv, vb, vh, _ = ipI4(vh, pv, vb)
 	}
 
+	// here: vl <= va <= pv <= vb <= vh
+	arI4[l], arI4[m], arI4[h] = vl, pv, vh
+	arI4[a], arI4[b] = va, vb
 	return pv
 }
 
@@ -63,20 +80,14 @@ var ngI4, mxI4 uint32 // number of sorting goroutines, max limit
 var doneI4 = make(chan bool, 1)
 
 // SortI4 concurrently sorts ar in ascending order. Should not be called by multiple goroutines at the same time.
-// mx is the maximum number of goroutines used for sorting, saturated to [2, 65536].
+// mx is the maximum number of goroutines used for sorting simultaneously, saturated to [2, 65535].
 func SortI4(ar []int32, mx uint32) {
 	if len(ar) < S {
 		forSortI4(ar)
 		return
 	}
 
-	if mx < 2 { // 2..65536 goroutines
-		mxI4 = 2
-	} else if mx > 65536 {
-		mxI4 = 65536
-	} else {
-		mxI4 = mx
-	}
+	mxI4 = sat(mx)
 	arI4 = ar
 
 	ngI4 = 1 // count self

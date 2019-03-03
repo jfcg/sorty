@@ -15,21 +15,21 @@ Sorting uint32 array (in seconds):
 Library|Acer TravelMate netbook with Intel Celeron N3160|Casper laptop with Intel Core i5-4210M|Server with AMD Ryzen 5 1600
 :---|:---:|:---:|:---:
 sort.Slice|144.4|68.6|67.2
-sortutil  | 65.6|26.0|18.0
-zermelo   | 38.6|11.7|10.3
-sorty-02  | 31.3|18.5|18.7
-sorty-04  | 18.4|13.1|12.3
-sorty-08  | 17.9|12.7| 8.6
-sorty-16  | 18.2|12.6| 5.8
+sortutil  | 65.0|26.0|18.0
+zermelo   | 38.0|12.0| 9.5
+sorty-02  | 30.7|18.3|18.3
+sorty-04  | 17.2|12.6|10.9
+sorty-08  | 17.1|12.5| 8.2
+sorty-16  | 17.1|12.4| 5.6
 
 Sorting float32 array (in seconds):
 
 Library|Acer TravelMate netbook with Intel Celeron N3160|Casper laptop with Intel Core i5-4210M|Server with AMD Ryzen 5 1600
 :---|:---:|:---:|:---:
 sort.Slice|147.8|69.9|72.0
-sortutil  | 60.8|24.0|16.6
+sortutil  | 62.0|24.0|16.6
 zermelo   | 30.3| 8.7|14.5
-sorty-02  | 36.8|21.5|24.1
-sorty-04  | 28.2|14.3|14.8
-sorty-08  | 22.9|14.2|10.8
-sorty-16  | 25.3|14.1| 7.1
+sorty-02  | 37.0|20.9|25.0
+sorty-04  | 21.7|14.4|16.0
+sorty-08  | 22.0|14.0|11.0
+sorty-16  | 23.0|14.0| 7.8

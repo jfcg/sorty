@@ -28,34 +28,51 @@ func forSortF4(ar []float32) {
 	}
 }
 
+// given vl <= vh, inserts pv in the middle
+// returns vl <= pv <= vh
+func ipF4(pv, vl, vh float32) (a, b, c float32, r int) {
+	if pv > vh {
+		vh, pv = pv, vh
+		r = 1
+	} else if pv < vl {
+		vl, pv = pv, vl
+		r = -1
+	}
+	return vl, pv, vh, r
+}
+
+// return pivot as median of five scattered values
 func medianF4(l, h int) float32 {
-	m := int(uint(l+h) >> 1) // avoid overflow
+	// lo, med, hi
+	m := mean(l, h)
 	vl, pv, vh := arF4[l], arF4[m], arF4[h]
 
-	if vh < vl { // choose pivot as median of arF4[l,m,h]
+	// intermediates
+	a, b := mean(l, m), mean(m, h)
+	va, vb := arF4[a], arF4[b]
+
+	// put lo, med, hi in order
+	if vh < vl {
 		vl, vh = vh, vl
+	}
+	vl, pv, vh, _ = ipF4(pv, vl, vh)
 
-		if pv > vh {
-			vh, pv = pv, vh
-			arF4[m] = pv
-		} else if pv < vl {
-			vl, pv = pv, vl
-			arF4[m] = pv
-		}
+	// update pivot with intermediates
+	if vb < va {
+		va, vb = vb, va
+	}
+	va, pv, vb, r := ipF4(pv, va, vb)
 
-		arF4[l], arF4[h] = vl, vh
-	} else {
-		if pv > vh {
-			vh, pv = pv, vh
-			arF4[m] = pv
-			arF4[h] = vh
-		} else if pv < vl {
-			vl, pv = pv, vl
-			arF4[m] = pv
-			arF4[l] = vl
-		}
+	// if pivot was out of [va, vb]
+	if r == 1 {
+		vl, va, pv, _ = ipF4(vl, va, pv)
+	} else if r == -1 {
+		pv, vb, vh, _ = ipF4(vh, pv, vb)
 	}
 
+	// here: vl <= va <= pv <= vb <= vh
+	arF4[l], arF4[m], arF4[h] = vl, pv, vh
+	arF4[a], arF4[b] = va, vb
 	return pv
 }
 
@@ -63,20 +80,14 @@ var ngF4, mxF4 uint32 // number of sorting goroutines, max limit
 var doneF4 = make(chan bool, 1)
 
 // SortF4 concurrently sorts ar in ascending order. Should not be called by multiple goroutines at the same time.
-// mx is the maximum number of goroutines used for sorting, saturated to [2, 65536].
+// mx is the maximum number of goroutines used for sorting simultaneously, saturated to [2, 65535].
 func SortF4(ar []float32, mx uint32) {
 	if len(ar) < S {
 		forSortF4(ar)
 		return
 	}
 
-	if mx < 2 { // 2..65536 goroutines
-		mxF4 = 2
-	} else if mx > 65536 {
-		mxF4 = 65536
-	} else {
-		mxF4 = mx
-	}
+	mxF4 = sat(mx)
 	arF4 = ar
 
 	ngF4 = 1 // count self
