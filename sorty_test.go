@@ -136,3 +136,17 @@ func Test2(t *testing.T) {
 	}
 	fmt.Println()
 }
+
+var iar = []int{
+	9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0,
+	-9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0,
+	9, 8, 7, 6, 5, 4, 3, 2, 1, 0, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0,
+	-9, -8, -7, -6, -5, -4, -3, -2, -1, 0, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0}
+
+// SortI calls SortI4 (on 32-bit) or SortI8 (on 64-bit).
+func TestI(t *testing.T) {
+	SortI(iar, 2)
+	if !IsSortedI(iar) {
+		t.Fatal("SortI does not work")
+	}
+}
