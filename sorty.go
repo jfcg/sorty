@@ -5,8 +5,8 @@
 // A Sort*() function should not be called by multiple goroutines at the same time. mx is the maximum number of goroutines used for sorting simultaneously.
 package sorty
 
-// S is the minimum array size for Quick Sort*()
-const S = 25
+// Mli is the maximum array length for insertion sort
+var Mli = 32
 
 func mean(l, h int) int {
 	return int(uint(l+h) >> 1) // avoid overflow

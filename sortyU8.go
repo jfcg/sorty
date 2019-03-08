@@ -18,12 +18,19 @@ func IsSortedU8(ar []uint64) bool {
 	return true
 }
 
-func forSortU8(ar []uint64) {
-	for h := len(ar) - 1; h > 0; h-- {
-		for l := h - 1; l >= 0; l-- {
-			if ar[h] < ar[l] {
-				ar[l], ar[h] = ar[h], ar[l]
+// insertion sort
+func insertionU8(ar []uint64) {
+	for h := 1; h < len(ar); h++ {
+		v, l := ar[h], h-1
+		if v < ar[l] {
+			for {
+				ar[l+1] = ar[l]
+				l--
+				if l < 0 || v >= ar[l] {
+					break
+				}
 			}
+			ar[l+1] = v
 		}
 	}
 }
@@ -82,8 +89,8 @@ var doneU8 = make(chan bool, 1)
 // SortU8 concurrently sorts ar in ascending order. Should not be called by multiple goroutines at the same time.
 // mx is the maximum number of goroutines used for sorting simultaneously, saturated to [2, 65535].
 func SortU8(ar []uint64, mx uint32) {
-	if len(ar) < S {
-		forSortU8(ar)
+	if len(ar) <= Mli {
+		insertionU8(ar)
 		return
 	}
 
@@ -105,7 +112,7 @@ func gsrtU8(lo, hi int) {
 	}
 }
 
-// assumes hi-lo >= S-1
+// assumes hi-lo >= Mli
 func srtU8(lo, hi int) {
 	var l, h int
 start:
@@ -134,9 +141,11 @@ start:
 		l, lo = lo, l
 	}
 
-	if hi-l >= S-1 { // two big ranges?
+	if hi-l >= Mli { // two big ranges?
 
-		if ngU8 >= mxU8 { // max number of goroutines? not atomic but good enough
+		// max goroutines? range not big enough for new goroutine?
+		// not atomic but good enough
+		if ngU8 >= mxU8 || hi-l <= 2*Mli {
 			srtU8(l, hi) // start a recursive (slave) sort on the smaller range
 			hi = h
 			goto start
@@ -148,10 +157,10 @@ start:
 		goto start
 	}
 
-	forSortU8(arU8[l : hi+1])
+	insertionU8(arU8[l : hi+1])
 
-	if h-lo < S-1 { // two small ranges?
-		forSortU8(arU8[lo : h+1])
+	if h-lo < Mli { // two small ranges?
+		insertionU8(arU8[lo : h+1])
 		return
 	}
 

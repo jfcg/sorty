@@ -12,42 +12,36 @@ func init() {
 
 // IsSortedI checks if ar is sorted in ascending order.
 func IsSortedI(ar []int) bool {
-	ap := *(*[]int64)(unsafe.Pointer(&ar))
-	return IsSortedI8(ap)
+	return IsSortedI8(*(*[]int64)(unsafe.Pointer(&ar)))
 }
 
 // IsSortedU checks if ar is sorted in ascending order.
 func IsSortedU(ar []uint) bool {
-	ap := *(*[]uint64)(unsafe.Pointer(&ar))
-	return IsSortedU8(ap)
+	return IsSortedU8(*(*[]uint64)(unsafe.Pointer(&ar)))
 }
 
 // IsSortedP checks if ar is sorted in ascending order.
 func IsSortedP(ar []uintptr) bool {
-	ap := *(*[]uint64)(unsafe.Pointer(&ar))
-	return IsSortedU8(ap)
+	return IsSortedU8(*(*[]uint64)(unsafe.Pointer(&ar)))
 }
 
 // SortI concurrently sorts ar in ascending order. Should not be called by multiple goroutines at the same time.
 // mx is the maximum number of goroutines used for sorting simultaneously, saturated to [2, 65535].
 // SortI calls SortI4 (on 32-bit) or SortI8 (on 64-bit).
 func SortI(ar []int, mx uint32) {
-	ap := *(*[]int64)(unsafe.Pointer(&ar))
-	SortI8(ap, mx)
+	SortI8(*(*[]int64)(unsafe.Pointer(&ar)), mx)
 }
 
 // SortU concurrently sorts ar in ascending order. Should not be called by multiple goroutines at the same time.
 // mx is the maximum number of goroutines used for sorting simultaneously, saturated to [2, 65535].
 // SortU calls SortU4 (on 32-bit) or SortU8 (on 64-bit).
 func SortU(ar []uint, mx uint32) {
-	ap := *(*[]uint64)(unsafe.Pointer(&ar))
-	SortU8(ap, mx)
+	SortU8(*(*[]uint64)(unsafe.Pointer(&ar)), mx)
 }
 
 // SortP concurrently sorts ar in ascending order. Should not be called by multiple goroutines at the same time.
 // mx is the maximum number of goroutines used for sorting simultaneously, saturated to [2, 65535].
 // SortP calls SortU4 (on 32-bit) or SortU8 (on 64-bit).
 func SortP(ar []uintptr, mx uint32) {
-	ap := *(*[]uint64)(unsafe.Pointer(&ar))
-	SortU8(ap, mx)
+	SortU8(*(*[]uint64)(unsafe.Pointer(&ar)), mx)
 }
