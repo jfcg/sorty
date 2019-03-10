@@ -5,22 +5,25 @@ package sorty
 
 import (
 	"fmt"
-	"github.com/shawnsmithdev/zermelo"
+	"github.com/shawnsmithdev/zermelo/zfloat32"
+	"github.com/shawnsmithdev/zermelo/zuint32"
 	"github.com/twotwotwo/sorts/sortutil"
 	"math/rand"
 	"sort"
 	"testing"
 	"time"
+	"unsafe"
 )
 
 const N = 1 << 28
 
 var tst *testing.T
+var name string
 
 // fill sort test
-func fst(name string, sd int64, ar []uint32, srt func([]uint32)) time.Duration {
+func fst(sd int64, ar []uint32, srt func([]uint32)) time.Duration {
 	rn := rand.New(rand.NewSource(sd))
-	for i := len(ar) - 1; i >= 0; i-- {
+	for i := N - 1; i >= 0; i-- {
 		ar[i] = rn.Uint32()
 	}
 
@@ -35,9 +38,9 @@ func fst(name string, sd int64, ar []uint32, srt func([]uint32)) time.Duration {
 }
 
 // fill sort test
-func fst2(name string, sd int64, ar []float32, srt func([]float32)) time.Duration {
+func fst2(sd int64, ar []float32, srt func([]float32)) time.Duration {
 	rn := rand.New(rand.NewSource(sd))
-	for i := len(ar) - 1; i >= 0; i-- {
+	for i := N - 1; i >= 0; i-- {
 		ar[i] = float32(rn.NormFloat64())
 	}
 
@@ -51,114 +54,119 @@ func fst2(name string, sd int64, ar []float32, srt func([]float32)) time.Duratio
 	return dur
 }
 
-// allocate fst compare
-func afc(name string, srt func([]uint32), ap []uint32) ([]uint32, float64) {
-	ar := make([]uint32, N)
-	dur := fst(name, 1, ar, srt) // take average time of two different sorts
-	dur = (fst(name, 2, ar, srt) + dur) / 2
+func compare(ar, ap []uint32) {
+	if len(ap) <= 0 {
+		return
+	}
+	if len(ap) != len(ar) || len(ap) != N {
+		tst.Fatal(name, "length mismatch:", len(ap), len(ar))
+	}
+
+	for i := N - 1; i >= 0; i-- {
+		if ap[i] != ar[i] {
+			tst.Fatal(name, "values mismatch:", i, ap[i], ar[i])
+		}
+	}
+}
+
+// fst compare
+func afc(srt func([]uint32), ar, ap []uint32) float64 {
+	// take average time of two different sorts
+	dur := fst(1, ar, srt)
+	dur = (fst(2, ar, srt) + dur) / 2
+	compare(ar, ap)
 
 	sec := dur.Seconds()
 	if testing.Short() {
 		fmt.Printf("%s took %.2fs\n", name, sec)
 	}
-
-	if ap != nil { // compare
-		if len(ap) != len(ar) || len(ap) != N {
-			tst.Fatal(name, "length mismatch:", len(ap), len(ar))
-		}
-
-		for i := len(ar) - 1; i >= 0; i-- {
-			if ap[i] != ar[i] {
-				tst.Fatal(name, "values mismatch:", i, ap[i], ar[i])
-			}
-		}
-	}
-	return ar, sec
+	return sec
 }
 
-// allocate fst compare
-func afc2(name string, srt func([]float32), ap []float32) ([]float32, float64) {
-	ar := make([]float32, N)
-	dur := fst2(name, 1, ar, srt) // take average time of two different sorts
-	dur = (fst2(name, 2, ar, srt) + dur) / 2
+func f2u(p *[]float32) []uint32 {
+	return *(*[]uint32)(unsafe.Pointer(p))
+}
+
+// fst compare
+func afc2(srt func([]float32), ar, ap []float32) float64 {
+	// take average time of two different sorts
+	dur := fst2(1, ar, srt)
+	dur = (fst2(2, ar, srt) + dur) / 2
+	compare(f2u(&ar), f2u(&ap))
 
 	sec := dur.Seconds()
 	if testing.Short() {
 		fmt.Printf("%s took %.2fs\n", name, sec)
 	}
-
-	if ap != nil { // compare
-		if len(ap) != len(ar) || len(ap) != N {
-			tst.Fatal(name, "length mismatch:", len(ap), len(ar))
-		}
-
-		for i := len(ar) - 1; i >= 0; i-- {
-			if ap[i] != ar[i] {
-				tst.Fatal(name, "values mismatch:", i, ap[i], ar[i])
-			}
-		}
-	}
-	return ar, sec
+	return sec
 }
 
-var name = []byte("sorty-0")
+var srnm = []byte("sorty-0")
 
 // return sum of Sort*() times for 2..5 goroutines
 // compare with ap and among themselves
-func sumt(ap []uint32) float64 {
-	sum, t := .0, .0
+func sumt(ar, ap []uint32) float64 {
+	sum := .0
 	for i := 2; i < 6; i++ {
-		name[6] = byte(i%10) + '0'
-		ap, t = afc(string(name), func(ar []uint32) { SortU4(ar, uint32(i)) }, ap)
-		sum += t
+		srnm[6] = byte(i%10) + '0'
+		name = string(srnm)
+		sum += afc(func(ar []uint32) { SortU4(ar, uint32(i)) }, ar, ap)
+		ap, ar = ar, ap[:cap(ap)]
 	}
 	return sum
 }
 
 // return sum of Sort*() times for 2..5 goroutines
 // compare with ap and among themselves
-func sumt2(ap []float32) float64 {
-	sum, t := .0, .0
+func sumt2(ar, ap []float32) float64 {
+	sum := .0
 	for i := 2; i < 6; i++ {
-		name[6] = byte(i%10) + '0'
-		ap, t = afc2(string(name), func(ar []float32) { SortF4(ar, uint32(i)) }, ap)
-		sum += t
+		srnm[6] = byte(i%10) + '0'
+		name = string(srnm)
+		sum += afc2(func(ar []float32) { SortF4(ar, uint32(i)) }, ar, ap)
+		ap, ar = ar, ap[:cap(ap)]
 	}
 	return sum
 }
 
-func Test1(t *testing.T) {
+func TestShort(t *testing.T) {
 	if !testing.Short() {
 		t.SkipNow()
 	}
 	tst = t
+
 	fmt.Println("Sorting uint32")
+	ar := make([]uint32, N)
+	name = "sort.Slice"
+	afc(func(ar []uint32) { sort.Slice(ar, func(i, k int) bool { return ar[i] < ar[k] }) }, ar, nil)
 
-	ar, _ := afc("sort.Slice", func(ar []uint32) {
-		sort.Slice(ar, func(i, k int) bool { return ar[i] < ar[k] })
-	}, nil)
-	_, _ = afc("sortutil", sortutil.Uint32s, ar)
-	_, _ = afc("zermelo", func(ar []uint32) { zermelo.Sort(ar) }, ar)
+	ap := make([]uint32, N)
+	name = "sortutil"
+	afc(sortutil.Uint32s, ap, ar)
+	name = "zermelo"
+	afc(zuint32.Sort, ap, ar)
 
-	sumt(ar)
-	fmt.Println()
-}
+	sumt(ap, ar)
+	ar, ap = nil, nil
 
-func Test2(t *testing.T) {
-	if !testing.Short() {
-		t.SkipNow()
+	fmt.Println("\nSorting float32")
+	aq := make([]float32, N)
+	name = "sort.Slice"
+	afc2(func(ar []float32) { sort.Slice(ar, func(i, k int) bool { return ar[i] < ar[k] }) }, aq, nil)
+
+	as := make([]float32, N)
+	name = "sortutil"
+	afc2(sortutil.Float32s, as, aq)
+	name = "zermelo"
+	afc2(zfloat32.Sort, as, aq)
+
+	sumt2(as, aq)
+
+	// SortI calls SortI4 (on 32-bit) or SortI8 (on 64-bit).
+	SortI(iar, 3)
+	if !IsSortedI(iar) {
+		t.Fatal("SortI does not work")
 	}
-	tst = t
-	fmt.Println("Sorting float32")
-
-	ar, _ := afc2("sort.Slice", func(ar []float32) {
-		sort.Slice(ar, func(i, k int) bool { return ar[i] < ar[k] })
-	}, nil)
-	_, _ = afc2("sortutil", sortutil.Float32s, ar)
-	_, _ = afc2("zermelo", func(ar []float32) { zermelo.Sort(ar) }, ar)
-
-	sumt2(ar)
-	fmt.Println()
 }
 
 var iar = []int{
@@ -167,50 +175,37 @@ var iar = []int{
 	9, 8, 7, 6, 5, 4, 3, 2, 1, 0, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0,
 	-9, -8, -7, -6, -5, -4, -3, -2, -1, 0, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0}
 
-// SortI calls SortI4 (on 32-bit) or SortI8 (on 64-bit).
-func TestI(t *testing.T) {
-	SortI(iar, 3)
-	if !IsSortedI(iar) {
-		t.Fatal("SortI does not work")
-	}
-}
-
 // optimize max array length for insertion sort (Mli)
 func TestOpt(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
 	tst = t
+
 	fmt.Println("Sorting uint32")
-
 	mns := 9e9
+	ar := make([]uint32, N)
+	ap := make([]uint32, 0, N)
 	for Mli = 10; Mli < 42; Mli += 2 {
 
-		sum := sumt(nil)
+		sum := sumt(ar, ap)
 		if sum < mns {
 			mns = sum
 			fmt.Printf("%d %.2fs\n", Mli, mns)
 		}
 	}
-	fmt.Println()
-}
+	ar, ap = nil, nil
 
-// optimize max array length for insertion sort (Mli)
-func TestOpt2(t *testing.T) {
-	if testing.Short() {
-		t.SkipNow()
-	}
-	tst = t
-	fmt.Println("Sorting float32")
-
-	mns := 9e9
+	fmt.Println("\nSorting float32")
+	mns = 9e9
+	aq := make([]float32, N)
+	as := make([]float32, 0, N)
 	for Mli = 10; Mli < 42; Mli += 2 {
 
-		sum := sumt2(nil)
+		sum := sumt2(aq, as)
 		if sum < mns {
 			mns = sum
 			fmt.Printf("%d %.2fs\n", Mli, mns)
 		}
 	}
-	fmt.Println()
 }
