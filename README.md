@@ -1,7 +1,7 @@
 ## sorty [![Go Report Card](https://goreportcard.com/badge/github.com/jfcg/sorty)](https://goreportcard.com/report/github.com/jfcg/sorty)
 Type-specific concurrent sorting library
 
-sorty is an in-place [QuickSort](https://en.wikipedia.org/wiki/Quicksort) implementation and does not require extra memory. Call corresponding Sort\*() to sort your slice in ascending order. For example:
+sorty is an in-place [QuickSort](https://en.wikipedia.org/wiki/Quicksort) implementation \(with [InsertionSort](https://en.wikipedia.org/wiki/Insertion_sort) as subroutine\) and does not require extra memory. Call corresponding Sort\*() to sort your slice in ascending order. For example:
 ```
 sorty.SortS(your_string_slice, mx)
 ```
@@ -14,22 +14,37 @@ Sorting uint32 array (in seconds):
 
 Library|Acer TravelMate netbook with Intel Celeron N3160|Casper laptop with Intel Core i5-4210M|Server with AMD Ryzen 5 1600
 :---|:---:|:---:|:---:
-sort.Slice|144.4|68.6|67.2
-sortutil  | 65.0|26.0|18.0
-zermelo   | 38.0|12.0| 9.5
-sorty-02  | 30.7|18.3|18.3
-sorty-04  | 17.2|12.6|10.9
-sorty-08  | 17.1|12.5| 8.2
-sorty-16  | 17.1|12.4| 5.6
+sort.Slice|144.40|68.48|67.58
+sortutil  | 65.50|25.50|17.38
+zermelo   | 39.40|11.35| 9.51
+sorty-2   | 26.62|15.84|15.17
+sorty-3   | 19.27|12.99|11.33
+sorty-4   | 15.22|11.09| 9.20
+sorty-5   | 15.16|11.15| 7.89
 
 Sorting float32 array (in seconds):
 
 Library|Acer TravelMate netbook with Intel Celeron N3160|Casper laptop with Intel Core i5-4210M|Server with AMD Ryzen 5 1600
 :---|:---:|:---:|:---:
-sort.Slice|147.8|69.9|72.0
-sortutil  | 62.0|24.0|16.6
-zermelo   | 30.3| 8.7|14.5
-sorty-02  | 37.0|20.9|25.0
-sorty-04  | 21.7|14.4|16.0
-sorty-08  | 22.0|14.0|11.0
-sorty-16  | 23.0|14.0| 7.8
+sort.Slice|147.80|69.50|71.73
+sortutil  | 62.30|23.46|16.58
+zermelo   | 31.20| 9.26|14.55
+sorty-2   | 32.28|19.43|23.31
+sorty-3   | 23.36|15.59|17.69
+sorty-4   | 20.49|13.18|14.37
+sorty-5   | 18.59|13.35|12.45
+
+### Parameter Tuning
+First, make sure everything is fine (prepend GOGC=30 to all if your ram <= 4 GiB):
+```
+go test -short -timeout 9h
+```
+You can tune Mli,Mlr for your platform/cpu with \(optimization flags\):
+```
+go test -timeout 99h -gcflags '-B -s' -ldflags '-s -w'
+```
+Now update Mli,Mlr in sorty.go and compare your tuned sorty with sortutil & zermelo:
+```
+go test -short -timeout 9h -gcflags '-B -s' -ldflags '-s -w'
+```
+Remember to build your sorty with the same flags you used for tuning.

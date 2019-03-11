@@ -9,7 +9,7 @@ import (
 	"github.com/shawnsmithdev/zermelo/zuint32"
 	"github.com/twotwotwo/sorts/sortutil"
 	"math/rand"
-	"sort"
+	//"sort"
 	"testing"
 	"time"
 	"unsafe"
@@ -58,7 +58,7 @@ func compare(ar, ap []uint32) {
 	if len(ap) <= 0 {
 		return
 	}
-	if len(ap) != len(ar) || len(ap) != N {
+	if len(ar) != N || len(ap) != N {
 		tst.Fatal(name, "length mismatch:", len(ap), len(ar))
 	}
 
@@ -136,13 +136,14 @@ func TestShort(t *testing.T) {
 	tst = t
 
 	fmt.Println("Sorting uint32")
-	ar := make([]uint32, N)
-	name = "sort.Slice"
-	afc(func(ar []uint32) { sort.Slice(ar, func(i, k int) bool { return ar[i] < ar[k] }) }, ar, nil)
+	//ar := make([]uint32, N) //too slow to test :P
+	//name = "sort.Slice"
+	//afc(func(ar []uint32) { sort.Slice(ar, func(i, k int) bool { return ar[i] < ar[k] }) }, ar, nil)
 
-	ap := make([]uint32, N)
+	ar := make([]uint32, N)
 	name = "sortutil"
-	afc(sortutil.Uint32s, ap, ar)
+	afc(sortutil.Uint32s, ar, nil)
+	ap := make([]uint32, N)
 	name = "zermelo"
 	afc(zuint32.Sort, ap, ar)
 
@@ -150,13 +151,14 @@ func TestShort(t *testing.T) {
 	ar, ap = nil, nil
 
 	fmt.Println("\nSorting float32")
-	aq := make([]float32, N)
-	name = "sort.Slice"
-	afc2(func(ar []float32) { sort.Slice(ar, func(i, k int) bool { return ar[i] < ar[k] }) }, aq, nil)
+	//aq := make([]float32, N)
+	//name = "sort.Slice"
+	//afc2(func(ar []float32) { sort.Slice(ar, func(i, k int) bool { return ar[i] < ar[k] }) }, aq, nil)
 
-	as := make([]float32, N)
+	aq := make([]float32, N)
 	name = "sortutil"
-	afc2(sortutil.Float32s, as, aq)
+	afc2(sortutil.Float32s, aq, nil)
+	as := make([]float32, N)
 	name = "zermelo"
 	afc2(zfloat32.Sort, as, aq)
 
@@ -175,37 +177,58 @@ var iar = []int{
 	9, 8, 7, 6, 5, 4, 3, 2, 1, 0, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0,
 	-9, -8, -7, -6, -5, -4, -3, -2, -1, 0, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0}
 
-// optimize max array length for insertion sort (Mli)
+// optimize max array lengths for insertion sort/recursion (Mli,Mlr)
 func TestOpt(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
 	tst = t
+	const cd = 3 // countdown iv
 
 	fmt.Println("Sorting uint32")
-	mns := 9e9
 	ar := make([]uint32, N)
 	ap := make([]uint32, 0, N)
-	for Mli = 10; Mli < 42; Mli += 2 {
 
-		sum := sumt(ar, ap)
-		if sum < mns {
-			mns = sum
-			fmt.Printf("%d %.2fs\n", Mli, mns)
+	mns, ic, rc := 9e9, cd, cd // min sum, insertion/recursion no-improvement countdowns
+	for Mli = 16; ic > 0; Mli += 4 {
+
+		for rc, Mlr = cd, 3*Mli-3; ; Mlr += 4 {
+			sum := sumt(ar, ap)
+
+			if sum < mns {
+				mns, ic, rc = sum, cd+1, cd
+				fmt.Printf("%d %d %.2fs\n", Mli, Mlr, mns)
+			} else {
+				rc--
+				if rc <= 0 {
+					break
+				}
+			}
 		}
+		ic--
 	}
 	ar, ap = nil, nil
 
 	fmt.Println("\nSorting float32")
-	mns = 9e9
 	aq := make([]float32, N)
 	as := make([]float32, 0, N)
-	for Mli = 10; Mli < 42; Mli += 2 {
 
-		sum := sumt2(aq, as)
-		if sum < mns {
-			mns = sum
-			fmt.Printf("%d %.2fs\n", Mli, mns)
+	mns, ic, rc = 9e9, cd, cd
+	for Mli = 16; ic > 0; Mli += 4 {
+
+		for rc, Mlr = cd, 3*Mli-3; ; Mlr += 4 {
+			sum := sumt2(aq, as)
+
+			if sum < mns {
+				mns, ic, rc = sum, cd+1, cd
+				fmt.Printf("%d %d %.2fs\n", Mli, Mlr, mns)
+			} else {
+				rc--
+				if rc <= 0 {
+					break
+				}
+			}
 		}
+		ic--
 	}
 }

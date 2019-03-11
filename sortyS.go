@@ -145,7 +145,7 @@ start:
 
 		// max goroutines? range not big enough for new goroutine?
 		// not atomic but good enough
-		if ngS >= mxS || hi-l <= 2*Mli {
+		if ngS >= mxS || hi-l < Mlr {
 			srtS(l, hi) // start a recursive (slave) sort on the smaller range
 			hi = h
 			goto start

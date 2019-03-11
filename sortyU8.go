@@ -145,7 +145,7 @@ start:
 
 		// max goroutines? range not big enough for new goroutine?
 		// not atomic but good enough
-		if ngU8 >= mxU8 || hi-l <= 2*Mli {
+		if ngU8 >= mxU8 || hi-l < Mlr {
 			srtU8(l, hi) // start a recursive (slave) sort on the smaller range
 			hi = h
 			goto start
