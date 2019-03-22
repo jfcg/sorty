@@ -135,34 +135,29 @@ func TestShort(t *testing.T) {
 	}
 	tst = t
 
+	as := make([]float32, N)
+	aq := make([]float32, N)
+	ar, ap := f2u(&as), f2u(&aq)
+
 	fmt.Println("Sorting uint32")
-	//ar := make([]uint32, N) //too slow to test :P
 	//name = "sort.Slice"
 	//afc(func(ar []uint32) { sort.Slice(ar, func(i, k int) bool { return ar[i] < ar[k] }) }, ar, nil)
 
-	ar := make([]uint32, N)
 	name = "sortutil"
 	afc(sortutil.Uint32s, ar, nil)
-	ap := make([]uint32, N)
 	name = "zermelo"
 	afc(zuint32.Sort, ap, ar)
-
-	sumt(ap, ar)
-	ar, ap = nil, nil
+	sumt(ap, ar) // sorty
 
 	fmt.Println("\nSorting float32")
-	//aq := make([]float32, N)
 	//name = "sort.Slice"
 	//afc2(func(ar []float32) { sort.Slice(ar, func(i, k int) bool { return ar[i] < ar[k] }) }, aq, nil)
 
-	aq := make([]float32, N)
 	name = "sortutil"
 	afc2(sortutil.Float32s, aq, nil)
-	as := make([]float32, N)
 	name = "zermelo"
 	afc2(zfloat32.Sort, as, aq)
-
-	sumt2(as, aq)
+	sumt2(as, aq) // sorty
 
 	// SortI calls SortI4 (on 32-bit) or SortI8 (on 64-bit).
 	SortI(iar, 3)
@@ -177,58 +172,78 @@ var iar = []int{
 	9, 8, 7, 6, 5, 4, 3, 2, 1, 0, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0,
 	-9, -8, -7, -6, -5, -4, -3, -2, -1, 0, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0}
 
-// optimize max array lengths for insertion sort/recursion (Mli,Mlr)
+// Mli,Mlr neighbors
+var irN = []int{0, -4, 4, 0, -8, 0, 0, 8}
+
+// Minimize fn() over Mli,Mlr grid
+func findMin(fn func() float64) {
+	Mli, Mlr = 24, 97
+
+	// 3x3 grid of fn() values centered at Mli,Mlr
+	var fv [9]float64
+	fv[4] = fn() // center
+
+	for {
+		fmt.Printf("%d %d %.2fs\n", Mli, Mlr, fv[4])
+
+		k, li, lr := 4, Mli, Mlr
+		for i := 1; i < 8; i += 2 { // 4 neighbors
+
+			if fv[i] > 0 { // known non-optimal?
+				continue
+			}
+
+			Mli = li + irN[i/2] // peek neighbor
+			Mlr = lr + irN[4+i/2]
+			fv[i] = fn()
+
+			if fv[i] < fv[k] { // better neighbor?
+				k = i
+			}
+		}
+
+		if k == 4 {
+			break // center is best
+		}
+
+		Mli = li + irN[k/2] // switch to best neighbor
+		Mlr = lr + irN[4+k/2]
+
+		switch k { // update grid
+		case 1: // up
+			fv[6], fv[7], fv[8] = fv[3], fv[4], fv[5]
+			fv[3], fv[4], fv[5] = fv[0], fv[1], fv[2]
+			fv[0], fv[1], fv[2] = 0, 0, 0
+		case 3: // left
+			fv[2], fv[5], fv[8] = fv[1], fv[4], fv[7]
+			fv[1], fv[4], fv[7] = fv[0], fv[3], fv[6]
+			fv[0], fv[3], fv[6] = 0, 0, 0
+		case 5: // right
+			fv[0], fv[3], fv[6] = fv[1], fv[4], fv[7]
+			fv[1], fv[4], fv[7] = fv[2], fv[5], fv[8]
+			fv[2], fv[5], fv[8] = 0, 0, 0
+		default: // down
+			fv[0], fv[1], fv[2] = fv[3], fv[4], fv[5]
+			fv[3], fv[4], fv[5] = fv[6], fv[7], fv[8]
+			fv[6], fv[7], fv[8] = 0, 0, 0
+		}
+	}
+}
+
+// Optimize max array lengths for insertion sort/recursion (Mli,Mlr)
 func TestOpt(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
 	tst = t
-	const cd = 3 // countdown iv
+
+	as := make([]float32, N)
+	aq := make([]float32, 0, N)
+	ar, ap := f2u(&as), f2u(&aq)
 
 	fmt.Println("Sorting uint32")
-	ar := make([]uint32, N)
-	ap := make([]uint32, 0, N)
-
-	mns, ic, rc := 9e9, cd, cd // min sum, insertion/recursion no-improvement countdowns
-	for Mli = 16; ic > 0; Mli += 4 {
-
-		for rc, Mlr = cd, 3*Mli-3; ; Mlr += 4 {
-			sum := sumt(ar, ap)
-
-			if sum < mns {
-				mns, ic, rc = sum, cd+1, cd
-				fmt.Printf("%d %d %.2fs\n", Mli, Mlr, mns)
-			} else {
-				rc--
-				if rc <= 0 {
-					break
-				}
-			}
-		}
-		ic--
-	}
-	ar, ap = nil, nil
+	findMin(func() float64 { return sumt(ar, ap) })
 
 	fmt.Println("\nSorting float32")
-	aq := make([]float32, N)
-	as := make([]float32, 0, N)
-
-	mns, ic, rc = 9e9, cd, cd
-	for Mli = 16; ic > 0; Mli += 4 {
-
-		for rc, Mlr = cd, 3*Mli-3; ; Mlr += 4 {
-			sum := sumt2(aq, as)
-
-			if sum < mns {
-				mns, ic, rc = sum, cd+1, cd
-				fmt.Printf("%d %d %.2fs\n", Mli, Mlr, mns)
-			} else {
-				rc--
-				if rc <= 0 {
-					break
-				}
-			}
-		}
-		ic--
-	}
+	findMin(func() float64 { return sumt2(as, aq) })
 }
