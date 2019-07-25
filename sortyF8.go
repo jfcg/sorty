@@ -5,9 +5,6 @@ package sorty
 
 import "sync/atomic"
 
-// float64 array to be sorted
-var arF8 []float64
-
 // IsSortedF8 checks if ar is sorted in ascending order.
 func IsSortedF8(ar []float64) bool {
 	for i := len(ar) - 1; i > 0; i-- {
@@ -49,16 +46,17 @@ func ipF8(pv, vl, vh float64) (a, b, c float64, r int) {
 }
 
 // return pivot as median of five scattered values
-func medianF8(l, h int) float64 {
-	// lo, med, hi
-	m := mean(l, h)
-	vl, pv, vh := arF8[l], arF8[m], arF8[h]
+func medianF8(ar []float64) float64 {
+	// lo, mid, hi
+	h := len(ar) - 1
+	m := h >> 1
+	vl, pv, vh := ar[0], ar[m], ar[h]
 
 	// intermediates
-	a, b := mean(l, m), mean(m, h)
-	va, vb := arF8[a], arF8[b]
+	a, b := m>>1, int(uint(m+h)>>1) // avoid overflow
+	va, vb := ar[a], ar[b]
 
-	// put lo, med, hi in order
+	// put lo, mid, hi in order
 	if vh < vl {
 		vl, vh = vh, vl
 	}
@@ -78,92 +76,88 @@ func medianF8(l, h int) float64 {
 	}
 
 	// here: vl <= va <= pv <= vb <= vh
-	arF8[l], arF8[m], arF8[h] = vl, pv, vh
-	arF8[a], arF8[b] = va, vb
+	ar[0], ar[m], ar[h] = vl, pv, vh
+	ar[a], ar[b] = va, vb
 	return pv
 }
 
-var ngF8, mxF8 uint32 // number of sorting goroutines, max limit
-var doneF8 = make(chan bool, 1)
-
-// SortF8 concurrently sorts ar in ascending order. Should not be called by multiple goroutines at the same time.
-// mx is the maximum number of goroutines used for sorting simultaneously, saturated to [2, 65535].
+// SortF8 concurrently sorts ar in ascending order. mx is the maximum number
+// of goroutines used for sorting simultaneously, saturated to [2, 65535].
 func SortF8(ar []float64, mx uint32) {
 	if len(ar) <= Mli {
 		insertionF8(ar)
 		return
 	}
 
-	mxF8 = sat(mx)
-	arF8 = ar
+	ng, mx := uint32(1), sat(mx) // number of sorting goroutines including this, max limit
+	done := make(chan bool, 1)   // end signal
+	var srt, gsrt func(int, int) // recursive & new-goroutine sort functions
 
-	ngF8 = 1 // count self
-	gsrtF8(0, len(arF8)-1)
-	<-doneF8
+	gsrt = func(lo, hi int) {
+		srt(lo, hi)
 
-	arF8 = nil
-}
-
-func gsrtF8(lo, hi int) {
-	srtF8(lo, hi)
-
-	if atomic.AddUint32(&ngF8, ^uint32(0)) == 0 { // decrease goroutine counter
-		doneF8 <- false // we are the last, all done
-	}
-}
-
-// assumes hi-lo >= Mli
-func srtF8(lo, hi int) {
-	var l, h int
-start:
-	l, h = lo+1, hi-1 // medianF8 handles lo,hi positions
-
-	for pv := medianF8(lo, hi); l <= h; {
-		swap := true
-		if arF8[h] >= pv { // extend ranges in balance
-			h--
-			swap = false
-		}
-		if arF8[l] <= pv {
-			l++
-			swap = false
-		}
-
-		if swap {
-			arF8[l], arF8[h] = arF8[h], arF8[l]
-			h--
-			l++
+		if atomic.AddUint32(&ng, ^uint32(0)) == 0 { // decrease goroutine counter
+			done <- false // we are the last, all done
 		}
 	}
 
-	if h-lo < hi-l {
-		h, hi = hi, h // [lo,h] is the bigger range
-		l, lo = lo, l
-	}
+	srt = func(lo, hi int) { // assumes hi-lo >= Mli
+		var l, h int
+	start:
+		l, h = lo+1, hi-1 // medianF8 handles lo,hi positions
 
-	if hi-l >= Mli { // two big ranges?
+		for pv := medianF8(ar[lo : hi+1]); l <= h; {
+			swap := true
+			if ar[h] >= pv { // extend ranges in balance
+				h--
+				swap = false
+			}
+			if ar[l] <= pv {
+				l++
+				swap = false
+			}
 
-		// max goroutines? range not big enough for new goroutine?
-		// not atomic but good enough
-		if ngF8 >= mxF8 || hi-l < Mlr {
-			srtF8(l, hi) // start a recursive (slave) sort on the smaller range
-			hi = h
+			if swap {
+				ar[l], ar[h] = ar[h], ar[l]
+				h--
+				l++
+			}
+		}
+
+		if h-lo < hi-l {
+			h, hi = hi, h // [lo,h] is the bigger range
+			l, lo = lo, l
+		}
+
+		if hi-l >= Mli { // two big ranges?
+
+			// range not big enough for new goroutine? max goroutines?
+			// not atomic but good enough
+			if hi-l < Mlr || ng >= mx {
+				srt(l, hi) // start a recursive sort on the smaller range
+				hi = h
+				goto start
+			}
+
+			if atomic.AddUint32(&ng, 1) == 0 { // increase goroutine counter
+				panic("SortF8: counter overflow")
+			}
+			go gsrt(lo, h) // start a new goroutine on the bigger range
+			lo = l
 			goto start
 		}
 
-		atomic.AddUint32(&ngF8, 1) // increase goroutine counter
-		go gsrtF8(lo, h)           // start a goroutine on the bigger range
-		lo = l
+		insertionF8(ar[l : hi+1])
+
+		if h-lo < Mli { // two small ranges?
+			insertionF8(ar[lo : h+1])
+			return
+		}
+
+		hi = h
 		goto start
 	}
 
-	insertionF8(arF8[l : hi+1])
-
-	if h-lo < Mli { // two small ranges?
-		insertionF8(arF8[lo : h+1])
-		return
-	}
-
-	hi = h
-	goto start
+	gsrt(0, len(ar)-1) // start sort
+	<-done
 }

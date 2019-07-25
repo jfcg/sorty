@@ -23,7 +23,7 @@ var name string
 // fill sort test
 func fst(sd int64, ar []uint32, srt func([]uint32)) time.Duration {
 	rn := rand.New(rand.NewSource(sd))
-	for i := N - 1; i >= 0; i-- {
+	for i := len(ar) - 1; i >= 0; i-- {
 		ar[i] = rn.Uint32()
 	}
 
@@ -40,7 +40,7 @@ func fst(sd int64, ar []uint32, srt func([]uint32)) time.Duration {
 // fill sort test
 func fst2(sd int64, ar []float32, srt func([]float32)) time.Duration {
 	rn := rand.New(rand.NewSource(sd))
-	for i := N - 1; i >= 0; i-- {
+	for i := len(ar) - 1; i >= 0; i-- {
 		ar[i] = float32(rn.NormFloat64())
 	}
 
@@ -55,21 +55,22 @@ func fst2(sd int64, ar []float32, srt func([]float32)) time.Duration {
 }
 
 func compare(ar, ap []uint32) {
-	if len(ap) <= 0 {
+	l := len(ap)
+	if l <= 0 {
 		return
 	}
-	if len(ar) != N || len(ap) != N {
-		tst.Fatal(name, "length mismatch:", len(ap), len(ar))
+	if len(ar) != l {
+		tst.Fatal(name, "length mismatch:", len(ar), l)
 	}
 
-	for i := N - 1; i >= 0; i-- {
-		if ap[i] != ar[i] {
-			tst.Fatal(name, "values mismatch:", i, ap[i], ar[i])
+	for i := l - 1; i >= 0; i-- {
+		if ar[i] != ap[i] {
+			tst.Fatal(name, "values mismatch:", i, ar[i], ap[i])
 		}
 	}
 }
 
-// fst compare
+// average fst & compare
 func afc(srt func([]uint32), ar, ap []uint32) float64 {
 	// take average time of two different sorts
 	dur := fst(1, ar, srt)
@@ -87,7 +88,7 @@ func f2u(p *[]float32) []uint32 {
 	return *(*[]uint32)(unsafe.Pointer(p))
 }
 
-// fst compare
+// average fst & compare
 func afc2(srt func([]float32), ar, ap []float32) float64 {
 	// take average time of two different sorts
 	dur := fst2(1, ar, srt)
@@ -106,27 +107,35 @@ var srnm = []byte("sorty-0")
 // return sum of Sort*() times for 2..5 goroutines
 // compare with ap and among themselves
 func sumt(ar, ap []uint32) float64 {
-	sum := .0
+	s := .0
 	for i := 2; i < 6; i++ {
-		srnm[6] = byte(i%10) + '0'
+		srnm[6] = byte(i + '0')
 		name = string(srnm)
-		sum += afc(func(ar []uint32) { SortU4(ar, uint32(i)) }, ar, ap)
+		s += afc(func(ar []uint32) { SortU4(ar, uint32(i)) }, ar, ap)
 		ap, ar = ar, ap[:cap(ap)]
 	}
-	return sum
+	return s
 }
 
 // return sum of Sort*() times for 2..5 goroutines
 // compare with ap and among themselves
 func sumt2(ar, ap []float32) float64 {
-	sum := .0
+	s := .0
 	for i := 2; i < 6; i++ {
-		srnm[6] = byte(i%10) + '0'
+		srnm[6] = byte(i + '0')
 		name = string(srnm)
-		sum += afc2(func(ar []float32) { SortF4(ar, uint32(i)) }, ar, ap)
+		s += afc2(func(ar []float32) { SortF4(ar, uint32(i)) }, ar, ap)
 		ap, ar = ar, ap[:cap(ap)]
 	}
-	return sum
+	return s
+}
+
+// SortU4 and signal
+func sas(sd int64, ar []uint32, ch chan bool) {
+	fst(sd, ar, func(x []uint32) { SortU4(x, 2) })
+	if ch != nil {
+		ch <- false
+	}
 }
 
 func TestShort(t *testing.T) {
@@ -140,7 +149,7 @@ func TestShort(t *testing.T) {
 	ar, ap := f2u(&as), f2u(&aq)
 
 	fmt.Println("Sorting uint32")
-	//name = "sort.Slice"
+	//name = "sort.Slice" // takes too long
 	//afc(func(ar []uint32) { sort.Slice(ar, func(i, k int) bool { return ar[i] < ar[k] }) }, ar, nil)
 
 	name = "sortutil"
@@ -158,6 +167,22 @@ func TestShort(t *testing.T) {
 	name = "zermelo"
 	afc2(zfloat32.Sort, as, aq)
 	sumt2(as, aq) // sorty
+
+	// Is Sort*() multi-goroutine safe?
+	fmt.Println("\nConcurrent calls to SortU4()")
+	name = "multi"
+	K, ch := N/2, make(chan bool, 1)
+
+	go sas(3, ar[:K], ch)
+	go sas(4, ar[K:], ch)
+	go sas(3, ap[:K], ch)
+	sas(4, ap[K:], nil)
+
+	for i := 3; i > 0; i-- {
+		<-ch // wait others
+	}
+	compare(ar[:K], ap[:K])
+	compare(ar[K:], ap[K:])
 
 	// SortI calls SortI4 (on 32-bit) or SortI8 (on 64-bit).
 	SortI(iar, 3)

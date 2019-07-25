@@ -5,9 +5,6 @@ package sorty
 
 import "sync/atomic"
 
-// int32 array to be sorted
-var arI4 []int32
-
 // IsSortedI4 checks if ar is sorted in ascending order.
 func IsSortedI4(ar []int32) bool {
 	for i := len(ar) - 1; i > 0; i-- {
@@ -49,16 +46,17 @@ func ipI4(pv, vl, vh int32) (a, b, c int32, r int) {
 }
 
 // return pivot as median of five scattered values
-func medianI4(l, h int) int32 {
-	// lo, med, hi
-	m := mean(l, h)
-	vl, pv, vh := arI4[l], arI4[m], arI4[h]
+func medianI4(ar []int32) int32 {
+	// lo, mid, hi
+	h := len(ar) - 1
+	m := h >> 1
+	vl, pv, vh := ar[0], ar[m], ar[h]
 
 	// intermediates
-	a, b := mean(l, m), mean(m, h)
-	va, vb := arI4[a], arI4[b]
+	a, b := m>>1, int(uint(m+h)>>1) // avoid overflow
+	va, vb := ar[a], ar[b]
 
-	// put lo, med, hi in order
+	// put lo, mid, hi in order
 	if vh < vl {
 		vl, vh = vh, vl
 	}
@@ -78,92 +76,88 @@ func medianI4(l, h int) int32 {
 	}
 
 	// here: vl <= va <= pv <= vb <= vh
-	arI4[l], arI4[m], arI4[h] = vl, pv, vh
-	arI4[a], arI4[b] = va, vb
+	ar[0], ar[m], ar[h] = vl, pv, vh
+	ar[a], ar[b] = va, vb
 	return pv
 }
 
-var ngI4, mxI4 uint32 // number of sorting goroutines, max limit
-var doneI4 = make(chan bool, 1)
-
-// SortI4 concurrently sorts ar in ascending order. Should not be called by multiple goroutines at the same time.
-// mx is the maximum number of goroutines used for sorting simultaneously, saturated to [2, 65535].
+// SortI4 concurrently sorts ar in ascending order. mx is the maximum number
+// of goroutines used for sorting simultaneously, saturated to [2, 65535].
 func SortI4(ar []int32, mx uint32) {
 	if len(ar) <= Mli {
 		insertionI4(ar)
 		return
 	}
 
-	mxI4 = sat(mx)
-	arI4 = ar
+	ng, mx := uint32(1), sat(mx) // number of sorting goroutines including this, max limit
+	done := make(chan bool, 1)   // end signal
+	var srt, gsrt func(int, int) // recursive & new-goroutine sort functions
 
-	ngI4 = 1 // count self
-	gsrtI4(0, len(arI4)-1)
-	<-doneI4
+	gsrt = func(lo, hi int) {
+		srt(lo, hi)
 
-	arI4 = nil
-}
-
-func gsrtI4(lo, hi int) {
-	srtI4(lo, hi)
-
-	if atomic.AddUint32(&ngI4, ^uint32(0)) == 0 { // decrease goroutine counter
-		doneI4 <- false // we are the last, all done
-	}
-}
-
-// assumes hi-lo >= Mli
-func srtI4(lo, hi int) {
-	var l, h int
-start:
-	l, h = lo+1, hi-1 // medianI4 handles lo,hi positions
-
-	for pv := medianI4(lo, hi); l <= h; {
-		swap := true
-		if arI4[h] >= pv { // extend ranges in balance
-			h--
-			swap = false
-		}
-		if arI4[l] <= pv {
-			l++
-			swap = false
-		}
-
-		if swap {
-			arI4[l], arI4[h] = arI4[h], arI4[l]
-			h--
-			l++
+		if atomic.AddUint32(&ng, ^uint32(0)) == 0 { // decrease goroutine counter
+			done <- false // we are the last, all done
 		}
 	}
 
-	if h-lo < hi-l {
-		h, hi = hi, h // [lo,h] is the bigger range
-		l, lo = lo, l
-	}
+	srt = func(lo, hi int) { // assumes hi-lo >= Mli
+		var l, h int
+	start:
+		l, h = lo+1, hi-1 // medianI4 handles lo,hi positions
 
-	if hi-l >= Mli { // two big ranges?
+		for pv := medianI4(ar[lo : hi+1]); l <= h; {
+			swap := true
+			if ar[h] >= pv { // extend ranges in balance
+				h--
+				swap = false
+			}
+			if ar[l] <= pv {
+				l++
+				swap = false
+			}
 
-		// max goroutines? range not big enough for new goroutine?
-		// not atomic but good enough
-		if ngI4 >= mxI4 || hi-l < Mlr {
-			srtI4(l, hi) // start a recursive (slave) sort on the smaller range
-			hi = h
+			if swap {
+				ar[l], ar[h] = ar[h], ar[l]
+				h--
+				l++
+			}
+		}
+
+		if h-lo < hi-l {
+			h, hi = hi, h // [lo,h] is the bigger range
+			l, lo = lo, l
+		}
+
+		if hi-l >= Mli { // two big ranges?
+
+			// range not big enough for new goroutine? max goroutines?
+			// not atomic but good enough
+			if hi-l < Mlr || ng >= mx {
+				srt(l, hi) // start a recursive sort on the smaller range
+				hi = h
+				goto start
+			}
+
+			if atomic.AddUint32(&ng, 1) == 0 { // increase goroutine counter
+				panic("SortI4: counter overflow")
+			}
+			go gsrt(lo, h) // start a new goroutine on the bigger range
+			lo = l
 			goto start
 		}
 
-		atomic.AddUint32(&ngI4, 1) // increase goroutine counter
-		go gsrtI4(lo, h)           // start a goroutine on the bigger range
-		lo = l
+		insertionI4(ar[l : hi+1])
+
+		if h-lo < Mli { // two small ranges?
+			insertionI4(ar[lo : h+1])
+			return
+		}
+
+		hi = h
 		goto start
 	}
 
-	insertionI4(arI4[l : hi+1])
-
-	if h-lo < Mli { // two small ranges?
-		insertionI4(arI4[lo : h+1])
-		return
-	}
-
-	hi = h
-	goto start
+	gsrt(0, len(ar)-1) // start sort
+	<-done
 }

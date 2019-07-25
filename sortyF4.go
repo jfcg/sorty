@@ -5,9 +5,6 @@ package sorty
 
 import "sync/atomic"
 
-// float32 array to be sorted
-var arF4 []float32
-
 // IsSortedF4 checks if ar is sorted in ascending order.
 func IsSortedF4(ar []float32) bool {
 	for i := len(ar) - 1; i > 0; i-- {
@@ -49,16 +46,17 @@ func ipF4(pv, vl, vh float32) (a, b, c float32, r int) {
 }
 
 // return pivot as median of five scattered values
-func medianF4(l, h int) float32 {
-	// lo, med, hi
-	m := mean(l, h)
-	vl, pv, vh := arF4[l], arF4[m], arF4[h]
+func medianF4(ar []float32) float32 {
+	// lo, mid, hi
+	h := len(ar) - 1
+	m := h >> 1
+	vl, pv, vh := ar[0], ar[m], ar[h]
 
 	// intermediates
-	a, b := mean(l, m), mean(m, h)
-	va, vb := arF4[a], arF4[b]
+	a, b := m>>1, int(uint(m+h)>>1) // avoid overflow
+	va, vb := ar[a], ar[b]
 
-	// put lo, med, hi in order
+	// put lo, mid, hi in order
 	if vh < vl {
 		vl, vh = vh, vl
 	}
@@ -78,92 +76,88 @@ func medianF4(l, h int) float32 {
 	}
 
 	// here: vl <= va <= pv <= vb <= vh
-	arF4[l], arF4[m], arF4[h] = vl, pv, vh
-	arF4[a], arF4[b] = va, vb
+	ar[0], ar[m], ar[h] = vl, pv, vh
+	ar[a], ar[b] = va, vb
 	return pv
 }
 
-var ngF4, mxF4 uint32 // number of sorting goroutines, max limit
-var doneF4 = make(chan bool, 1)
-
-// SortF4 concurrently sorts ar in ascending order. Should not be called by multiple goroutines at the same time.
-// mx is the maximum number of goroutines used for sorting simultaneously, saturated to [2, 65535].
+// SortF4 concurrently sorts ar in ascending order. mx is the maximum number
+// of goroutines used for sorting simultaneously, saturated to [2, 65535].
 func SortF4(ar []float32, mx uint32) {
 	if len(ar) <= Mli {
 		insertionF4(ar)
 		return
 	}
 
-	mxF4 = sat(mx)
-	arF4 = ar
+	ng, mx := uint32(1), sat(mx) // number of sorting goroutines including this, max limit
+	done := make(chan bool, 1)   // end signal
+	var srt, gsrt func(int, int) // recursive & new-goroutine sort functions
 
-	ngF4 = 1 // count self
-	gsrtF4(0, len(arF4)-1)
-	<-doneF4
+	gsrt = func(lo, hi int) {
+		srt(lo, hi)
 
-	arF4 = nil
-}
-
-func gsrtF4(lo, hi int) {
-	srtF4(lo, hi)
-
-	if atomic.AddUint32(&ngF4, ^uint32(0)) == 0 { // decrease goroutine counter
-		doneF4 <- false // we are the last, all done
-	}
-}
-
-// assumes hi-lo >= Mli
-func srtF4(lo, hi int) {
-	var l, h int
-start:
-	l, h = lo+1, hi-1 // medianF4 handles lo,hi positions
-
-	for pv := medianF4(lo, hi); l <= h; {
-		swap := true
-		if arF4[h] >= pv { // extend ranges in balance
-			h--
-			swap = false
-		}
-		if arF4[l] <= pv {
-			l++
-			swap = false
-		}
-
-		if swap {
-			arF4[l], arF4[h] = arF4[h], arF4[l]
-			h--
-			l++
+		if atomic.AddUint32(&ng, ^uint32(0)) == 0 { // decrease goroutine counter
+			done <- false // we are the last, all done
 		}
 	}
 
-	if h-lo < hi-l {
-		h, hi = hi, h // [lo,h] is the bigger range
-		l, lo = lo, l
-	}
+	srt = func(lo, hi int) { // assumes hi-lo >= Mli
+		var l, h int
+	start:
+		l, h = lo+1, hi-1 // medianF4 handles lo,hi positions
 
-	if hi-l >= Mli { // two big ranges?
+		for pv := medianF4(ar[lo : hi+1]); l <= h; {
+			swap := true
+			if ar[h] >= pv { // extend ranges in balance
+				h--
+				swap = false
+			}
+			if ar[l] <= pv {
+				l++
+				swap = false
+			}
 
-		// max goroutines? range not big enough for new goroutine?
-		// not atomic but good enough
-		if ngF4 >= mxF4 || hi-l < Mlr {
-			srtF4(l, hi) // start a recursive (slave) sort on the smaller range
-			hi = h
+			if swap {
+				ar[l], ar[h] = ar[h], ar[l]
+				h--
+				l++
+			}
+		}
+
+		if h-lo < hi-l {
+			h, hi = hi, h // [lo,h] is the bigger range
+			l, lo = lo, l
+		}
+
+		if hi-l >= Mli { // two big ranges?
+
+			// range not big enough for new goroutine? max goroutines?
+			// not atomic but good enough
+			if hi-l < Mlr || ng >= mx {
+				srt(l, hi) // start a recursive sort on the smaller range
+				hi = h
+				goto start
+			}
+
+			if atomic.AddUint32(&ng, 1) == 0 { // increase goroutine counter
+				panic("SortF4: counter overflow")
+			}
+			go gsrt(lo, h) // start a new goroutine on the bigger range
+			lo = l
 			goto start
 		}
 
-		atomic.AddUint32(&ngF4, 1) // increase goroutine counter
-		go gsrtF4(lo, h)           // start a goroutine on the bigger range
-		lo = l
+		insertionF4(ar[l : hi+1])
+
+		if h-lo < Mli { // two small ranges?
+			insertionF4(ar[lo : h+1])
+			return
+		}
+
+		hi = h
 		goto start
 	}
 
-	insertionF4(arF4[l : hi+1])
-
-	if h-lo < Mli { // two small ranges?
-		insertionF4(arF4[lo : h+1])
-		return
-	}
-
-	hi = h
-	goto start
+	gsrt(0, len(ar)-1) // start sort
+	<-done
 }
