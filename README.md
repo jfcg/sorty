@@ -37,14 +37,14 @@ sorty-5   | 18.59|13.35|12.45
 ### Parameter Tuning
 First, make sure everything is fine (prepend GOGC=30 to all if your ram <= 4 GiB):
 ```
-go test -short -timeout 9h
+go test -short -timeout 1h
 ```
 You can tune Mli,Mlr for your platform/cpu with \(optimization flags\):
 ```
-go test -timeout 99h -gcflags '-B -s' -ldflags '-s -w'
+go test -timeout 1h -gcflags '-B -s' -ldflags '-s -w'
 ```
 Now update Mli,Mlr in sorty.go and compare your tuned sorty with sortutil & zermelo:
 ```
-go test -short -timeout 9h -gcflags '-B -s' -ldflags '-s -w'
+go test -short -timeout 1h -gcflags '-B -s' -ldflags '-s -w'
 ```
 Remember to build your sorty with the same flags you used for tuning.

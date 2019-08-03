@@ -5,6 +5,7 @@ package sorty
 
 import (
 	"fmt"
+	"github.com/jfcg/opt"
 	"github.com/shawnsmithdev/zermelo/zfloat32"
 	"github.com/shawnsmithdev/zermelo/zuint32"
 	"github.com/twotwotwo/sorts/sortutil"
@@ -15,7 +16,7 @@ import (
 	"unsafe"
 )
 
-const N = 1 << 28
+const N = 1 << 26
 
 var tst *testing.T
 var name string
@@ -70,14 +71,28 @@ func compare(ar, ap []uint32) {
 	}
 }
 
-// average fst & compare
-func afc(srt func([]uint32), ar, ap []uint32) float64 {
-	// take average time of two different sorts
-	dur := fst(1, ar, srt)
-	dur = (fst(2, ar, srt) + dur) / 2
+// median of three
+func medur(a, b, c time.Duration) time.Duration {
+	if a > b {
+		a, b = b, a
+	}
+	if c <= a {
+		return a
+	}
+	if c >= b {
+		return b
+	}
+	return c
+}
+
+// median fst & compare
+func mfc(srt func([]uint32), ar, ap []uint32) float64 {
+	d1 := fst(1, ar, srt) // median of three different sorts
+	d2 := fst(2, ar, srt)
+	d1 = medur(fst(3, ar, srt), d1, d2)
 	compare(ar, ap)
 
-	sec := dur.Seconds()
+	sec := d1.Seconds()
 	if testing.Short() {
 		fmt.Printf("%s took %.2fs\n", name, sec)
 	}
@@ -88,14 +103,14 @@ func f2u(p *[]float32) []uint32 {
 	return *(*[]uint32)(unsafe.Pointer(p))
 }
 
-// average fst & compare
-func afc2(srt func([]float32), ar, ap []float32) float64 {
-	// take average time of two different sorts
-	dur := fst2(1, ar, srt)
-	dur = (fst2(2, ar, srt) + dur) / 2
+// median fst & compare
+func mfc2(srt func([]float32), ar, ap []float32) float64 {
+	d1 := fst2(4, ar, srt) // median of three different sorts
+	d2 := fst2(5, ar, srt)
+	d1 = medur(fst2(6, ar, srt), d1, d2)
 	compare(f2u(&ar), f2u(&ap))
 
-	sec := dur.Seconds()
+	sec := d1.Seconds()
 	if testing.Short() {
 		fmt.Printf("%s took %.2fs\n", name, sec)
 	}
@@ -104,27 +119,27 @@ func afc2(srt func([]float32), ar, ap []float32) float64 {
 
 var srnm = []byte("sorty-0")
 
-// return sum of Sort*() times for 2..5 goroutines
+// return sum of Sort*() times for 2..4 goroutines
 // compare with ap and among themselves
 func sumt(ar, ap []uint32) float64 {
 	s := .0
-	for i := 2; i < 6; i++ {
+	for i := 2; i < 5; i++ {
 		srnm[6] = byte(i + '0')
 		name = string(srnm)
-		s += afc(func(ar []uint32) { SortU4(ar, uint32(i)) }, ar, ap)
+		s += mfc(func(ar []uint32) { SortU4(ar, uint32(i)) }, ar, ap)
 		ap, ar = ar, ap[:cap(ap)]
 	}
 	return s
 }
 
-// return sum of Sort*() times for 2..5 goroutines
+// return sum of Sort*() times for 2..4 goroutines
 // compare with ap and among themselves
 func sumt2(ar, ap []float32) float64 {
 	s := .0
-	for i := 2; i < 6; i++ {
+	for i := 2; i < 5; i++ {
 		srnm[6] = byte(i + '0')
 		name = string(srnm)
-		s += afc2(func(ar []float32) { SortF4(ar, uint32(i)) }, ar, ap)
+		s += mfc2(func(ar []float32) { SortF4(ar, uint32(i)) }, ar, ap)
 		ap, ar = ar, ap[:cap(ap)]
 	}
 	return s
@@ -150,22 +165,22 @@ func TestShort(t *testing.T) {
 
 	fmt.Println("Sorting uint32")
 	//name = "sort.Slice" // takes too long
-	//afc(func(ar []uint32) { sort.Slice(ar, func(i, k int) bool { return ar[i] < ar[k] }) }, ar, nil)
+	//mfc(func(ar []uint32) { sort.Slice(ar, func(i, k int) bool { return ar[i] < ar[k] }) }, ar, nil)
 
 	name = "sortutil"
-	afc(sortutil.Uint32s, ar, nil)
+	mfc(sortutil.Uint32s, ar, nil)
 	name = "zermelo"
-	afc(zuint32.Sort, ap, ar)
+	mfc(zuint32.Sort, ap, ar)
 	sumt(ap, ar) // sorty
 
 	fmt.Println("\nSorting float32")
 	//name = "sort.Slice"
-	//afc2(func(ar []float32) { sort.Slice(ar, func(i, k int) bool { return ar[i] < ar[k] }) }, aq, nil)
+	//mfc2(func(ar []float32) { sort.Slice(ar, func(i, k int) bool { return ar[i] < ar[k] }) }, aq, nil)
 
 	name = "sortutil"
-	afc2(sortutil.Float32s, aq, nil)
+	mfc2(sortutil.Float32s, aq, nil)
 	name = "zermelo"
-	afc2(zfloat32.Sort, as, aq)
+	mfc2(zfloat32.Sort, as, aq)
 	sumt2(as, aq) // sorty
 
 	// Is Sort*() multi-goroutine safe?
@@ -173,10 +188,10 @@ func TestShort(t *testing.T) {
 	name = "multi"
 	K, ch := N/2, make(chan bool, 1)
 
-	go sas(3, ar[:K], ch)
-	go sas(4, ar[K:], ch)
-	go sas(3, ap[:K], ch)
-	sas(4, ap[K:], nil)
+	go sas(7, ar[:K], ch)
+	go sas(8, ar[K:], ch)
+	go sas(7, ap[:K], ch)
+	sas(8, ap[K:], nil)
 
 	for i := 3; i > 0; i-- {
 		<-ch // wait others
@@ -185,6 +200,7 @@ func TestShort(t *testing.T) {
 	compare(ar[K:], ap[K:])
 
 	// SortI calls SortI4 (on 32-bit) or SortI8 (on 64-bit).
+	name = "SortI"
 	SortI(iar, 3)
 	if !IsSortedI(iar) {
 		t.Fatal("SortI does not work")
@@ -197,62 +213,9 @@ var iar = []int{
 	9, 8, 7, 6, 5, 4, 3, 2, 1, 0, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0,
 	-9, -8, -7, -6, -5, -4, -3, -2, -1, 0, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0}
 
-// Mli,Mlr neighbors
-var irN = []int{0, -4, 4, 0, -8, 0, 0, 8}
-
-// Minimize fn() over Mli,Mlr grid
-func findMin(fn func() float64) {
-	Mli, Mlr = 24, 97
-
-	// 3x3 grid of fn() values centered at Mli,Mlr
-	var fv [9]float64
-	fv[4] = fn() // center
-
-	for {
-		fmt.Printf("%d %d %.2fs\n", Mli, Mlr, fv[4])
-
-		k, li, lr := 4, Mli, Mlr
-		for i := 1; i < 8; i += 2 { // 4 neighbors
-
-			if fv[i] > 0 { // known non-optimal?
-				continue
-			}
-
-			Mli = li + irN[i/2] // peek neighbor
-			Mlr = lr + irN[4+i/2]
-			fv[i] = fn()
-
-			if fv[i] < fv[k] { // better neighbor?
-				k = i
-			}
-		}
-
-		if k == 4 {
-			break // center is best
-		}
-
-		Mli = li + irN[k/2] // switch to best neighbor
-		Mlr = lr + irN[4+k/2]
-
-		switch k { // update grid
-		case 1: // up
-			fv[6], fv[7], fv[8] = fv[3], fv[4], fv[5]
-			fv[3], fv[4], fv[5] = fv[0], fv[1], fv[2]
-			fv[0], fv[1], fv[2] = 0, 0, 0
-		case 3: // left
-			fv[2], fv[5], fv[8] = fv[1], fv[4], fv[7]
-			fv[1], fv[4], fv[7] = fv[0], fv[3], fv[6]
-			fv[0], fv[3], fv[6] = 0, 0, 0
-		case 5: // right
-			fv[0], fv[3], fv[6] = fv[1], fv[4], fv[7]
-			fv[1], fv[4], fv[7] = fv[2], fv[5], fv[8]
-			fv[2], fv[5], fv[8] = 0, 0, 0
-		default: // down
-			fv[0], fv[1], fv[2] = fv[3], fv[4], fv[5]
-			fv[3], fv[4], fv[5] = fv[6], fv[7], fv[8]
-			fv[6], fv[7], fv[8] = 0, 0, 0
-		}
-	}
+// print optimum
+func pro(x, y int, v float64) {
+	fmt.Printf("%d %d %.2fs\n", x, y, v)
 }
 
 // Optimize max array lengths for insertion sort/recursion (Mli,Mlr)
@@ -267,8 +230,14 @@ func TestOpt(t *testing.T) {
 	ar, ap := f2u(&as), f2u(&aq)
 
 	fmt.Println("Sorting uint32")
-	findMin(func() float64 { return sumt(ar, ap) })
+	opt.FindMin(3, 80, 201, 16, 32, func(x, y int) float64 {
+		Mli, Mlr = x, y
+		return sumt(ar, ap)
+	}, pro)
 
 	fmt.Println("\nSorting float32")
-	findMin(func() float64 { return sumt2(as, aq) })
+	opt.FindMin(3, 80, 201, 16, 32, func(x, y int) float64 {
+		Mli, Mlr = x, y
+		return sumt2(as, aq)
+	}, pro)
 }
