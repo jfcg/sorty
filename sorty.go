@@ -6,11 +6,11 @@
 package sorty
 
 // Mli is the maximum array length for insertion sort
-var Mli = 40
+var Mli = 96
 
 // Mlr is the maximum array length for recursion when there is available goroutines.
 // So Mlr+1 is the minimum array length for new sorting goroutines.
-var Mlr = 97
+var Mlr = 385
 
 func init() {
 	if Mli < 8 || Mlr < 17 || Mlr <= 2*Mli {

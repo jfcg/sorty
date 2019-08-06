@@ -75,7 +75,7 @@ func medianF8(ar []float64) float64 {
 		pv, vb, vh, _ = ipF8(vh, pv, vb)
 	}
 
-	// here: vl <= va <= pv <= vb <= vh
+	// here: vl, va <= pv <= vb, vh
 	ar[0], ar[m], ar[h] = vl, pv, vh
 	ar[a], ar[b] = va, vb
 	return pv
@@ -131,9 +131,9 @@ func SortF8(ar []float64, mx uint32) {
 
 		if hi-l >= Mli { // two big ranges?
 
-			// range not big enough for new goroutine? max goroutines?
+			// max goroutines? range not big enough for new goroutine?
 			// not atomic but good enough
-			if hi-l < Mlr || ng >= mx {
+			if ng >= mx || hi-l < Mlr {
 				srt(l, hi) // start a recursive sort on the smaller range
 				hi = h
 				goto start
