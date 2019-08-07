@@ -25,20 +25,17 @@ func IsSortedP(ar []uintptr) bool {
 	return IsSortedU8(*(*[]uint64)(unsafe.Pointer(&ar)))
 }
 
-// SortI concurrently sorts ar in ascending order. mx is the maximum number
-// of goroutines used for sorting simultaneously, saturated to [2, 65535].
-func SortI(ar []int, mx uint32) {
-	SortI8(*(*[]int64)(unsafe.Pointer(&ar)), mx)
+// SortI concurrently sorts ar in ascending order.
+func SortI(ar []int) {
+	SortI8(*(*[]int64)(unsafe.Pointer(&ar)))
 }
 
-// SortU concurrently sorts ar in ascending order. mx is the maximum number
-// of goroutines used for sorting simultaneously, saturated to [2, 65535].
-func SortU(ar []uint, mx uint32) {
-	SortU8(*(*[]uint64)(unsafe.Pointer(&ar)), mx)
+// SortU concurrently sorts ar in ascending order.
+func SortU(ar []uint) {
+	SortU8(*(*[]uint64)(unsafe.Pointer(&ar)))
 }
 
-// SortP concurrently sorts ar in ascending order. mx is the maximum number
-// of goroutines used for sorting simultaneously, saturated to [2, 65535].
-func SortP(ar []uintptr, mx uint32) {
-	SortU8(*(*[]uint64)(unsafe.Pointer(&ar)), mx)
+// SortP concurrently sorts ar in ascending order.
+func SortP(ar []uintptr) {
+	SortU8(*(*[]uint64)(unsafe.Pointer(&ar)))
 }

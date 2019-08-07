@@ -81,16 +81,15 @@ func medianU4(ar []uint32) uint32 {
 	return pv
 }
 
-// SortU4 concurrently sorts ar in ascending order. mx is the maximum number
-// of goroutines used for sorting simultaneously, saturated to [2, 65535].
-func SortU4(ar []uint32, mx uint32) {
+// SortU4 concurrently sorts ar in ascending order.
+func SortU4(ar []uint32) {
 	if len(ar) <= Mli {
 		insertionU4(ar)
 		return
 	}
 
-	ng, mx := uint32(1), sat(mx) // number of sorting goroutines including this, max limit
-	done := make(chan bool, 1)   // end signal
+	// number of sorting goroutines including this, end signal
+	ng, done := uint32(1), make(chan bool, 1)
 	var srt, gsrt func(int, int) // recursive & new-goroutine sort functions
 
 	gsrt = func(lo, hi int) {
@@ -145,7 +144,7 @@ func SortU4(ar []uint32, mx uint32) {
 
 		// max goroutines? range not long enough for new goroutine?
 		// not atomic but good enough
-		if ng >= mx || hi-l < Mlr {
+		if ng >= Mxg || hi-l < Mlr {
 			srt(l, hi) // start a recursive sort on the shorter range
 			hi = h
 			goto start

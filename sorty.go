@@ -1,9 +1,11 @@
 // Package sorty provides type-specific concurrent sorting functionality
 //
-// sorty is an in-place QuickSort implementation and does not require extra memory. Call corresponding Sort*() to sort your slice in ascending order. For example:
-//  sorty.SortS(string_slice, mx)
-// mx is the maximum number of goroutines used for sorting simultaneously.
+// sorty is an in-place QuickSort implementation and does not require extra memory. Call corresponding Sort*() to concurrently sort your slice in ascending order. For example:
+//  sorty.SortS(string_slice)
 package sorty
+
+// Mxg is the maximum number of goroutines used for sorting per Sort*() call.
+var Mxg uint32 = 3
 
 // Mli is the maximum array length for insertion sort
 var Mli = 56
@@ -13,18 +15,8 @@ var Mli = 56
 var Mlr = 301
 
 func init() {
-	if Mli < 8 || Mlr < 17 || Mlr <= 2*Mli {
-		panic("sorty: check your Mli/Mlr values")
+	li2 := 2 * Mli
+	if !(65536 > Mxg && Mxg > 1 && Mlr > li2 && li2 > 15) {
+		panic("sorty: check your Mxg/Mli/Mlr values")
 	}
-}
-
-// saturate to [2, 65535]
-func sat(mx uint32) uint32 {
-	if mx&^65535 != 0 {
-		return 65535
-	}
-	if mx&^1 == 0 {
-		return 2
-	}
-	return mx
 }

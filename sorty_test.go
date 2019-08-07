@@ -123,12 +123,13 @@ var srnm = []byte("sorty-0")
 // compare with ap and among themselves
 func sumt(ar, ap []uint32) float64 {
 	s := .0
-	for i := 2; i < 5; i++ {
-		srnm[6] = byte(i + '0')
+	for Mxg = 2; Mxg < 5; Mxg++ {
+		srnm[6] = byte(Mxg + '0')
 		name = string(srnm)
-		s += mfc(func(ar []uint32) { SortU4(ar, uint32(i)) }, ar, ap)
+		s += mfc(SortU4, ar, ap)
 		ap, ar = ar, ap[:cap(ap)]
 	}
+	Mxg = 3
 	return s
 }
 
@@ -136,21 +137,20 @@ func sumt(ar, ap []uint32) float64 {
 // compare with ap and among themselves
 func sumt2(ar, ap []float32) float64 {
 	s := .0
-	for i := 2; i < 5; i++ {
-		srnm[6] = byte(i + '0')
+	for Mxg = 2; Mxg < 5; Mxg++ {
+		srnm[6] = byte(Mxg + '0')
 		name = string(srnm)
-		s += mfc2(func(ar []float32) { SortF4(ar, uint32(i)) }, ar, ap)
+		s += mfc2(SortF4, ar, ap)
 		ap, ar = ar, ap[:cap(ap)]
 	}
+	Mxg = 3
 	return s
 }
 
 // SortU4 and signal
 func sas(sd int64, ar []uint32, ch chan bool) {
-	fst(sd, ar, func(x []uint32) { SortU4(x, 2) })
-	if ch != nil {
-		ch <- false
-	}
+	fst(sd, ar, SortU4)
+	ch <- false
 }
 
 func TestShort(t *testing.T) {
@@ -188,10 +188,11 @@ func TestShort(t *testing.T) {
 	name = "multi"
 	K, ch := N/2, make(chan bool, 1)
 
+	Mxg = 2
 	go sas(7, ar[:K], ch)
 	go sas(8, ar[K:], ch)
 	go sas(7, ap[:K], ch)
-	sas(8, ap[K:], nil)
+	fst(8, ap[K:], SortU4)
 
 	for i := 3; i > 0; i-- {
 		<-ch // wait others
@@ -201,7 +202,7 @@ func TestShort(t *testing.T) {
 
 	// SortI calls SortI4 (on 32-bit) or SortI8 (on 64-bit).
 	name = "SortI"
-	SortI(iar, 3)
+	SortI(iar)
 	if !IsSortedI(iar) {
 		t.Fatal("SortI does not work")
 	}

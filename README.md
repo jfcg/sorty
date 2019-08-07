@@ -1,11 +1,11 @@
 ## sorty [![Go Report Card](https://goreportcard.com/badge/github.com/jfcg/sorty)](https://goreportcard.com/report/github.com/jfcg/sorty)
 Type-specific concurrent sorting library
 
-sorty is an in-place [QuickSort](https://en.wikipedia.org/wiki/Quicksort) implementation \(with [InsertionSort](https://en.wikipedia.org/wiki/Insertion_sort) as subroutine\) and does not require extra memory. Call corresponding Sort\*() to sort your slice in ascending order. For example:
+sorty is an in-place [QuickSort](https://en.wikipedia.org/wiki/Quicksort) implementation \(with [InsertionSort](https://en.wikipedia.org/wiki/Insertion_sort) as subroutine\) and does not require extra memory. Call corresponding Sort\*() to concurrently sort your slice in ascending order. For example:
 ```
-sorty.SortS(string_slice, mx)
+sorty.SortS(string_slice)
 ```
-mx is the maximum number of goroutines used for sorting simultaneously.
+Mxg (3 by default) is the maximum number of goroutines used for sorting per Sort\*() call.
 
 ### 'go test' results on various computers
 All computers run 64-bit Manjaro Linux. Comparing against [sort.Slice](https://golang.org/pkg/sort), [sortutil](https://github.com/twotwotwo/sorts) and [zermelo](https://github.com/shawnsmithdev/zermelo).
