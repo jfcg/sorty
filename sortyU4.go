@@ -125,39 +125,40 @@ func SortU4(ar []uint32, mx uint32) {
 		}
 
 		if h-lo < hi-l {
-			h, hi = hi, h // [lo,h] is the bigger range
+			h, hi = hi, h // [lo,h] is the longer range
 			l, lo = lo, l
 		}
 
-		if hi-l >= Mli { // two big ranges?
+		// branches below are optimally laid out for less # of jumps
+		// at least one short range?
+		if hi-l < Mli {
+			insertionU4(ar[l : hi+1])
 
-			// max goroutines? range not big enough for new goroutine?
-			// not atomic but good enough
-			if ng >= mx || hi-l < Mlr {
-				srt(l, hi) // start a recursive sort on the smaller range
-				hi = h
-				goto start
+			if h-lo < Mli { // two short ranges?
+				insertionU4(ar[lo : h+1])
+				return
 			}
 
-			if atomic.AddUint32(&ng, 1) == 0 { // increase goroutine counter
-				panic("SortU4: counter overflow")
-			}
-			go gsrt(lo, h) // start a new goroutine on the bigger range
-			lo = l
+			hi = h
 			goto start
 		}
 
-		insertionU4(ar[l : hi+1])
-
-		if h-lo < Mli { // two small ranges?
-			insertionU4(ar[lo : h+1])
-			return
+		// max goroutines? range not long enough for new goroutine?
+		// not atomic but good enough
+		if ng >= mx || hi-l < Mlr {
+			srt(l, hi) // start a recursive sort on the shorter range
+			hi = h
+			goto start
 		}
 
-		hi = h
+		if atomic.AddUint32(&ng, 1) == 0 { // increase goroutine counter
+			panic("SortU4: counter overflow")
+		}
+		go gsrt(lo, h) // start a new-goroutine sort on the longer range
+		lo = l
 		goto start
 	}
 
-	gsrt(0, len(ar)-1) // start sort
+	gsrt(0, len(ar)-1) // start master sort
 	<-done
 }

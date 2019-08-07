@@ -230,14 +230,14 @@ func TestOpt(t *testing.T) {
 	ar, ap := f2u(&as), f2u(&aq)
 
 	fmt.Println("Sorting uint32")
-	_, _, _, n := opt.FindMinTri(3, 160, 401, 16, 32, func(x, y int) float64 {
+	_, _, _, n := opt.FindMinTri(3, 80, 301, 16, 32, func(x, y int) float64 {
 		Mli, Mlr = x, y
 		return sumt(ar, ap)
 	}, pro)
 	fmt.Println("made", n, "calls to sumt()")
 
 	fmt.Println("\nSorting float32")
-	_, _, _, n = opt.FindMinTri(3, 160, 401, 16, 32, func(x, y int) float64 {
+	_, _, _, n = opt.FindMinTri(3, 80, 301, 16, 32, func(x, y int) float64 {
 		Mli, Mlr = x, y
 		return sumt2(as, aq)
 	}, pro)
