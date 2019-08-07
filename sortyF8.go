@@ -36,13 +36,11 @@ func insertionF8(ar []float64) {
 // returns vl <= pv <= vh
 func ipF8(pv, vl, vh float64) (a, b, c float64, r int) {
 	if pv > vh {
-		vh, pv = pv, vh
-		r = 1
+		return vl, vh, pv, 1
 	} else if pv < vl {
-		vl, pv = pv, vl
-		r = -1
+		return pv, vl, vh, -1
 	}
-	return vl, pv, vh, r
+	return vl, pv, vh, 0
 }
 
 // return pivot as median of five scattered values
@@ -52,15 +50,15 @@ func medianF8(ar []float64) float64 {
 	m := h >> 1
 	vl, pv, vh := ar[0], ar[m], ar[h]
 
-	// intermediates
-	a, b := m>>1, int(uint(m+h)>>1) // avoid overflow
-	va, vb := ar[a], ar[b]
-
 	// put lo, mid, hi in order
 	if vh < vl {
 		vl, vh = vh, vl
 	}
 	vl, pv, vh, _ = ipF8(pv, vl, vh)
+
+	// intermediates
+	a, b := m>>1, int(uint(m+h)>>1) // avoid overflow
+	va, vb := ar[a], ar[b]
 
 	// update pivot with intermediates
 	if vb < va {
@@ -76,8 +74,8 @@ func medianF8(ar []float64) float64 {
 	}
 
 	// here: vl, va <= pv <= vb, vh
-	ar[0], ar[m], ar[h] = vl, pv, vh
-	ar[a], ar[b] = va, vb
+	ar[a], ar[m], ar[b] = va, pv, vb
+	ar[0], ar[h] = vl, vh // update lo,hi positions last for better locality
 	return pv
 }
 
