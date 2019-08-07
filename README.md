@@ -12,27 +12,25 @@ All computers run 64-bit Manjaro Linux. Comparing against [sort.Slice](https://g
 
 Sorting uint32 array (in seconds):
 
-Library|Acer TravelMate netbook with Intel Celeron N3160|Casper laptop with Intel Core i5-4210M|Server with AMD Ryzen 5 1600
+Library|Acer TravelMate netbook with Intel Celeron N3160|Server with AMD Ryzen 5 1600|Desktop with Intel Core i5-2400
 :---|:---:|:---:|:---:
-sort.Slice|144.40|68.48|67.58
-sortutil  | 65.50|25.50|17.38
-zermelo   | 39.40|11.35| 9.51
-sorty-2   | 26.62|15.84|15.17
-sorty-3   | 19.27|12.99|11.33
-sorty-4   | 15.22|11.09| 9.20
-sorty-5   | 15.16|11.15| 7.89
+sort.Slice|34.75|15.97|17.22
+sortutil  |10.18| 2.96| 3.86
+zermelo   | 8.36| 2.21| 3.42
+sorty-2   | 6.99| 3.76| 3.84
+sorty-3   | 5.08| 2.83| 2.81
+sorty-4   | 4.03| 2.42| 2.28
 
 Sorting float32 array (in seconds):
 
-Library|Acer TravelMate netbook with Intel Celeron N3160|Casper laptop with Intel Core i5-4210M|Server with AMD Ryzen 5 1600
+Library|Acer TravelMate netbook with Intel Celeron N3160|Server with AMD Ryzen 5 1600|Desktop with Intel Core i5-2400
 :---|:---:|:---:|:---:
-sort.Slice|147.80|69.50|71.73
-sortutil  | 62.30|23.46|16.58
-zermelo   | 31.20| 9.26|14.55
-sorty-2   | 32.28|19.43|23.31
-sorty-3   | 23.36|15.59|17.69
-sorty-4   | 20.49|13.18|14.37
-sorty-5   | 18.59|13.35|12.45
+sort.Slice|36.49|17.43|17.98
+sortutil  |11.62| 3.10| 4.19
+zermelo   | 9.83| 4.65| 3.99
+sorty-2   | 7.98| 4.66| 4.22
+sorty-3   | 5.83| 3.55| 3.02
+sorty-4   | 5.20| 2.99| 2.45
 
 ### Parameter Tuning
 First, make sure everything is fine (prepend GOGC=30 to all if your ram <= 4 GiB):
