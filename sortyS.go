@@ -98,20 +98,17 @@ func SortS(ar []string) {
 		l, h = lo+2, hi-2 // medianS handles lo,hi pairs
 
 		for pv := medianS(ar[lo : hi+1]); l <= h; {
-			swap := true
-			if ar[h] >= pv { // extend ranges in balance
-				h--
-				swap = false
-			}
-			if ar[l] <= pv {
+			if ar[h] < pv {
+				if ar[l] > pv {
+					ar[l], ar[h] = ar[h], ar[l]
+					h--
+				}
 				l++
-				swap = false
-			}
-
-			if swap {
-				ar[l], ar[h] = ar[h], ar[l]
+			} else {
+				if ar[l] <= pv { // extend ranges in balance
+					l++
+				}
 				h--
-				l++
 			}
 		}
 
