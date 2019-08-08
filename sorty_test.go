@@ -164,8 +164,10 @@ func TestShort(t *testing.T) {
 	ar, ap := f2u(&as), f2u(&aq)
 
 	fmt.Println("Sorting uint32")
-	//name = "sort.Slice" // takes too long
-	//mfc(func(ar []uint32) { sort.Slice(ar, func(i, k int) bool { return ar[i] < ar[k] }) }, ar, nil)
+	/* name = "sort.Slice" // takes too long
+	mfc(func(ar []uint32) {
+		sort.Slice(ar, func(i, k int) bool { return ar[i] < ar[k] })
+	}, ar, nil) */
 
 	name = "sortutil"
 	mfc(sortutil.Uint32s, ar, nil)
@@ -174,8 +176,10 @@ func TestShort(t *testing.T) {
 	sumt(ap, ar) // sorty
 
 	fmt.Println("\nSorting float32")
-	//name = "sort.Slice"
-	//mfc2(func(ar []float32) { sort.Slice(ar, func(i, k int) bool { return ar[i] < ar[k] }) }, aq, nil)
+	/* name = "sort.Slice"
+	mfc2(func(ar []float32) {
+		sort.Slice(ar, func(i, k int) bool { return ar[i] < ar[k] })
+	}, aq, nil) */
 
 	name = "sortutil"
 	mfc2(sortutil.Float32s, aq, nil)

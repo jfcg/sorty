@@ -47,8 +47,8 @@ func ipF8(pv, vl, vh float64) (a, b, c float64, r int) {
 func medianF8(ar []float64) float64 {
 	// lo, mid, hi
 	h := len(ar) - 1
-	m := h >> 1
-	vl, pv, vh := ar[0], ar[m], ar[h]
+	m := h / 2
+	vl, va, pv, vb, vh := ar[0], ar[1], ar[m], ar[h-1], ar[h]
 
 	// put lo, mid, hi in order
 	if vh < vl {
@@ -56,26 +56,21 @@ func medianF8(ar []float64) float64 {
 	}
 	vl, pv, vh, _ = ipF8(pv, vl, vh)
 
-	// intermediates
-	a, b := m>>1, int(uint(m+h)>>1) // avoid overflow
-	va, vb := ar[a], ar[b]
-
-	// update pivot with intermediates
+	// update pivot with va,vb
 	if vb < va {
 		va, vb = vb, va
 	}
 	va, pv, vb, r := ipF8(pv, va, vb)
 
 	// if pivot was out of [va, vb]
-	if r == 1 {
+	if r > 0 {
 		vl, va, pv, _ = ipF8(vl, va, pv)
-	} else if r == -1 {
+	} else if r < 0 {
 		pv, vb, vh, _ = ipF8(vh, pv, vb)
 	}
 
 	// here: vl, va <= pv <= vb, vh
-	ar[a], ar[m], ar[b] = va, pv, vb
-	ar[0], ar[h] = vl, vh // update lo,hi positions last for better locality
+	ar[0], ar[1], ar[m], ar[h-1], ar[h] = vl, va, pv, vb, vh
 	return pv
 }
 
@@ -92,7 +87,6 @@ func SortF8(ar []float64) {
 
 	gsrt = func(lo, hi int) {
 		srt(lo, hi)
-
 		if atomic.AddUint32(&ng, ^uint32(0)) == 0 { // decrease goroutine counter
 			done <- false // we are the last, all done
 		}
@@ -101,7 +95,7 @@ func SortF8(ar []float64) {
 	srt = func(lo, hi int) { // assumes hi-lo >= Mli
 		var l, h int
 	start:
-		l, h = lo+1, hi-1 // medianF8 handles lo,hi positions
+		l, h = lo+2, hi-2 // medianF8 handles lo,hi pairs
 
 		for pv := medianF8(ar[lo : hi+1]); l <= h; {
 			swap := true
@@ -135,7 +129,6 @@ func SortF8(ar []float64) {
 				insertionF8(ar[lo : h+1])
 				return
 			}
-
 			hi = h
 			goto start
 		}

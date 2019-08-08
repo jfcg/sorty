@@ -5,7 +5,8 @@ package sorty
 import "unsafe"
 
 func init() {
-	if unsafe.Sizeof(int(0)) != 4 || unsafe.Sizeof(uint(0)) != 4 || unsafe.Sizeof(uintptr(0)) != 4 {
+	if unsafe.Sizeof(int(0)) != 4 || unsafe.Sizeof(uint(0)) != 4 ||
+		unsafe.Sizeof(uintptr(0)) != 4 {
 		panic("sorty: architecture word/pointer size mismatch")
 	}
 }
