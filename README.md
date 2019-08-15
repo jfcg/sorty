@@ -16,10 +16,10 @@ Library|Acer TravelMate netbook with Intel Celeron N3160|Server with AMD Ryzen 5
 :---|:---:|:---:|:---:
 sort.Slice|34.75|15.97|17.22
 sortutil  |10.18| 2.96| 3.86
-zermelo   | 8.36| 2.21| 3.42
-sorty-2   | 6.99| 3.76| 3.84
-sorty-3   | 5.08| 2.83| 2.81
-sorty-4   | 4.03| 2.42| 2.28
+zermelo   | 8.10| 2.21| 3.42
+sorty-2   | 5.92| 3.67| 3.84
+sorty-3   | 4.27| 2.84| 2.81
+sorty-4   | 3.62| 2.37| 2.28
 
 Sorting float32 array (in seconds):
 
@@ -28,9 +28,9 @@ Library|Acer TravelMate netbook with Intel Celeron N3160|Server with AMD Ryzen 5
 sort.Slice|36.49|17.43|17.98
 sortutil  |11.62| 3.10| 4.19
 zermelo   | 9.83| 4.65| 3.99
-sorty-2   | 7.98| 4.66| 4.22
-sorty-3   | 5.83| 3.55| 3.02
-sorty-4   | 5.20| 2.99| 2.45
+sorty-2   | 6.84| 4.52| 4.22
+sorty-3   | 4.95| 3.50| 3.02
+sorty-4   | 3.99| 2.76| 2.45
 
 ### Parameter Tuning
 First, make sure everything is fine (prepend GOGC=30 to all if your ram <= 4 GiB):
