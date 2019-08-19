@@ -1,9 +1,10 @@
 ## sorty [![Go Report Card](https://goreportcard.com/badge/github.com/jfcg/sorty)](https://goreportcard.com/report/github.com/jfcg/sorty)
 Type-specific concurrent sorting library
 
-sorty is an in-place [QuickSort](https://en.wikipedia.org/wiki/Quicksort) implementation \(with [InsertionSort](https://en.wikipedia.org/wiki/Insertion_sort) as subroutine\) and does not require extra memory. Call corresponding Sort\*() to concurrently sort your slice in ascending order. For example:
+sorty is an in-place [QuickSort](https://en.wikipedia.org/wiki/Quicksort) implementation \(with [InsertionSort](https://en.wikipedia.org/wiki/Insertion_sort) as subroutine\) and does not require extra memory. Call corresponding Sort\*() to concurrently sort your slice (in ascending order) or collection. For example:
 ```
 sorty.SortS(string_slice)
+sorty.Sort(col) // satisfies sort.Interface
 ```
 Mxg (3 by default) is the maximum number of goroutines used for sorting per Sort\*() call.
 
@@ -20,6 +21,7 @@ zermelo   | 8.10| 2.21| 3.35
 sorty-2   | 5.92| 3.67| 3.66
 sorty-3   | 4.27| 2.84| 2.64
 sorty-4   | 3.62| 2.37| 2.20
+Sort(Col) |     |     | 9.13
 
 Sorting float32 array (in seconds):
 
@@ -31,6 +33,7 @@ zermelo   | 9.83| 4.65| 4.00
 sorty-2   | 6.84| 4.52| 4.05
 sorty-3   | 4.95| 3.50| 2.93
 sorty-4   | 3.99| 2.76| 2.44
+Sort(Col) |     |     | 9.39
 
 ### Parameter Tuning
 First, make sure everything is fine (prepend GOGC=30 to all if your ram <= 4 GiB):
