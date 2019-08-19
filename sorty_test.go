@@ -147,6 +147,28 @@ func sumt2(ar, ap []float32) float64 {
 	return s
 }
 
+type uicol []uint32
+
+func (c uicol) Len() int           { return len(c) }
+func (c uicol) Less(i, k int) bool { return c[i] < c[k] }
+func (c uicol) Swap(i, k int)      { c[i], c[k] = c[k], c[i] }
+
+// sort via Collection
+func col(ar []uint32) {
+	Sort(uicol(ar))
+}
+
+type flcol []float32
+
+func (c flcol) Len() int           { return len(c) }
+func (c flcol) Less(i, k int) bool { return c[i] < c[k] }
+func (c flcol) Swap(i, k int)      { c[i], c[k] = c[k], c[i] }
+
+// sort via Collection
+func col2(ar []float32) {
+	Sort(flcol(ar))
+}
+
 // SortU4 and signal
 func sas(sd int64, ar []uint32, ch chan bool) {
 	fst(sd, ar, SortU4)
@@ -174,6 +196,11 @@ func TestShort(t *testing.T) {
 	name = "zermelo"
 	mfc(zuint32.Sort, ap, ar)
 	sumt(ap, ar) // sorty
+	name = "Sort(Col)"
+	mfc(col, ap, ar)
+	if !IsSorted(uicol(ap)) {
+		t.Fatal(name, "not sorted")
+	}
 
 	fmt.Println("\nSorting float32")
 	/* name = "sort.Slice"
@@ -186,6 +213,11 @@ func TestShort(t *testing.T) {
 	name = "zermelo"
 	mfc2(zfloat32.Sort, as, aq)
 	sumt2(as, aq) // sorty
+	name = "Sort(Col)"
+	mfc2(col2, as, aq)
+	if !IsSorted(flcol(as)) {
+		t.Fatal(name, "not sorted")
+	}
 
 	// Is Sort*() multi-goroutine safe?
 	fmt.Println("\nConcurrent calls to SortU4()")
