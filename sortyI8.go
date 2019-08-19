@@ -32,12 +32,19 @@ func insertionI8(ar []int64) {
 	}
 }
 
-// given vl <= vh, inserts pv in the middle
-// returns vl <= pv <= vh
-func ipI8(pv, vl, vh int64) (a, b, c int64, r int) {
-	if pv > vh {
+// sort and return vl,pv,vh & swap status
+func slmhI8(vl, pv, vh int64) (a, b, c int64, r int) {
+	// order vl, vh
+	if vh < vl {
+		vh, vl = vl, vh
+	}
+
+	// order vl, pv, vh
+	if vh < pv {
 		return vl, vh, pv, 1
-	} else if pv < vl {
+	}
+
+	if pv < vl {
 		return pv, vl, vh, -1
 	}
 	return vl, pv, vh, 0
@@ -47,26 +54,19 @@ func ipI8(pv, vl, vh int64) (a, b, c int64, r int) {
 func medianI8(ar []int64) int64 {
 	// lo, mid, hi
 	h := len(ar) - 1
-	m := h / 2
+	m := h >> 1
 	vl, va, pv, vb, vh := ar[0], ar[1], ar[m], ar[h-1], ar[h]
 
-	// put lo, mid, hi in order
-	if vh < vl {
-		vl, vh = vh, vl
-	}
-	vl, pv, vh, _ = ipI8(pv, vl, vh)
-
-	// update pivot with va,vb
-	if vb < va {
-		va, vb = vb, va
-	}
-	va, pv, vb, r := ipI8(pv, va, vb)
+	vl, pv, vh, _ = slmhI8(vl, pv, vh)
+	va, pv, vb, r := slmhI8(va, pv, vb)
 
 	// if pivot was out of [va, vb]
-	if r > 0 {
-		vl, va, pv, _ = ipI8(vl, va, pv)
-	} else if r < 0 {
-		pv, vb, vh, _ = ipI8(vh, pv, vb)
+	if r > 0 && pv < vl {
+		pv, vl = vl, pv
+	}
+
+	if r < 0 && vh < pv {
+		vh, pv = pv, vh
 	}
 
 	// here: vl, va <= pv <= vb, vh

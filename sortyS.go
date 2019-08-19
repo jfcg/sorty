@@ -32,12 +32,19 @@ func insertionS(ar []string) {
 	}
 }
 
-// given vl <= vh, inserts pv in the middle
-// returns vl <= pv <= vh
-func ipS(pv, vl, vh string) (a, b, c string, r int) {
-	if pv > vh {
+// sort and return vl,pv,vh & swap status
+func slmhS(vl, pv, vh string) (a, b, c string, r int) {
+	// order vl, vh
+	if vh < vl {
+		vh, vl = vl, vh
+	}
+
+	// order vl, pv, vh
+	if vh < pv {
 		return vl, vh, pv, 1
-	} else if pv < vl {
+	}
+
+	if pv < vl {
 		return pv, vl, vh, -1
 	}
 	return vl, pv, vh, 0
@@ -47,26 +54,19 @@ func ipS(pv, vl, vh string) (a, b, c string, r int) {
 func medianS(ar []string) string {
 	// lo, mid, hi
 	h := len(ar) - 1
-	m := h / 2
+	m := h >> 1
 	vl, va, pv, vb, vh := ar[0], ar[1], ar[m], ar[h-1], ar[h]
 
-	// put lo, mid, hi in order
-	if vh < vl {
-		vl, vh = vh, vl
-	}
-	vl, pv, vh, _ = ipS(pv, vl, vh)
-
-	// update pivot with va,vb
-	if vb < va {
-		va, vb = vb, va
-	}
-	va, pv, vb, r := ipS(pv, va, vb)
+	vl, pv, vh, _ = slmhS(vl, pv, vh)
+	va, pv, vb, r := slmhS(va, pv, vb)
 
 	// if pivot was out of [va, vb]
-	if r > 0 {
-		vl, va, pv, _ = ipS(vl, va, pv)
-	} else if r < 0 {
-		pv, vb, vh, _ = ipS(vh, pv, vb)
+	if r > 0 && pv < vl {
+		pv, vl = vl, pv
+	}
+
+	if r < 0 && vh < pv {
+		vh, pv = pv, vh
 	}
 
 	// here: vl, va <= pv <= vb, vh
