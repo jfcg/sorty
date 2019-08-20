@@ -1,7 +1,8 @@
 // Package sorty provides type-specific concurrent sorting functionality
 //
-// sorty is an in-place QuickSort implementation and does not require extra memory. Call corresponding Sort*() to concurrently sort your slice in ascending order. For example:
+// sorty is an in-place QuickSort implementation and does not require extra memory. Call corresponding Sort*() to concurrently sort your slice (in ascending order) or collection. For example:
 //  sorty.SortS(string_slice)
+//  sorty.Sort(col) // satisfies sort.Interface
 package sorty
 
 // Mxg is the maximum number of goroutines used for sorting per Sort*() call.
