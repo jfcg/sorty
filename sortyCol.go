@@ -101,18 +101,33 @@ func Sort(ar Collection) {
 	start:
 		l, h = lo+2, hi-2 // median handles lo,hi pairs
 
-		for pv := median(ar, lo, hi); l <= h; {
+		// dl,dh (for avoiding unnecessary Less() calls) and pivot
+		for dl, dh, pv := 1, -1, median(ar, lo, hi); l <= h; l, h = l+dl, h+dh {
+
+			if dl == 0 {
+				if ar.Less(h, pv) {
+					ar.Swap(l, h)
+					dl++
+				}
+				continue
+			}
+
+			if dh == 0 {
+				if ar.Less(pv, l) {
+					ar.Swap(l, h)
+					dh--
+				}
+				continue
+			}
+
 			if ar.Less(h, pv) {
 				if ar.Less(pv, l) {
 					ar.Swap(l, h)
-					h--
+				} else {
+					dh = 0
 				}
-				l++
-			} else {
-				if !ar.Less(pv, l) { // extend ranges in balance
-					l++
-				}
-				h--
+			} else if ar.Less(pv, l) { // extend ranges in balance
+				dl = 0
 			}
 		}
 
@@ -121,7 +136,7 @@ func Sort(ar Collection) {
 			l, lo = lo, l
 		}
 
-		// branches below are optimally laid out for less # of jumps
+		// branches below are optimally laid out for fewer jumps
 		// at least one short range?
 		if hi-l < Mli {
 			insertion(ar, l, hi)
