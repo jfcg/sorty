@@ -80,7 +80,8 @@ func median(ar Collection, lo, hi int) int {
 // Sort concurrently sorts ar.
 func Sort(ar Collection) {
 	arhi := ar.Len() - 1
-	if arhi < Mli {
+	mli := Mli >> 2
+	if arhi < mli {
 		insertion(ar, 0, arhi)
 		return
 	}
@@ -96,7 +97,7 @@ func Sort(ar Collection) {
 		}
 	}
 
-	srt = func(lo, hi int) { // assumes hi-lo >= Mli
+	srt = func(lo, hi int) { // assumes hi-lo >= mli
 		var l, h int
 	start:
 		l, h = lo+2, hi-2 // median handles lo,hi pairs
@@ -138,10 +139,10 @@ func Sort(ar Collection) {
 
 		// branches below are optimally laid out for fewer jumps
 		// at least one short range?
-		if hi-l < Mli {
+		if hi-l < mli {
 			insertion(ar, l, hi)
 
-			if h-lo < Mli { // two short ranges?
+			if h-lo < mli { // two short ranges?
 				insertion(ar, lo, h)
 				return
 			}

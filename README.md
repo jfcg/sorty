@@ -21,7 +21,7 @@ zermelo   | 8.10| 2.21| 3.35
 sorty-2   | 5.92| 3.67| 3.66
 sorty-3   | 4.27| 2.84| 2.64
 sorty-4   | 3.62| 2.37| 2.20
-Sort(Col) |     |     | 8.63
+Sort(Col) |     |     | 7.54
 
 Sorting float32 array (in seconds):
 
@@ -33,7 +33,7 @@ zermelo   | 9.83| 4.65| 4.00
 sorty-2   | 6.84| 4.52| 4.05
 sorty-3   | 4.95| 3.50| 2.93
 sorty-4   | 3.99| 2.76| 2.44
-Sort(Col) |     |     | 8.91
+Sort(Col) |     |     | 7.68
 
 ### Parameter Tuning
 First, make sure everything is fine (prepend GOGC=30 to all if your ram <= 4 GiB):

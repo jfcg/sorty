@@ -7,7 +7,8 @@ package sorty
 // Mxg is the maximum number of goroutines used for sorting per Sort*() call.
 var Mxg uint32 = 3
 
-// Mli is the maximum array length for insertion sort
+// Mli is the maximum array length for insertion sort.
+// Sort(Collection) uses 1/4 of this as its limit.
 var Mli = 64
 
 // Mlr is the maximum array length for recursion when there is available goroutines.
@@ -16,7 +17,7 @@ var Mlr = 321
 
 func init() {
 	li2 := 2 * Mli
-	if !(65536 > Mxg && Mxg > 1 && Mlr > li2 && li2 > 15) {
+	if !(65536 > Mxg && Mxg > 1 && Mlr > li2 && li2 > 63) {
 		panic("sorty: check your Mxg/Mli/Mlr values")
 	}
 }
