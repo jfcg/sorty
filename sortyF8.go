@@ -117,7 +117,7 @@ func SortF8(ar []float64) {
 			l, lo = lo, l
 		}
 
-		// branches below are optimally laid out for less # of jumps
+		// branches below are optimally laid out for fewer jumps
 		// at least one short range?
 		if hi-l < Mli {
 			insertionF8(ar[l : hi+1])
@@ -130,9 +130,9 @@ func SortF8(ar []float64) {
 			goto start
 		}
 
-		// max goroutines? range not long enough for new goroutine?
+		// range not long enough for new goroutine? max goroutines?
 		// not atomic but good enough
-		if ng >= Mxg || hi-l < Mlr {
+		if hi-l < Mlr || ng >= Mxg {
 			srt(l, hi) // start a recursive sort on the shorter range
 			hi = h
 			goto start

@@ -79,8 +79,7 @@ func median(ar Collection, lo, hi int) int {
 
 // Sort concurrently sorts ar.
 func Sort(ar Collection) {
-	arhi := ar.Len() - 1
-	mli := Mli >> 2
+	arhi, mli := ar.Len()-1, Mli>>2
 	if arhi < mli {
 		insertion(ar, 0, arhi)
 		return
@@ -150,9 +149,9 @@ func Sort(ar Collection) {
 			goto start
 		}
 
-		// max goroutines? range not long enough for new goroutine?
+		// range not long enough for new goroutine? max goroutines?
 		// not atomic but good enough
-		if ng >= Mxg || hi-l < Mlr {
+		if hi-l < Mlr || ng >= Mxg {
 			srt(l, hi) // start a recursive sort on the shorter range
 			hi = h
 			goto start
