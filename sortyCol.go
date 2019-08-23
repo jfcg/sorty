@@ -97,12 +97,11 @@ func Sort(ar Collection) {
 	}
 
 	srt = func(lo, hi int) { // assumes hi-lo >= mli
-		var l, h int
 	start:
-		l, h = lo+2, hi-2 // median handles lo,hi pairs
+		l, h, pv := lo+2, hi-2, median(ar, lo, hi) // median handles lo,hi pairs
 
 		// dl,dh (for avoiding unnecessary Less() calls) and pivot
-		for dl, dh, pv := 1, -1, median(ar, lo, hi); l <= h; l, h = l+dl, h+dh {
+		for dl, dh := 1, -1; l < h; l, h = l+dl, h+dh {
 
 			if dl == 0 {
 				if ar.Less(h, pv) {
@@ -128,6 +127,14 @@ func Sort(ar Collection) {
 				}
 			} else if ar.Less(pv, l) { // extend ranges in balance
 				dl = 0
+			}
+		}
+
+		if l == h {
+			if ar.Less(pv, l) { // classify mid element
+				h--
+			} else {
+				l++
 			}
 		}
 

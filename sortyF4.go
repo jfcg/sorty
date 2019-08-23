@@ -93,11 +93,10 @@ func SortF4(ar []float32) {
 	}
 
 	srt = func(lo, hi int) { // assumes hi-lo >= Mli
-		var l, h int
 	start:
-		l, h = lo+2, hi-2 // medianF4 handles lo,hi pairs
+		l, h, pv := lo+2, hi-2, medianF4(ar[lo:hi+1]) // medianF4 handles lo,hi pairs
 
-		for pv := medianF4(ar[lo : hi+1]); l <= h; {
+		for l < h {
 			if ar[h] < pv {
 				if ar[l] > pv {
 					ar[l], ar[h] = ar[h], ar[l]
@@ -109,6 +108,14 @@ func SortF4(ar []float32) {
 					l++
 				}
 				h--
+			}
+		}
+
+		if l == h {
+			if pv < ar[l] { // classify mid element
+				h--
+			} else {
+				l++
 			}
 		}
 
