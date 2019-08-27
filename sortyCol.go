@@ -86,15 +86,12 @@ func median(ar Collection, lo, hi int) int {
 
 // Sort concurrently sorts ar.
 func Sort(ar Collection) {
-	arhi, mli := ar.Len()-1, Mli>>2
-	if arhi < mli {
-		insertion(ar, 0, arhi)
-		return
-	}
-
-	// number of sorting goroutines including this, end signal
-	ng, done := uint32(1), make(chan bool, 1)
-	var srt, gsrt func(int, int) // recursive & new-goroutine sort functions
+	var (
+		arhi, mli = ar.Len() - 1, Mli >> 2
+		ng        uint32         // number of sorting goroutines including this
+		done      chan bool      // end signal
+		srt, gsrt func(int, int) // recursive & new-goroutine sort functions
+	)
 
 	gsrt = func(lo, hi int) {
 		srt(lo, hi)
@@ -179,6 +176,16 @@ func Sort(ar Collection) {
 		goto start
 	}
 
-	gsrt(0, arhi) // start master sort
-	<-done
+	if arhi >= Mlr {
+		ng, done = 1, make(chan bool, 1)
+		gsrt(0, arhi) // start master sort
+		<-done
+		return
+	}
+
+	if arhi >= mli {
+		srt(0, arhi) // single goroutine
+		return
+	}
+	insertion(ar, 0, arhi)
 }

@@ -83,14 +83,11 @@ func medianI4(ar []int32) int32 {
 
 // SortI4 concurrently sorts ar in ascending order.
 func SortI4(ar []int32) {
-	if len(ar) <= Mli {
-		insertionI4(ar)
-		return
-	}
-
-	// number of sorting goroutines including this, end signal
-	ng, done := uint32(1), make(chan bool, 1)
-	var srt, gsrt func(int, int) // recursive & new-goroutine sort functions
+	var (
+		ng        uint32         // number of sorting goroutines including this
+		done      chan bool      // end signal
+		srt, gsrt func(int, int) // recursive & new-goroutine sort functions
+	)
 
 	gsrt = func(lo, hi int) {
 		srt(lo, hi)
@@ -160,6 +157,17 @@ func SortI4(ar []int32) {
 		goto start
 	}
 
-	gsrt(0, len(ar)-1) // start master sort
-	<-done
+	arhi := len(ar) - 1
+	if arhi >= Mlr {
+		ng, done = 1, make(chan bool, 1)
+		gsrt(0, arhi) // start master sort
+		<-done
+		return
+	}
+
+	if arhi >= Mli {
+		srt(0, arhi) // single goroutine
+		return
+	}
+	insertionI4(ar)
 }

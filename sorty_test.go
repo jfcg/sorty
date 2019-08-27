@@ -239,11 +239,6 @@ var iar = []int{
 	9, 8, 7, 6, 5, 4, 3, 2, 1, 0, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0,
 	-9, -8, -7, -6, -5, -4, -3, -2, -1, 0, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0}
 
-// print optimum
-func pro(x, y int, v float64) {
-	fmt.Printf("%d %d %.2fs\n", x, y, v)
-}
-
 // Optimize max array lengths for insertion sort/recursion (Mli,Mlr)
 func TestOpt(t *testing.T) {
 	if testing.Short() {
@@ -251,6 +246,9 @@ func TestOpt(t *testing.T) {
 	}
 	tst = t
 
+	pro := func(x, y int, v float64) { // print optimum
+		fmt.Printf("%d %d %.2fs\n", x, y, v)
+	}
 	as := make([]float32, N)
 	aq := make([]float32, 0, N)
 	ar, ap := f2u(&as), f2u(&aq)

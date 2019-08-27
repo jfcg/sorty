@@ -83,14 +83,11 @@ func medianU8(ar []uint64) uint64 {
 
 // SortU8 concurrently sorts ar in ascending order.
 func SortU8(ar []uint64) {
-	if len(ar) <= Mli {
-		insertionU8(ar)
-		return
-	}
-
-	// number of sorting goroutines including this, end signal
-	ng, done := uint32(1), make(chan bool, 1)
-	var srt, gsrt func(int, int) // recursive & new-goroutine sort functions
+	var (
+		ng        uint32         // number of sorting goroutines including this
+		done      chan bool      // end signal
+		srt, gsrt func(int, int) // recursive & new-goroutine sort functions
+	)
 
 	gsrt = func(lo, hi int) {
 		srt(lo, hi)
@@ -160,6 +157,17 @@ func SortU8(ar []uint64) {
 		goto start
 	}
 
-	gsrt(0, len(ar)-1) // start master sort
-	<-done
+	arhi := len(ar) - 1
+	if arhi >= Mlr {
+		ng, done = 1, make(chan bool, 1)
+		gsrt(0, arhi) // start master sort
+		<-done
+		return
+	}
+
+	if arhi >= Mli {
+		srt(0, arhi) // single goroutine
+		return
+	}
+	insertionU8(ar)
 }
