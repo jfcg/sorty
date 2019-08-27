@@ -17,6 +17,13 @@ func IsSortedS(ar []string) bool {
 
 // insertion sort
 func insertionS(ar []string) {
+
+	for l, h := len(ar)>>1-2, len(ar)-1; l >= 0; l, h = l-1, h-1 {
+		if ar[h] < ar[l] {
+			ar[l], ar[h] = ar[h], ar[l]
+		}
+	}
+
 	for h := 1; h < len(ar); h++ {
 		v, l := ar[h], h-1
 		if v < ar[l] {

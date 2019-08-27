@@ -31,6 +31,13 @@ func IsSorted(ar Collection) bool {
 
 // insertion sort
 func insertion(ar Collection, lo, hi int) {
+
+	for l, h := int(uint(lo+hi+1)>>1)-2, hi; l >= lo; l, h = l-1, h-1 {
+		if ar.Less(h, l) {
+			ar.Swap(h, l)
+		}
+	}
+
 	for h := lo + 1; h <= hi; h++ {
 		for l := h; l > lo && ar.Less(l, l-1); l-- {
 			ar.Swap(l, l-1)

@@ -17,11 +17,11 @@ Library|Netbook with Intel Celeron N3160|Server with AMD Ryzen 5 1600|Desktop wi
 :---|:---:|:---:|:---:
 sort.Slice|34.75|15.97|17.22
 sortutil  |10.18| 2.96| 3.86
-zermelo   | 8.10| 2.21| 3.35
-sorty-2   | 5.92| 3.64| 3.66
-sorty-3   | 4.27| 2.76| 2.64
-sorty-4   | 3.46| 2.28| 2.20
-Sort(Col) |19.94| 7.59| 7.54
+zermelo   | 8.10| 2.21| 3.32
+sorty-2   | 5.92| 3.64| 3.59
+sorty-3   | 4.27| 2.76| 2.60
+sorty-4   | 3.46| 2.28| 2.18
+Sort(Col) |19.94| 7.59| 7.52
 
 Sorting float32 array (in seconds):
 
@@ -29,11 +29,11 @@ Library|Netbook with Intel Celeron N3160|Server with AMD Ryzen 5 1600|Desktop wi
 :---|:---:|:---:|:---:
 sort.Slice|36.49|17.43|17.98
 sortutil  |11.62| 3.10| 4.19
-zermelo   | 9.83| 4.65| 4.00
+zermelo   | 9.83| 4.65| 4.04
 sorty-2   | 6.84| 4.45| 4.05
 sorty-3   | 4.95| 3.30| 2.93
-sorty-4   | 4.00| 2.79| 2.44
-Sort(Col) |19.72| 8.21| 7.68
+sorty-4   | 4.00| 2.79| 2.42
+Sort(Col) |19.72| 8.21| 7.66
 
 ### Parameter Tuning
 First, make sure everything is fine (prepend GOGC=30 to all if your ram <= 4 GiB):

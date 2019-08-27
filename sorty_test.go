@@ -133,9 +133,6 @@ func sumt(ar, ap []uint32) float64 {
 	Mxg = 3
 	name = "Sort(Col)" // sort via Collection
 	s += mfc(func(aq []uint32) { Sort(uicol(aq)) }, ar, ap)
-	if !IsSorted(uicol(ar)) {
-		tst.Fatal(name, "not sorted")
-	}
 	return s
 }
 
@@ -153,9 +150,6 @@ func sumt2(ar, ap []float32) float64 {
 	Mxg = 3
 	name = "Sort(Col)" // sort via Collection
 	s += mfc2(func(aq []float32) { Sort(flcol(aq)) }, ar, ap)
-	if !IsSorted(flcol(ar)) {
-		tst.Fatal(name, "not sorted")
-	}
 	return s
 }
 
@@ -191,6 +185,9 @@ func TestShort(t *testing.T) {
 	name = "zermelo"
 	mfc(zuint32.Sort, ap, ar)
 	sumt(ap, ar) // sorty
+	if !IsSorted(uicol(ap)) {
+		t.Fatal("IsSorted() does not work")
+	}
 
 	fmt.Println("\nSorting float32")
 	/* name = "sort.Slice"
@@ -203,6 +200,9 @@ func TestShort(t *testing.T) {
 	name = "zermelo"
 	mfc2(zfloat32.Sort, as, aq)
 	sumt2(as, aq) // sorty
+	if !IsSorted(flcol(as)) {
+		t.Fatal("IsSorted() does not work")
+	}
 
 	// Is Sort*() multi-goroutine safe?
 	fmt.Println("\nConcurrent calls to SortU4()")
@@ -256,14 +256,14 @@ func TestOpt(t *testing.T) {
 	ar, ap := f2u(&as), f2u(&aq)
 
 	fmt.Println("Sorting uint32")
-	_, _, _, n := opt.FindMinTri(3, 80, 301, 16, 32, func(x, y int) float64 {
+	_, _, _, n := opt.FindMinTri(2, 80, 301, 16, 32, func(x, y int) float64 {
 		Mli, Mlr = x, y
 		return sumt(ar, ap)
 	}, pro)
 	fmt.Println("made", n, "calls to sumt()")
 
 	fmt.Println("\nSorting float32")
-	_, _, _, n = opt.FindMinTri(3, 80, 301, 16, 32, func(x, y int) float64 {
+	_, _, _, n = opt.FindMinTri(2, 80, 301, 16, 32, func(x, y int) float64 {
 		Mli, Mlr = x, y
 		return sumt2(as, aq)
 	}, pro)
