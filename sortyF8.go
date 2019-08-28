@@ -57,15 +57,12 @@ func slmhF8(vl, pv, vh float64) (a, b, c float64, r int) {
 	return vl, pv, vh, 0
 }
 
-// return pivot as median of five scattered values
-func medianF8(ar []float64) float64 {
-	// lo, mid, hi
-	h := len(ar) - 1
-	m := h >> 1
-	vl, va, pv, vb, vh := ar[0], ar[1], ar[m], ar[h-1], ar[h]
+// partition ar into two groups: >= and <= pivot
+func partitionF8(ar []float64, l, h int) (int, int) {
+	m := int(uint(l+h) >> 1)
 
-	vl, pv, vh, _ = slmhF8(vl, pv, vh)
-	va, pv, vb, r := slmhF8(va, pv, vb)
+	vl, pv, vh, _ := slmhF8(ar[l], ar[m], ar[h])
+	va, pv, vb, r := slmhF8(ar[l+1], pv, ar[h-1])
 
 	// if pivot was out of [va, vb]
 	if r > 0 && pv < vl {
@@ -76,9 +73,32 @@ func medianF8(ar []float64) float64 {
 		vh, pv = pv, vh
 	}
 
-	// here: vl, va <= pv <= vb, vh
-	ar[0], ar[1], ar[m], ar[h-1], ar[h] = vl, va, pv, vb, vh
-	return pv
+	// here: ar[l,l+1] <= pv <= ar[h-1,h] as per Less()
+	ar[l], ar[l+1], ar[m], ar[h-1], ar[h] = vl, va, pv, vb, vh
+
+	for l, h = l+2, h-2; l < h; {
+		if ar[h] < pv {
+			if pv < ar[l] {
+				ar[l], ar[h] = ar[h], ar[l]
+				h--
+			}
+			l++
+		} else {
+			if ar[l] <= pv { // extend ranges in balance
+				l++
+			}
+			h--
+		}
+	}
+
+	if l == h {
+		if pv < ar[l] { // classify mid element
+			h--
+		} else {
+			l++
+		}
+	}
+	return l, h
 }
 
 // SortF8 concurrently sorts ar in ascending order.
@@ -98,30 +118,7 @@ func SortF8(ar []float64) {
 
 	srt = func(lo, hi int) { // assumes hi-lo >= Mli
 	start:
-		l, h, pv := lo+2, hi-2, medianF8(ar[lo:hi+1]) // medianF8 handles lo,hi pairs
-
-		for l < h {
-			if ar[h] < pv {
-				if ar[l] > pv {
-					ar[l], ar[h] = ar[h], ar[l]
-					h--
-				}
-				l++
-			} else {
-				if ar[l] <= pv { // extend ranges in balance
-					l++
-				}
-				h--
-			}
-		}
-
-		if l == h {
-			if pv < ar[l] { // classify mid element
-				h--
-			} else {
-				l++
-			}
-		}
+		l, h := partitionF8(ar, lo, hi)
 
 		if h-lo < hi-l {
 			h, hi = hi, h // [lo,h] is the longer range

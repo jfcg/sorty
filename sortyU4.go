@@ -57,15 +57,12 @@ func slmhU4(vl, pv, vh uint32) (a, b, c uint32, r int) {
 	return vl, pv, vh, 0
 }
 
-// return pivot as median of five scattered values
-func medianU4(ar []uint32) uint32 {
-	// lo, mid, hi
-	h := len(ar) - 1
-	m := h >> 1
-	vl, va, pv, vb, vh := ar[0], ar[1], ar[m], ar[h-1], ar[h]
+// partition ar into two groups: >= and <= pivot
+func partitionU4(ar []uint32, l, h int) (int, int) {
+	m := int(uint(l+h) >> 1)
 
-	vl, pv, vh, _ = slmhU4(vl, pv, vh)
-	va, pv, vb, r := slmhU4(va, pv, vb)
+	vl, pv, vh, _ := slmhU4(ar[l], ar[m], ar[h])
+	va, pv, vb, r := slmhU4(ar[l+1], pv, ar[h-1])
 
 	// if pivot was out of [va, vb]
 	if r > 0 && pv < vl {
@@ -76,9 +73,32 @@ func medianU4(ar []uint32) uint32 {
 		vh, pv = pv, vh
 	}
 
-	// here: vl, va <= pv <= vb, vh
-	ar[0], ar[1], ar[m], ar[h-1], ar[h] = vl, va, pv, vb, vh
-	return pv
+	// here: ar[l,l+1] <= pv <= ar[h-1,h] as per Less()
+	ar[l], ar[l+1], ar[m], ar[h-1], ar[h] = vl, va, pv, vb, vh
+
+	for l, h = l+2, h-2; l < h; {
+		if ar[h] < pv {
+			if pv < ar[l] {
+				ar[l], ar[h] = ar[h], ar[l]
+				h--
+			}
+			l++
+		} else {
+			if ar[l] <= pv { // extend ranges in balance
+				l++
+			}
+			h--
+		}
+	}
+
+	if l == h {
+		if pv < ar[l] { // classify mid element
+			h--
+		} else {
+			l++
+		}
+	}
+	return l, h
 }
 
 // SortU4 concurrently sorts ar in ascending order.
@@ -98,30 +118,7 @@ func SortU4(ar []uint32) {
 
 	srt = func(lo, hi int) { // assumes hi-lo >= Mli
 	start:
-		l, h, pv := lo+2, hi-2, medianU4(ar[lo:hi+1]) // medianU4 handles lo,hi pairs
-
-		for l < h {
-			if ar[h] < pv {
-				if ar[l] > pv {
-					ar[l], ar[h] = ar[h], ar[l]
-					h--
-				}
-				l++
-			} else {
-				if ar[l] <= pv { // extend ranges in balance
-					l++
-				}
-				h--
-			}
-		}
-
-		if l == h {
-			if pv < ar[l] { // classify mid element
-				h--
-			} else {
-				l++
-			}
-		}
+		l, h := partitionU4(ar, lo, hi)
 
 		if h-lo < hi-l {
 			h, hi = hi, h // [lo,h] is the longer range

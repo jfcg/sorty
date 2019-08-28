@@ -65,23 +65,60 @@ func slmh(ar Collection, l, m, h int) int {
 	return 0
 }
 
-// return pivot as median of five scattered values
-func median(ar Collection, lo, hi int) int {
-	mid := int(uint(lo+hi) >> 1)
+// partition ar into two groups: >= and <= pivot
+func partition(ar Collection, l, h int) (int, int) {
+	pv := int(uint(l+h) >> 1)
 
-	slmh(ar, lo, mid, hi)
-	r := slmh(ar, lo+1, mid, hi-1)
+	slmh(ar, l, pv, h)
+	r := slmh(ar, l+1, pv, h-1)
 
-	if r > 0 && ar.Less(mid, lo) {
-		ar.Swap(mid, lo)
+	if r > 0 && ar.Less(pv, l) {
+		ar.Swap(pv, l)
 	}
 
-	if r < 0 && ar.Less(hi, mid) {
-		ar.Swap(hi, mid)
+	if r < 0 && ar.Less(h, pv) {
+		ar.Swap(h, pv)
+	}
+	// here: ar[l,l+1] <= ar[pv] <= ar[h-1,h] as per Less()
+
+	l, h = l+2, h-2
+	for dl, dh := 1, -1; l < h; l, h = l+dl, h+dh {
+
+		if dl == 0 { // avoid unnecessary Less() calls
+			if ar.Less(h, pv) {
+				ar.Swap(l, h)
+				dl++
+			}
+			continue
+		}
+
+		if dh == 0 {
+			if ar.Less(pv, l) {
+				ar.Swap(l, h)
+				dh--
+			}
+			continue
+		}
+
+		if ar.Less(h, pv) {
+			if ar.Less(pv, l) {
+				ar.Swap(l, h)
+			} else {
+				dh = 0
+			}
+		} else if ar.Less(pv, l) { // extend ranges in balance
+			dl = 0
+		}
 	}
 
-	// here: ar[lo,lo+1] <= ar[mid] <= ar[hi-1,hi] as per Less()
-	return mid
+	if l == h {
+		if ar.Less(pv, l) { // classify mid element
+			h--
+		} else {
+			l++
+		}
+	}
+	return l, h
 }
 
 // Sort concurrently sorts ar.
@@ -102,45 +139,7 @@ func Sort(ar Collection) {
 
 	srt = func(lo, hi int) { // assumes hi-lo >= mli
 	start:
-		l, h, pv := lo+2, hi-2, median(ar, lo, hi) // median handles lo,hi pairs
-
-		// dl,dh (for avoiding unnecessary Less() calls) and pivot
-		for dl, dh := 1, -1; l < h; l, h = l+dl, h+dh {
-
-			if dl == 0 {
-				if ar.Less(h, pv) {
-					ar.Swap(l, h)
-					dl++
-				}
-				continue
-			}
-
-			if dh == 0 {
-				if ar.Less(pv, l) {
-					ar.Swap(l, h)
-					dh--
-				}
-				continue
-			}
-
-			if ar.Less(h, pv) {
-				if ar.Less(pv, l) {
-					ar.Swap(l, h)
-				} else {
-					dh = 0
-				}
-			} else if ar.Less(pv, l) { // extend ranges in balance
-				dl = 0
-			}
-		}
-
-		if l == h {
-			if ar.Less(pv, l) { // classify mid element
-				h--
-			} else {
-				l++
-			}
-		}
+		l, h := partition(ar, lo, hi)
 
 		if h-lo < hi-l {
 			h, hi = hi, h // [lo,h] is the longer range
