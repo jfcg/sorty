@@ -175,7 +175,7 @@ func Sort(ar Collection) {
 		goto start
 	}
 
-	if arhi >= Mlr {
+	if arhi > 2*Mlr {
 		ng, done = 1, make(chan bool, 1)
 		gsrt(0, arhi) // start master sort
 		<-done

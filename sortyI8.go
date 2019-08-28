@@ -155,7 +155,7 @@ func SortI8(ar []int64) {
 	}
 
 	arhi := len(ar) - 1
-	if arhi >= Mlr {
+	if arhi > 2*Mlr {
 		ng, done = 1, make(chan bool, 1)
 		gsrt(0, arhi) // start master sort
 		<-done
