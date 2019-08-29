@@ -12,11 +12,11 @@ var Mxg uint32 = 3
 
 // Mli is the maximum array length for insertion sort.
 // Sort(Collection) uses 1/4 of this as its limit.
-var Mli = 64
+var Mli = 88
 
 // Mlr is the maximum array length for recursion when there is available goroutines.
 // So Mlr+1 is the minimum array length for new sorting goroutines.
-var Mlr = 321
+var Mlr = 365
 
 func init() {
 	li2 := 2 * Mli

@@ -94,7 +94,7 @@ func mfc(srt func([]uint32), ar, ap []uint32) float64 {
 
 	sec := d1.Seconds()
 	if testing.Short() {
-		fmt.Printf("%s took %.2fs\n", name, sec)
+		fmt.Printf("%9s %5.2fs\n", name, sec)
 	}
 	return sec
 }
@@ -112,7 +112,7 @@ func mfc2(srt func([]float32), ar, ap []float32) float64 {
 
 	sec := d1.Seconds()
 	if testing.Short() {
-		fmt.Printf("%s took %.2fs\n", name, sec)
+		fmt.Printf("%9s %5.2fs\n", name, sec)
 	}
 	return sec
 }
@@ -253,17 +253,9 @@ func TestOpt(t *testing.T) {
 	aq := make([]float32, 0, N)
 	ar, ap := f2u(&as), f2u(&aq)
 
-	fmt.Println("Sorting uint32")
 	_, _, _, n := opt.FindMinTri(2, 80, 301, 16, 32, func(x, y int) float64 {
 		Mli, Mlr = x, y
-		return sumt(ar, ap)
+		return sumt(ar, ap) + sumt2(as, aq)
 	}, pro)
-	fmt.Println("made", n, "calls to sumt()")
-
-	fmt.Println("\nSorting float32")
-	_, _, _, n = opt.FindMinTri(2, 80, 301, 16, 32, func(x, y int) float64 {
-		Mli, Mlr = x, y
-		return sumt2(as, aq)
-	}, pro)
-	fmt.Println("made", n, "calls to sumt2()")
+	fmt.Println("made", n, "calls")
 }
