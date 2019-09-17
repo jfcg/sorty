@@ -1,7 +1,10 @@
-package sorty
+/*	Copyright (c) 2019, Serhat Şevki Dinçer.
+	This Source Code Form is subject to the terms of the Mozilla Public
+	License, v. 2.0. If a copy of the MPL was not distributed with this
+	file, You can obtain one at http://mozilla.org/MPL/2.0/.
+*/
 
-// Concurrent Sorting
-// Author: Serhat Şevki Dinçer, jfcgaussATgmail
+package sorty
 
 import "sync/atomic"
 
@@ -73,7 +76,7 @@ func partitionF8(ar []float64, l, h int) (int, int) {
 		vh, pv = pv, vh
 	}
 
-	// here: ar[l,l+1] <= pv <= ar[h-1,h] as per Less()
+	// here: ar[l,l+1] <= pv <= ar[h-1,h]
 	ar[l], ar[l+1], ar[m], ar[h-1], ar[h] = vl, va, pv, vb, vh
 
 	for l, h = l+2, h-2; l < h; {
