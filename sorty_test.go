@@ -9,11 +9,13 @@ package sorty
 import (
 	"fmt"
 	"github.com/jfcg/opt"
+	"github.com/jfcg/sixb"
 	"github.com/shawnsmithdev/zermelo/zfloat32"
 	"github.com/shawnsmithdev/zermelo/zuint32"
 	"github.com/twotwotwo/sorts/sortutil"
+	"github.com/yourbasic/radix"
 	"math/rand"
-	//"sort"
+	"sort"
 	"testing"
 	"time"
 	"unsafe"
@@ -58,11 +60,63 @@ func fst2(sd int64, ar []float32, srt func([]float32)) time.Duration {
 	return dur
 }
 
+// implant strings into ar
+func implant(ar []uint32, fill bool) ([]string, []uint32) {
+	// string size is 4*t bytes
+	t := int(unsafe.Sizeof("") >> 2)
+
+	// ar will hold n strings (headers followed by 4-byte bodies)
+	n := len(ar) / (t + 1)
+
+	t *= n // total string headers space
+	ss := sixb.I4tSs(ar[:t])
+
+	if fill {
+		for i, k := n-1, len(ar)-1; i >= 0; i, k = i-1, k-1 {
+			ss[i].Data = uintptr(unsafe.Pointer(&ar[k]))
+			ss[i].Len = 4
+		}
+	}
+	return *(*[]string)(unsafe.Pointer(&ss)), ar[t:]
+}
+
+// fill sort test for string
+func fst3(sd int64, ar []uint32, srt func([]string)) time.Duration {
+	as, ar := implant(ar, true)
+
+	rn := rand.New(rand.NewSource(sd))
+	for i := len(ar) - 1; i >= 0; i-- {
+		ar[i] = rn.Uint32()
+	}
+
+	now := time.Now()
+	srt(as)
+	dur := time.Now().Sub(now)
+
+	if !IsSortedS(as) {
+		tst.Fatal(name, "not sorted")
+	}
+	return dur
+}
+
 func compare(ar, ap []uint32) {
 	l := len(ap)
 	if l <= 0 {
 		return
 	}
+	if len(ar) != l {
+		tst.Fatal(name, "length mismatch:", len(ar), l)
+	}
+
+	for i := l - 1; i >= 0; i-- {
+		if ar[i] != ap[i] {
+			tst.Fatal(name, "values mismatch:", i, ar[i], ap[i])
+		}
+	}
+}
+
+func compareS(ar, ap []string) {
+	l := len(ap)
 	if len(ar) != l {
 		tst.Fatal(name, "length mismatch:", len(ar), l)
 	}
@@ -97,7 +151,7 @@ func mfc(srt func([]uint32), ar, ap []uint32) float64 {
 
 	sec := d1.Seconds()
 	if testing.Short() {
-		fmt.Printf("%9s %5.2fs\n", name, sec)
+		fmt.Printf("%10s %5.2fs\n", name, sec)
 	}
 	return sec
 }
@@ -115,7 +169,27 @@ func mfc2(srt func([]float32), ar, ap []float32) float64 {
 
 	sec := d1.Seconds()
 	if testing.Short() {
-		fmt.Printf("%9s %5.2fs\n", name, sec)
+		fmt.Printf("%10s %5.2fs\n", name, sec)
+	}
+	return sec
+}
+
+// median fst & compare for string
+func mfc3(srt func([]string), ar, ap []uint32) float64 {
+	d1 := fst3(7, ar, srt) // median of three different sorts
+	d2 := fst3(8, ar, srt)
+	d1 = medur(fst3(9, ar, srt), d1, d2)
+
+	if len(ap) > 0 {
+		as, ar := implant(ar, false)
+		aq, ap := implant(ap, false)
+		compareS(as, aq)
+		compare(ar, ap)
+	}
+
+	sec := d1.Seconds()
+	if testing.Short() {
+		fmt.Printf("%10s %5.2fs\n", name, sec)
 	}
 	return sec
 }
@@ -156,6 +230,19 @@ func sumt2(ar, ap []float32) float64 {
 	return s
 }
 
+// return sum of SortS() times for 2..4 goroutines
+// compare with ap and among themselves
+func sumt3(ar, ap []uint32) float64 {
+	s := .0
+	for Mxg = 2; Mxg < 5; Mxg++ {
+		srnm[6] = byte(Mxg + '0')
+		name = string(srnm)
+		s += mfc3(SortS, ar, ap)
+		ap, ar = ar, ap[:cap(ap)]
+	}
+	return s
+}
+
 type uicol []uint32
 type flcol []float32
 
@@ -178,13 +265,12 @@ func TestShort(t *testing.T) {
 	ar, ap := f2u(&as), f2u(&aq)
 
 	fmt.Println("Sorting uint32")
-	/* name = "sort.Slice" // takes too long
+	name = "sort.Slice"
 	mfc(func(ar []uint32) {
 		sort.Slice(ar, func(i, k int) bool { return ar[i] < ar[k] })
-	}, ar, nil) */
-
+	}, ar, nil)
 	name = "sortutil"
-	mfc(sortutil.Uint32s, ar, nil)
+	mfc(sortutil.Uint32s, ap, ar)
 	name = "zermelo"
 	mfc(zuint32.Sort, ap, ar)
 	sumt(ap, ar) // sorty
@@ -193,19 +279,29 @@ func TestShort(t *testing.T) {
 	}
 
 	fmt.Println("\nSorting float32")
-	/* name = "sort.Slice"
+	name = "sort.Slice"
 	mfc2(func(ar []float32) {
 		sort.Slice(ar, func(i, k int) bool { return ar[i] < ar[k] })
-	}, aq, nil) */
-
+	}, aq, nil)
 	name = "sortutil"
-	mfc2(sortutil.Float32s, aq, nil)
+	mfc2(sortutil.Float32s, as, aq)
 	name = "zermelo"
 	mfc2(zfloat32.Sort, as, aq)
 	sumt2(as, aq) // sorty
 	if !IsSorted(flcol(as)) {
 		t.Fatal("IsSorted() does not work")
 	}
+
+	fmt.Println("\nSorting string")
+	name = "sort.Slice"
+	mfc3(func(ar []string) {
+		sort.Slice(ar, func(i, k int) bool { return ar[i] < ar[k] })
+	}, ar, nil)
+	name = "sortutil"
+	mfc3(sortutil.Strings, ap, ar)
+	name = "radix"
+	mfc3(radix.Sort, ap, ar)
+	sumt3(ap, ar) // sorty
 
 	// Is Sort*() multi-goroutine safe?
 	fmt.Println("\nConcurrent calls to SortU4()")
@@ -259,7 +355,7 @@ func TestOpt(t *testing.T) {
 
 	_, _, _, n := opt.FindMinTri(2, 80, 901, 16, 128, func(x, y int) float64 {
 		Mli, Mlr = x, y
-		return sumt(ar, ap) + sumt2(as, aq)
+		return sumt(ar, ap) + sumt2(as, aq) + sumt3(ar, ap)
 	}, pro)
 	fmt.Println("made", n, "calls")
 }

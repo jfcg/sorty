@@ -8,8 +8,8 @@ sorty.Sort(col) // satisfies sort.Interface
 ```
 Mxg (3 by default) is the maximum number of goroutines used for sorting per Sort\*() call.
 
-### 'go test' results on various computers
-All computers run 64-bit Manjaro Linux. Comparing against [sort.Slice](https://golang.org/pkg/sort), [sortutil](https://github.com/twotwotwo/sorts) and [zermelo](https://github.com/shawnsmithdev/zermelo).
+### 'go test' results
+All computers run 64-bit Manjaro Linux. Comparing against [sort.Slice](https://golang.org/pkg/sort), [sortutil](https://github.com/twotwotwo/sorts), [zermelo](https://github.com/shawnsmithdev/zermelo) and [radix](https://github.com/yourbasic/radix).
 
 Sorting uint32 array (in seconds):
 
@@ -34,6 +34,17 @@ sorty-2   | 6.84| 4.14| 3.75
 sorty-3   | 4.95| 3.10| 2.70
 sorty-4   | 4.00| 2.52| 2.23
 Sort(Col) |19.72| 8.05| 7.72
+
+Sorting string array (in seconds):
+
+Library|Netbook with Intel Celeron N3160|Server with AMD Ryzen 5 1600|Desktop with Intel Core i5-2400
+:---|:---:|:---:|:---:
+sort.Slice| | |8.65s
+  sortutil| | |2.64s
+     radix| | |4.44s
+   sorty-2| | |3.82s
+   sorty-3| | |2.86s
+   sorty-4| | |2.30s
 
 ### Parameter Tuning
 First, make sure everything is fine (prepend GOGC=30 to all if your ram <= 4 GiB):

@@ -79,18 +79,33 @@ func partitionS(ar []string, l, h int) (int, int) {
 	// here: ar[l,l+1] <= pv <= ar[h-1,h]
 	ar[l], ar[l+1], ar[m], ar[h-1], ar[h] = vl, va, pv, vb, vh
 
-	for l, h = l+2, h-2; l < h; {
+	l, h = l+2, h-2
+	for dl, dh := 1, -1; l < h; l, h = l+dl, h+dh {
+
+		if dl == 0 { // avoid unnecessary Less() calls
+			if ar[h] < pv {
+				ar[l], ar[h] = ar[h], ar[l]
+				dl++
+			}
+			continue
+		}
+
+		if dh == 0 {
+			if pv < ar[l] {
+				ar[l], ar[h] = ar[h], ar[l]
+				dh--
+			}
+			continue
+		}
+
 		if ar[h] < pv {
 			if pv < ar[l] {
 				ar[l], ar[h] = ar[h], ar[l]
-				h--
+			} else {
+				dh = 0
 			}
-			l++
-		} else {
-			if ar[l] <= pv { // extend ranges in balance
-				l++
-			}
-			h--
+		} else if pv < ar[l] { // extend ranges in balance
+			dl = 0
 		}
 	}
 
@@ -107,6 +122,7 @@ func partitionS(ar []string, l, h int) (int, int) {
 // SortS concurrently sorts ar in ascending order.
 func SortS(ar []string) {
 	var (
+		arhi, mli = len(ar) - 1, Mli >> 2
 		ng        uint32         // number of sorting goroutines including this
 		done      chan bool      // end signal
 		srt, gsrt func(int, int) // recursive & new-goroutine sort functions
@@ -119,7 +135,7 @@ func SortS(ar []string) {
 		}
 	}
 
-	srt = func(lo, hi int) { // assumes hi-lo >= Mli
+	srt = func(lo, hi int) { // assumes hi-lo >= mli
 	start:
 		l, h := partitionS(ar, lo, hi)
 
@@ -130,10 +146,10 @@ func SortS(ar []string) {
 
 		// branches below are optimally laid out for fewer jumps
 		// at least one short range?
-		if hi-l < Mli {
+		if hi-l < mli {
 			insertionS(ar[l : hi+1])
 
-			if h-lo < Mli { // two short ranges?
+			if h-lo < mli { // two short ranges?
 				insertionS(ar[lo : h+1])
 				return
 			}
@@ -157,7 +173,6 @@ func SortS(ar []string) {
 		goto start
 	}
 
-	arhi := len(ar) - 1
 	if arhi > 2*Mlr {
 		ng, done = 1, make(chan bool, 1)
 		gsrt(0, arhi) // start master sort
@@ -165,7 +180,7 @@ func SortS(ar []string) {
 		return
 	}
 
-	if arhi >= Mli {
+	if arhi >= mli {
 		srt(0, arhi) // single goroutine
 		return
 	}
