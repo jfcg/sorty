@@ -324,11 +324,20 @@ func TestShort(t *testing.T) {
 	compare(ar[:K], ap[:K])
 	compare(ar[K:], ap[K:])
 
-	// SortI calls SortI4 (on 32-bit) or SortI8 (on 64-bit).
+	// SortI() calls SortI4() (on 32-bit) or SortI8() (on 64-bit).
 	name = "SortI"
 	SortI(iar)
 	if !IsSortedI(iar) {
-		t.Fatal("SortI does not work")
+		t.Fatal("SortI() does not work")
+	}
+
+	// test Search()
+	name = "Search"
+	n := len(iar)
+	k := Search(n, func(i int) bool { return iar[i] >= 5 })
+	l := Search(n, func(i int) bool { return iar[i] >= 10 })
+	if k < 0 || k >= n || iar[k] != 5 || iar[k-1] != 4 || l != n {
+		t.Fatal("Search() does not work")
 	}
 }
 

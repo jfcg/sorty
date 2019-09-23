@@ -30,3 +30,22 @@ func init() {
 		panic("sorty: check your Mxg/Mli/Mlr values")
 	}
 }
+
+// Search returns lowest integer k in [0,n) where fn(k) is true, assuming:
+//  fn(k) => fn(k+1)
+// If there is no such k, it returns n. It can be used to locate an element
+// in a sorted array or collection.
+func Search(n int, fn func(int) bool) int {
+	l, h := 0, n
+
+	for l < h {
+		m := int(uint(l+h) >> 1)
+
+		if fn(m) {
+			h = m
+		} else {
+			l = m + 1
+		}
+	}
+	return l
+}
