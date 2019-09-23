@@ -55,7 +55,7 @@ You can tune Mli,Mlr for your platform/cpu with \(optimization flags\):
 ```
 go test -timeout 1h -gcflags '-B -s' -ldflags '-s -w'
 ```
-Now update Mli,Mlr in sorty.go and compare your tuned sorty with sortutil & zermelo:
+Now update Mli,Mlr in sorty.go and compare your tuned sorty with others:
 ```
 go test -short -timeout 1h -gcflags '-B -s' -ldflags '-s -w'
 ```

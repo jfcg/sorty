@@ -82,7 +82,7 @@ func partitionS(ar []string, l, h int) (int, int) {
 	l, h = l+2, h-2
 	for dl, dh := 1, -1; l < h; l, h = l+dl, h+dh {
 
-		if dl == 0 { // avoid unnecessary Less() calls
+		if dl == 0 { // avoid unnecessary comparisons
 			if ar[h] < pv {
 				ar[l], ar[h] = ar[h], ar[l]
 				dl++
