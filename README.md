@@ -40,11 +40,11 @@ Sorting string array (in seconds):
 Library|Netbook with Intel Celeron N3160|Server with AMD Ryzen 5 1600|Desktop with Intel Core i5-2400
 :---|:---:|:---:|:---:
 sort.Slice| | |8.65s
-  sortutil| | |2.64s
-     radix| | |4.44s
-   sorty-2| | |3.82s
-   sorty-3| | |2.86s
-   sorty-4| | |2.30s
+sortutil  | | |2.64s
+radix     | | |4.44s
+sorty-2   | | |3.82s
+sorty-3   | | |2.86s
+sorty-4   | | |2.30s
 
 ### Parameter Tuning
 First, make sure everything is fine (prepend GOGC=30 to all if your ram <= 4 GiB):
