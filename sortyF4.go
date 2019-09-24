@@ -62,7 +62,7 @@ func slmhF4(vl, pv, vh float32) (a, b, c float32, r int) {
 
 // partition ar into two groups: >= and <= pivot
 func partitionF4(ar []float32, l, h int) (int, int) {
-	m := int(uint(l+h) >> 1)
+	m := mid(l, h)
 
 	vl, pv, vh, _ := slmhF4(ar[l], ar[m], ar[h])
 	va, pv, vb, r := slmhF4(ar[l+1], pv, ar[h-1])

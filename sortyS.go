@@ -62,7 +62,7 @@ func slmhS(vl, pv, vh string) (a, b, c string, r int) {
 
 // partition ar into two groups: >= and <= pivot
 func partitionS(ar []string, l, h int) (int, int) {
-	m := int(uint(l+h) >> 1)
+	m := mid(l, h)
 
 	vl, pv, vh, _ := slmhS(ar[l], ar[m], ar[h])
 	va, pv, vb, r := slmhS(ar[l+1], pv, ar[h-1])

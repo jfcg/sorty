@@ -62,7 +62,7 @@ func slmhI8(vl, pv, vh int64) (a, b, c int64, r int) {
 
 // partition ar into two groups: >= and <= pivot
 func partitionI8(ar []int64, l, h int) (int, int) {
-	m := int(uint(l+h) >> 1)
+	m := mid(l, h)
 
 	vl, pv, vh, _ := slmhI8(ar[l], ar[m], ar[h])
 	va, pv, vb, r := slmhI8(ar[l+1], pv, ar[h-1])

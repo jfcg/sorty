@@ -35,7 +35,7 @@ func IsSorted(ar Collection) bool {
 // insertion sort
 func insertion(ar Collection, lo, hi int) {
 
-	for l, h := int(uint(lo+hi+1)>>1)-2, hi; l >= lo; l, h = l-1, h-1 {
+	for l, h := mid(lo, hi+1)-2, hi; l >= lo; l, h = l-1, h-1 {
 		if ar.Less(h, l) {
 			ar.Swap(h, l)
 		}
@@ -70,7 +70,7 @@ func slmh(ar Collection, l, m, h int) int {
 
 // partition ar into two groups: >= and <= pivot
 func partition(ar Collection, l, h int) (int, int) {
-	pv := int(uint(l+h) >> 1)
+	pv := mid(l, h)
 
 	slmh(ar, l, pv, h)
 	r := slmh(ar, l+1, pv, h-1)
