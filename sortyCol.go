@@ -68,49 +68,49 @@ func slmh(ar Collection, l, m, h int) int {
 	return 0
 }
 
-// partition ar into two groups: >= and <= pivot
-func partition(ar Collection, l, h int) (int, int) {
+// set pivot such that ar[l,l+1] <= ar[pv] <= ar[h-1,h]
+func pivot(ar Collection, l, h int) (a, b, c int) {
 	pv := mid(l, h)
-
 	slmh(ar, l, pv, h)
 	r := slmh(ar, l+1, pv, h-1)
 
 	if r > 0 && ar.Less(pv, l) {
 		ar.Swap(pv, l)
 	}
-
 	if r < 0 && ar.Less(h, pv) {
 		ar.Swap(h, pv)
 	}
-	// here: ar[l,l+1] <= ar[pv] <= ar[h-1,h] as per Less()
+	return l + 2, h - 2, pv
+}
 
-	l, h = l+2, h-2
-	for dl, dh := 1, -1; l < h; l, h = l+dl, h+dh {
+// partition ar into two groups: >= and <= pivot
+func partition(ar Collection, l, h int) (int, int) {
+	l, h, pv := pivot(ar, l, h)
+out:
+	for ; l < h; l, h = l+1, h-1 {
 
-		if dl == 0 { // avoid unnecessary Less() calls
-			if ar.Less(h, pv) {
-				ar.Swap(l, h)
-				dl++
-			}
-			continue
-		}
-
-		if dh == 0 {
-			if ar.Less(pv, l) {
-				ar.Swap(l, h)
-				dh--
-			}
-			continue
-		}
-
-		if ar.Less(h, pv) {
-			if ar.Less(pv, l) {
-				ar.Swap(l, h)
-			} else {
-				dh = 0
+		if ar.Less(h, pv) { // avoid unnecessary comparisons
+			for {
+				if ar.Less(pv, l) {
+					ar.Swap(l, h)
+					break
+				}
+				l++
+				if l >= h {
+					break out
+				}
 			}
 		} else if ar.Less(pv, l) { // extend ranges in balance
-			dl = 0
+			for {
+				h--
+				if l >= h {
+					break out
+				}
+				if ar.Less(h, pv) {
+					ar.Swap(l, h)
+					break
+				}
+			}
 		}
 	}
 

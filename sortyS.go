@@ -60,52 +60,51 @@ func slmhS(vl, pv, vh string) (a, b, c string, r int) {
 	return vl, pv, vh, 0
 }
 
-// partition ar into two groups: >= and <= pivot
-func partitionS(ar []string, l, h int) (int, int) {
+// set pivot such that ar[l,l+1] <= pv <= ar[h-1,h]
+func pivotS(ar []string, l, h int) (int, int, string) {
 	m := mid(l, h)
-
 	vl, pv, vh, _ := slmhS(ar[l], ar[m], ar[h])
 	va, pv, vb, r := slmhS(ar[l+1], pv, ar[h-1])
 
-	// if pivot was out of [va, vb]
 	if r > 0 && pv < vl {
 		pv, vl = vl, pv
 	}
-
 	if r < 0 && vh < pv {
 		vh, pv = pv, vh
 	}
-
-	// here: ar[l,l+1] <= pv <= ar[h-1,h]
 	ar[l], ar[l+1], ar[m], ar[h-1], ar[h] = vl, va, pv, vb, vh
 
-	l, h = l+2, h-2
-	for dl, dh := 1, -1; l < h; l, h = l+dl, h+dh {
+	return l + 2, h - 2, pv
+}
 
-		if dl == 0 { // avoid unnecessary comparisons
-			if ar[h] < pv {
-				ar[l], ar[h] = ar[h], ar[l]
-				dl++
-			}
-			continue
-		}
+// partition ar into two groups: >= and <= pivot
+func partitionS(ar []string, l, h int) (int, int) {
+	l, h, pv := pivotS(ar, l, h)
+out:
+	for ; l < h; l, h = l+1, h-1 {
 
-		if dh == 0 {
-			if pv < ar[l] {
-				ar[l], ar[h] = ar[h], ar[l]
-				dh--
-			}
-			continue
-		}
-
-		if ar[h] < pv {
-			if pv < ar[l] {
-				ar[l], ar[h] = ar[h], ar[l]
-			} else {
-				dh = 0
+		if ar[h] < pv { // avoid unnecessary comparisons
+			for {
+				if pv < ar[l] {
+					ar[l], ar[h] = ar[h], ar[l]
+					break
+				}
+				l++
+				if l >= h {
+					break out
+				}
 			}
 		} else if pv < ar[l] { // extend ranges in balance
-			dl = 0
+			for {
+				h--
+				if l >= h {
+					break out
+				}
+				if ar[h] < pv {
+					ar[l], ar[h] = ar[h], ar[l]
+					break
+				}
+			}
 		}
 	}
 

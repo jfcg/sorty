@@ -60,37 +60,51 @@ func slmhF4(vl, pv, vh float32) (a, b, c float32, r int) {
 	return vl, pv, vh, 0
 }
 
-// partition ar into two groups: >= and <= pivot
-func partitionF4(ar []float32, l, h int) (int, int) {
+// set pivot such that ar[l,l+1] <= pv <= ar[h-1,h]
+func pivotF4(ar []float32, l, h int) (int, int, float32) {
 	m := mid(l, h)
-
 	vl, pv, vh, _ := slmhF4(ar[l], ar[m], ar[h])
 	va, pv, vb, r := slmhF4(ar[l+1], pv, ar[h-1])
 
-	// if pivot was out of [va, vb]
 	if r > 0 && pv < vl {
 		pv, vl = vl, pv
 	}
-
 	if r < 0 && vh < pv {
 		vh, pv = pv, vh
 	}
-
-	// here: ar[l,l+1] <= pv <= ar[h-1,h]
 	ar[l], ar[l+1], ar[m], ar[h-1], ar[h] = vl, va, pv, vb, vh
 
-	for l, h = l+2, h-2; l < h; {
-		if ar[h] < pv {
-			if pv < ar[l] {
-				ar[l], ar[h] = ar[h], ar[l]
-				h--
-			}
-			l++
-		} else {
-			if ar[l] <= pv { // extend ranges in balance
+	return l + 2, h - 2, pv
+}
+
+// partition ar into two groups: >= and <= pivot
+func partitionF4(ar []float32, l, h int) (int, int) {
+	l, h, pv := pivotF4(ar, l, h)
+out:
+	for ; l < h; l, h = l+1, h-1 {
+
+		if ar[h] < pv { // avoid unnecessary comparisons
+			for {
+				if pv < ar[l] {
+					ar[l], ar[h] = ar[h], ar[l]
+					break
+				}
 				l++
+				if l >= h {
+					break out
+				}
 			}
-			h--
+		} else if pv < ar[l] { // extend ranges in balance
+			for {
+				h--
+				if l >= h {
+					break out
+				}
+				if ar[h] < pv {
+					ar[l], ar[h] = ar[h], ar[l]
+					break
+				}
+			}
 		}
 	}
 

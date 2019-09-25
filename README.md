@@ -13,38 +13,38 @@ All computers run 64-bit Manjaro Linux. Comparing against [sort.Slice](https://g
 
 Sorting uint32 array (in seconds):
 
-Library|Netbook with Intel Celeron N3160|Server with AMD Ryzen 5 1600|Desktop with Intel Core i5-2400
+Library|Server with AMD Ryzen 5 1600|Desktop with Intel Core i5-2400
 :---|:---:|:---:|:---:
-sort.Slice|34.75|15.97|17.22
-sortutil  |10.18| 2.99| 3.86
-zermelo   | 8.10| 2.20| 3.35
-sorty-2   | 5.92| 3.42| 3.31
-sorty-3   | 4.27| 2.61| 2.42
-sorty-4   | 3.46| 2.13| 1.95
-Sort(Col) |19.94| 7.30| 7.38
+sort.Slice|15.99|17.20
+sortutil  | 2.97| 3.87
+zermelo   | 2.20| 3.36
+sorty-2   | 3.31| 3.12
+sorty-3   | 2.47| 2.25
+sorty-4   | 2.00| 1.84
+sorty-Col | 7.05| 6.91
 
 Sorting float32 array (in seconds):
 
-Library|Netbook with Intel Celeron N3160|Server with AMD Ryzen 5 1600|Desktop with Intel Core i5-2400
+Library|Server with AMD Ryzen 5 1600|Desktop with Intel Core i5-2400
 :---|:---:|:---:|:---:
-sort.Slice|36.49|17.43|17.98
-sortutil  |11.62| 3.09| 4.18
-zermelo   | 9.83| 4.64| 4.02
-sorty-2   | 6.84| 4.14| 3.75
-sorty-3   | 4.95| 3.10| 2.70
-sorty-4   | 4.00| 2.52| 2.23
-Sort(Col) |19.72| 8.05| 7.72
+sort.Slice|17.57|17.98
+sortutil  | 3.12| 4.17
+zermelo   | 4.64| 4.00
+sorty-2   | 4.05| 3.43
+sorty-3   | 3.01| 2.46
+sorty-4   | 2.44| 2.04
+sorty-Col | 7.72| 7.06
 
 Sorting string array (in seconds):
 
-Library|Netbook with Intel Celeron N3160|Server with AMD Ryzen 5 1600|Desktop with Intel Core i5-2400
+Library|Server with AMD Ryzen 5 1600|Desktop with Intel Core i5-2400
 :---|:---:|:---:|:---:
-sort.Slice| | |8.65s
-sortutil  | | |2.64s
-radix     | | |4.44s
-sorty-2   | | |3.82s
-sorty-3   | | |2.86s
-sorty-4   | | |2.30s
+sort.Slice| 8.54| 8.66s
+sortutil  | 2.01| 2.63s
+radix     | 4.60| 4.45s
+sorty-2   | 3.27| 3.65s
+sorty-3   | 2.48| 2.73s
+sorty-4   | 2.02| 2.23s
 
 ### Parameter Tuning
 First, make sure everything is fine (prepend GOGC=30 to all if your ram <= 4 GiB):

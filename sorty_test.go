@@ -208,7 +208,7 @@ func sumt(ar, ap []uint32) float64 {
 	}
 
 	Mxg = 3
-	name = "Sort(Col)" // sort via Collection
+	name = "sorty-Col" // sort via Collection
 	s += mfc(func(aq []uint32) { Sort(uicol(aq)) }, ar, ap)
 	return s
 }
@@ -225,7 +225,7 @@ func sumt2(ar, ap []float32) float64 {
 	}
 
 	Mxg = 3
-	name = "Sort(Col)" // sort via Collection
+	name = "sorty-Col" // sort via Collection
 	s += mfc2(func(aq []float32) { Sort(flcol(aq)) }, ar, ap)
 	return s
 }
