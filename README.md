@@ -14,7 +14,7 @@ All computers run 64-bit Manjaro Linux. Comparing against [sort.Slice](https://g
 Sorting uint32 array (in seconds):
 
 Library|Server with AMD Ryzen 5 1600|Desktop with Intel Core i5-2400
-:---|:---:|:---:|:---:
+:---|:---:|:---:
 sort.Slice|15.99|17.20
 sortutil  | 2.97| 3.87
 zermelo   | 2.20| 3.36
@@ -26,7 +26,7 @@ sorty-Col | 7.05| 6.91
 Sorting float32 array (in seconds):
 
 Library|Server with AMD Ryzen 5 1600|Desktop with Intel Core i5-2400
-:---|:---:|:---:|:---:
+:---|:---:|:---:
 sort.Slice|17.57|17.98
 sortutil  | 3.12| 4.17
 zermelo   | 4.64| 4.00
