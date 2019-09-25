@@ -38,7 +38,7 @@ sorty-Col | 7.72| 7.06
 Sorting string array (in seconds):
 
 Library|Server with AMD Ryzen 5 1600|Desktop with Intel Core i5-2400
-:---|:---:|:---:|:---:
+:---|:---:|:---:
 sort.Slice| 8.54| 8.66s
 sortutil  | 2.01| 2.63s
 radix     | 4.60| 4.45s
