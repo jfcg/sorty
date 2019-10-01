@@ -48,39 +48,40 @@ func insertion(ar Collection, lo, hi int) {
 	}
 }
 
-// sort ar[l,m,h] and return swap status
-func slmh(ar Collection, l, m, h int) int {
-	// order l, h
+// set such that ar[l,l+1] <= ar[m] = pivot <= ar[h-1,h]
+func pivot(ar Collection, l, h int) (a, b, c int) {
+	m := mid(l, h)
 	if ar.Less(h, l) {
 		ar.Swap(h, l)
 	}
-
-	// order l, m, h
 	if ar.Less(h, m) {
 		ar.Swap(h, m)
-		return 1
+	} else if ar.Less(m, l) {
+		ar.Swap(m, l)
 	}
+	// ar[l] <= ar[m] <= ar[h]
+
+	k, h := h, h-1
+	if ar.Less(h, m) {
+		k--
+		ar.Swap(h, m)
+		if ar.Less(m, l) {
+			ar.Swap(m, l)
+		}
+	}
+	l++
 
 	if ar.Less(m, l) {
 		ar.Swap(m, l)
-		return -1
+		if k > h && ar.Less(h, h+1) {
+			k = h
+		}
+		if ar.Less(k, m) {
+			ar.Swap(k, m)
+		}
 	}
-	return 0
-}
 
-// set pivot such that ar[l,l+1] <= ar[pv] <= ar[h-1,h]
-func pivot(ar Collection, l, h int) (a, b, c int) {
-	pv := mid(l, h)
-	slmh(ar, l, pv, h)
-	r := slmh(ar, l+1, pv, h-1)
-
-	if r > 0 && ar.Less(pv, l) {
-		ar.Swap(pv, l)
-	}
-	if r < 0 && ar.Less(h, pv) {
-		ar.Swap(h, pv)
-	}
-	return l + 2, h - 2, pv
+	return l + 1, h - 1, m
 }
 
 // partition ar into two groups: >= and <= pivot

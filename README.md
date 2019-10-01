@@ -16,12 +16,12 @@ Sorting uint32 array (in seconds):
 Library|Server with AMD Ryzen 5 1600|Desktop with Intel Core i5-2400
 :---|:---:|:---:
 sort.Slice|15.99|17.20
-sortutil  | 2.97| 3.87
-zermelo   | 2.20| 3.36
-sorty-2   | 3.31| 3.12
-sorty-3   | 2.47| 2.25
-sorty-4   | 2.00| 1.84
-sorty-Col | 7.05| 6.91
+sortutil  | 2.94| 3.87
+zermelo   | 2.20| 3.34
+sorty-2   | 3.24| 3.08
+sorty-3   | 2.41| 2.24
+sorty-4   | 2.01| 1.83
+sorty-Col | 6.98| 6.88
 
 Sorting float32 array (in seconds):
 
@@ -29,22 +29,22 @@ Library|Server with AMD Ryzen 5 1600|Desktop with Intel Core i5-2400
 :---|:---:|:---:
 sort.Slice|17.57|17.98
 sortutil  | 3.12| 4.17
-zermelo   | 4.64| 4.00
-sorty-2   | 4.05| 3.43
-sorty-3   | 3.01| 2.46
-sorty-4   | 2.44| 2.04
-sorty-Col | 7.72| 7.06
+zermelo   | 4.64| 4.01
+sorty-2   | 4.07| 3.44
+sorty-3   | 3.04| 2.47
+sorty-4   | 2.45| 2.05
+sorty-Col | 7.63| 7.06
 
 Sorting string array (in seconds):
 
 Library|Server with AMD Ryzen 5 1600|Desktop with Intel Core i5-2400
 :---|:---:|:---:
-sort.Slice| 8.54| 8.66s
-sortutil  | 2.01| 2.63s
-radix     | 4.60| 4.45s
-sorty-2   | 3.27| 3.65s
-sorty-3   | 2.48| 2.73s
-sorty-4   | 2.02| 2.23s
+sort.Slice| 8.54| 8.66
+sortutil  | 2.00| 2.63
+radix     | 5.34| 4.45
+sorty-2   | 3.28| 3.65
+sorty-3   | 2.49| 2.73
+sorty-4   | 2.01| 2.23
 
 ### Parameter Tuning
 First, make sure everything is fine (prepend GOGC=30 to all if your ram <= 4 GiB):

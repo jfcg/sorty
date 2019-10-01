@@ -42,38 +42,39 @@ func insertionF4(ar []float32) {
 	}
 }
 
-// sort and return vl,pv,vh & swap status
-func slmhF4(vl, pv, vh float32) (a, b, c float32, r int) {
-	// order vl, vh
+// set such that ar[l,l+1] <= ar[m] = pivot <= ar[h-1,h]
+func pivotF4(ar []float32, l, h int) (int, int, float32) {
+	m := mid(l, h)
+	vl, va, pv, vb, vh := ar[l], ar[l+1], ar[m], ar[h-1], ar[h]
+
 	if vh < vl {
 		vh, vl = vl, vh
 	}
-
-	// order vl, pv, vh
 	if vh < pv {
-		return vl, vh, pv, 1
-	}
-
-	if pv < vl {
-		return pv, vl, vh, -1
-	}
-	return vl, pv, vh, 0
-}
-
-// set pivot such that ar[l,l+1] <= pv <= ar[h-1,h]
-func pivotF4(ar []float32, l, h int) (int, int, float32) {
-	m := mid(l, h)
-	vl, pv, vh, _ := slmhF4(ar[l], ar[m], ar[h])
-	va, pv, vb, r := slmhF4(ar[l+1], pv, ar[h-1])
-
-	if r > 0 && pv < vl {
+		vh, pv = pv, vh
+	} else if pv < vl {
 		pv, vl = vl, pv
 	}
-	if r < 0 && vh < pv {
-		vh, pv = pv, vh
-	}
-	ar[l], ar[l+1], ar[m], ar[h-1], ar[h] = vl, va, pv, vb, vh
+	// vl <= pv <= vh
 
+	if vb < pv {
+		vb, pv = pv, vb
+		if pv < vl {
+			pv, vl = vl, pv
+		}
+	}
+
+	if pv < va {
+		pv, va = va, pv
+		if vh < vb {
+			vh, vb = vb, vh
+		}
+		if vb < pv {
+			vb, pv = pv, vb
+		}
+	}
+
+	ar[l], ar[l+1], ar[m], ar[h-1], ar[h] = vl, va, pv, vb, vh
 	return l + 2, h - 2, pv
 }
 
