@@ -73,7 +73,7 @@ func implant(ar []uint32, fill bool) ([]string, []uint32) {
 
 	if fill {
 		for i, k := n-1, len(ar)-1; i >= 0; i, k = i-1, k-1 {
-			ss[i].Data = uintptr(unsafe.Pointer(&ar[k]))
+			ss[i].Data = unsafe.Pointer(&ar[k])
 			ss[i].Len = 4
 		}
 	}
@@ -196,7 +196,7 @@ func mfc3(srt func([]string), ar, ap []uint32) float64 {
 
 var srnm = []byte("sorty-0")
 
-// return sum of Sort*() times for 2..4 goroutines & Sort(Col)
+// return sum of SortU4() times for 2..4 goroutines
 // compare with ap and among themselves
 func sumt(ar, ap []uint32) float64 {
 	s := .0
@@ -206,14 +206,10 @@ func sumt(ar, ap []uint32) float64 {
 		s += mfc(SortU4, ar, ap)
 		ap, ar = ar, ap[:cap(ap)]
 	}
-
-	Mxg = 3
-	name = "sorty-Col" // sort via Collection
-	s += mfc(func(aq []uint32) { Sort(uicol(aq)) }, ar, ap)
 	return s
 }
 
-// return sum of Sort*() times for 2..4 goroutines & Sort(Col)
+// return sum of SortF4() times for 2..4 goroutines
 // compare with ap and among themselves
 func sumt2(ar, ap []float32) float64 {
 	s := .0
@@ -223,10 +219,6 @@ func sumt2(ar, ap []float32) float64 {
 		s += mfc2(SortF4, ar, ap)
 		ap, ar = ar, ap[:cap(ap)]
 	}
-
-	Mxg = 3
-	name = "sorty-Col" // sort via Collection
-	s += mfc2(func(aq []float32) { Sort(flcol(aq)) }, ar, ap)
 	return s
 }
 
@@ -243,16 +235,50 @@ func sumt3(ar, ap []uint32) float64 {
 	return s
 }
 
+// return Sort(Col) + Sort2(Col2) time for 3 goroutines, compare with ap
+func sumtCi(ar, ap []uint32) float64 {
+	Mxg = 3
+	name = "sorty-Col" // sort via Collection
+	s := mfc(func(aq []uint32) { Sort(uicol(aq)) }, ar, ap)
+
+	name = "sorty-Col2" // sort via Collection2
+	return s + mfc(func(aq []uint32) { Sort2(uicol(aq)) }, ar, ap)
+}
+
+// return Sort(Col) + Sort2(Col2) time for 3 goroutines, compare with ap
+func sumtCf(ar, ap []float32) float64 {
+	Mxg = 3
+	name = "sorty-Col" // sort via Collection
+	s := mfc2(func(aq []float32) { Sort(flcol(aq)) }, ar, ap)
+
+	name = "sorty-Col2" // sort via Collection2
+	return s + mfc2(func(aq []float32) { Sort2(flcol(aq)) }, ar, ap)
+}
+
 type uicol []uint32
 type flcol []float32
 
 func (c uicol) Len() int           { return len(c) }
 func (c uicol) Less(i, k int) bool { return c[i] < c[k] }
 func (c uicol) Swap(i, k int)      { c[i], c[k] = c[k], c[i] }
+func (c uicol) LessSwap(i, k, r, s int) bool {
+	if c[i] < c[k] {
+		c[r], c[s] = c[s], c[r]
+		return true
+	}
+	return false
+}
 
 func (c flcol) Len() int           { return len(c) }
 func (c flcol) Less(i, k int) bool { return c[i] < c[k] }
 func (c flcol) Swap(i, k int)      { c[i], c[k] = c[k], c[i] }
+func (c flcol) LessSwap(i, k, r, s int) bool {
+	if c[i] < c[k] {
+		c[r], c[s] = c[s], c[r]
+		return true
+	}
+	return false
+}
 
 func TestShort(t *testing.T) {
 	if !testing.Short() {
@@ -274,6 +300,7 @@ func TestShort(t *testing.T) {
 	name = "zermelo"
 	mfc(zuint32.Sort, ap, ar)
 	sumt(ap, ar) // sorty
+	sumtCi(ap, ar)
 	if !IsSorted(uicol(ap)) {
 		t.Fatal("IsSorted() does not work")
 	}
@@ -288,6 +315,7 @@ func TestShort(t *testing.T) {
 	name = "zermelo"
 	mfc2(zfloat32.Sort, as, aq)
 	sumt2(as, aq) // sorty
+	sumtCf(as, aq)
 	if !IsSorted(flcol(as)) {
 		t.Fatal("IsSorted() does not work")
 	}
@@ -362,9 +390,9 @@ func TestOpt(t *testing.T) {
 	aq := make([]float32, 0, N)
 	ar, ap := f2u(&as), f2u(&aq)
 
-	_, _, _, n := opt.FindMinTri(2, 80, 901, 16, 128, func(x, y int) float64 {
+	_, _, _, n := opt.FindMinTri(2, 128, 385, 16, 96, func(x, y int) float64 {
 		Mli, Mlr = x, y
-		return sumt(ar, ap) + sumt2(as, aq) + sumt3(ar, ap)
+		return sumt(ar, ap) + sumt2(as, aq) //+ sumt3(ar, ap)
 	}, pro)
 	fmt.Println("made", n, "calls")
 }

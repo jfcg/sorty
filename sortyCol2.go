@@ -8,99 +8,69 @@ package sorty
 
 import "sync/atomic"
 
-// Lesser represents a collection of comparable elements.
-type Lesser interface {
-	// Len is the number of elements in the collection. First element has index 0.
-	Len() int
-
-	// Less (a strict ordering like < or >) reports if element-i should come
-	// before element-k:
-	//  Less(i,k) && Less(k,r) => Less(i,r)
-	//  Less(i,k) => ! Less(k,i)
-	Less(i, k int) bool
-}
-
-// Collection is same with standard library's sort.Interface. It represents a
-// collection of sortable (as per Less) elements.
-type Collection interface {
+// Collection2 is an alternative for faster interface-based sorting
+type Collection2 interface {
 	Lesser
 
-	// Swaps i-th and k-th elements.
-	Swap(i, k int)
+	// LessSwap must be equivalent to:
+	//  if less(i, k) {
+	//  	swap(r, s)
+	//  	return true
+	//  }
+	//  return false
+	LessSwap(i, k, r, s int) bool
 }
 
-// IsSorted checks if ar is sorted.
-func IsSorted(ar Lesser) bool {
-	for i := ar.Len() - 1; i > 0; i-- {
-		if ar.Less(i, i-1) {
-			return false
-		}
-	}
-	return true
+func lsw(ar Collection2, a, b int) bool {
+	return ar.LessSwap(a, b, a, b)
 }
 
 // insertion sort
-func insertion(ar Collection, lo, hi int) {
+func insertion2(ar Collection2, lo, hi int) {
 
 	for l, h := mid(lo, hi+1)-2, hi; l >= lo; l, h = l-1, h-1 {
-		if ar.Less(h, l) {
-			ar.Swap(h, l)
-		}
+		lsw(ar, h, l)
 	}
 
 	for h := lo + 1; h <= hi; h++ {
-		for l := h; l > lo && ar.Less(l, l-1); l-- {
-			ar.Swap(l, l-1)
+		for l := h; l > lo && lsw(ar, l, l-1); l-- {
 		}
 	}
 }
 
 // set such that ar[l,l+1] <= ar[m] = pivot <= ar[h-1,h]
-func pivot(ar Collection, l, h int) (a, b, c int) {
+func pivot2(ar Collection2, l, h int) (a, b, c int) {
 	m := mid(l, h)
-	if ar.Less(h, l) {
-		ar.Swap(h, l)
-	}
-	if ar.Less(h, m) {
-		ar.Swap(h, m)
-	} else if ar.Less(m, l) {
-		ar.Swap(m, l)
-	}
+	lsw(ar, h, l)
+	_ = lsw(ar, h, m) || lsw(ar, m, l)
 	// ar[l] <= ar[m] <= ar[h]
 
 	k, h := h, h-1
-	if ar.Less(h, m) {
+	if lsw(ar, h, m) {
 		k--
-		ar.Swap(h, m)
-		if ar.Less(m, l) {
-			ar.Swap(m, l)
-		}
+		lsw(ar, m, l)
 	}
-	l++
 
-	if ar.Less(m, l) {
-		ar.Swap(m, l)
+	l++
+	if lsw(ar, m, l) {
 		if k > h && ar.Less(h, h+1) {
 			k = h
 		}
-		if ar.Less(k, m) {
-			ar.Swap(k, m)
-		}
+		lsw(ar, k, m)
 	}
 
 	return l + 1, h - 1, m
 }
 
 // partition ar into two groups: >= and <= pivot
-func partition(ar Collection, l, h int) (int, int) {
-	l, h, pv := pivot(ar, l, h)
+func partition2(ar Collection2, l, h int) (int, int) {
+	l, h, pv := pivot2(ar, l, h)
 out:
 	for ; l < h; l, h = l+1, h-1 {
 
 		if ar.Less(h, pv) { // avoid unnecessary comparisons
 			for {
-				if ar.Less(pv, l) {
-					ar.Swap(l, h)
+				if ar.LessSwap(pv, l, h, l) {
 					break
 				}
 				l++
@@ -114,8 +84,7 @@ out:
 				if l >= h {
 					break out
 				}
-				if ar.Less(h, pv) {
-					ar.Swap(l, h)
+				if ar.LessSwap(h, pv, h, l) {
 					break
 				}
 			}
@@ -132,8 +101,8 @@ out:
 	return l, h
 }
 
-// Sort concurrently sorts ar.
-func Sort(ar Collection) {
+// Sort2 concurrently sorts ar.
+func Sort2(ar Collection2) {
 	var (
 		arhi, mli = ar.Len() - 1, Mli >> 2
 		ng        uint32         // number of sorting goroutines including this
@@ -150,7 +119,7 @@ func Sort(ar Collection) {
 
 	srt = func(lo, hi int) { // assumes hi-lo >= mli
 	start:
-		l, h := partition(ar, lo, hi)
+		l, h := partition2(ar, lo, hi)
 
 		if h-lo < hi-l {
 			h, hi = hi, h // [lo,h] is the longer range
@@ -160,10 +129,10 @@ func Sort(ar Collection) {
 		// branches below are optimally laid out for fewer jumps
 		// at least one short range?
 		if hi-l < mli {
-			insertion(ar, l, hi)
+			insertion2(ar, l, hi)
 
 			if h-lo < mli { // two short ranges?
-				insertion(ar, lo, h)
+				insertion2(ar, lo, h)
 				return
 			}
 			hi = h
@@ -179,7 +148,7 @@ func Sort(ar Collection) {
 		}
 
 		if atomic.AddUint32(&ng, 1) == 0 { // increase goroutine counter
-			panic("Sort: counter overflow")
+			panic("Sort2: counter overflow")
 		}
 		go gsrt(lo, h) // start a new-goroutine sort on the longer range
 		lo = l
@@ -197,5 +166,5 @@ func Sort(ar Collection) {
 		srt(0, arhi) // single goroutine
 		return
 	}
-	insertion(ar, 0, arhi)
+	insertion2(ar, 0, arhi)
 }
