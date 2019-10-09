@@ -104,7 +104,7 @@ out:
 // Sort2 concurrently sorts ar.
 func Sort2(ar Collection2) {
 	var (
-		arhi, mli = ar.Len() - 1, Mli >> 2
+		arhi, mli = ar.Len() - 1, Mli >> 1
 		ng        uint32         // number of sorting goroutines including this
 		done      chan bool      // end signal
 		srt, gsrt func(int, int) // recursive & new-goroutine sort functions

@@ -124,7 +124,7 @@ out:
 // SortS concurrently sorts ar in ascending order.
 func SortS(ar []string) {
 	var (
-		arhi, mli = len(ar) - 1, Mli >> 2
+		arhi, mli = len(ar) - 1, Mli >> 1
 		ng        uint32         // number of sorting goroutines including this
 		done      chan bool      // end signal
 		srt, gsrt func(int, int) // recursive & new-goroutine sort functions
