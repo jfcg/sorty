@@ -8,6 +8,7 @@ sorty.Sort(col)   // satisfies sort.Interface
 sorty.Sort2(col2) // satisfies sorty.Collection2
 ```
 Mxg (3 by default) is the maximum number of goroutines used for sorting per Sort\*() call.
+sorty uses [semantic](https://semver.org) versioning.
 
 ### 'go test' results
 All computers run 64-bit Manjaro Linux. Comparing against [sort.Slice](https://golang.org/pkg/sort), [sortutil](https://github.com/twotwotwo/sorts), [zermelo](https://github.com/shawnsmithdev/zermelo) and [radix](https://github.com/yourbasic/radix).
@@ -16,38 +17,38 @@ Sorting uint32 array (in seconds):
 
 Library|Server with AMD Ryzen 5 1600|Desktop with Intel Core i5-2400
 :---|:---:|:---:
-sort.Slice|15.99|17.20
-sortutil  | 3.01| 3.87
-zermelo   | 2.18| 3.34
-sorty-2   | 3.17| 3.08
-sorty-3   | 2.45| 2.24
-sorty-4   | 1.98| 1.83
-sorty-Col | 7.05| 6.93
-sorty-Col2| 6.40| 6.35
+sort.Slice|15.99|17.37
+sortutil  | 3.00| 3.52
+zermelo   | 2.20| 1.85
+sorty-2   | 3.19| 3.08
+sorty-3   | 2.42| 2.24
+sorty-4   | 2.00| 1.80
+sorty-Col | 7.02| 6.96
+sorty-Col2| 6.42| 6.33
 
 Sorting float32 array (in seconds):
 
 Library|Server with AMD Ryzen 5 1600|Desktop with Intel Core i5-2400
 :---|:---:|:---:
-sort.Slice|17.57|17.98
-sortutil  | 3.13| 4.17
-zermelo   | 4.65| 4.01
-sorty-2   | 4.00| 3.47
-sorty-3   | 3.03| 2.49
-sorty-4   | 2.47| 2.06
-sorty-Col | 7.76| 7.18
-sorty-Col2| 7.01| 6.50
+sort.Slice|17.57|17.96
+sortutil  | 3.00| 4.15
+zermelo   | 4.65| 3.40
+sorty-2   | 4.02| 3.48
+sorty-3   | 3.03| 2.50
+sorty-4   | 2.49| 2.06
+sorty-Col | 7.79| 7.23
+sorty-Col2| 7.03| 6.52
 
 Sorting string array (in seconds):
 
 Library|Server with AMD Ryzen 5 1600|Desktop with Intel Core i5-2400
 :---|:---:|:---:
-sort.Slice| 8.54| 8.66
-sortutil  | 1.94| 2.65
-radix     | 4.68| 4.42
-sorty-2   | 3.30| 3.67
-sorty-3   | 2.54| 2.73
-sorty-4   | 2.06| 2.22
+sort.Slice| 8.54| 8.03
+sortutil  | 1.96| 2.35
+radix     | 4.64| 3.30
+sorty-2   | 3.26| 3.47
+sorty-3   | 2.54| 2.58
+sorty-4   | 2.03| 2.12
 
 ### Parameter Tuning
 First, make sure everything is fine:
