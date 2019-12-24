@@ -64,3 +64,6 @@ Now update Mli,Mlr in sorty.go and compare your tuned sorty with others:
 go test -short -timeout 1h -gcflags '-B -s' -ldflags '-s -w'
 ```
 Remember to build your sorty with the same flags you used for tuning.
+
+### Support
+If you use sorty and like it, please support via ETH:`0x464B840ee70bBe7962b90bD727Aac172Fa8B9C15`
