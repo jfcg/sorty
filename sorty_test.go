@@ -266,6 +266,46 @@ func sumtC2f(ar, ap []float32) float64 {
 	return mfc2("sorty-Col2", func(aq []float32) { Sort2(flcol(aq)) }, ar, ap)
 }
 
+// sort int array with Sort3()
+func sort3i(aq []uint32) {
+	lsw := func(i, k, r, s int) bool {
+		if aq[i] < aq[k] {
+			if r != s {
+				aq[r], aq[s] = aq[s], aq[r]
+			}
+			return true
+		}
+		return false
+	}
+	Sort3(len(aq), lsw)
+}
+
+// return Sort3() time for 3 goroutines, compare with ap
+func sumtLi(ar, ap []uint32) float64 {
+	Mxg = 3
+	return mfc("sorty-lsw", sort3i, ar, ap)
+}
+
+// sort float array with Sort3()
+func sort3f(aq []float32) {
+	lsw := func(i, k, r, s int) bool {
+		if aq[i] < aq[k] {
+			if r != s {
+				aq[r], aq[s] = aq[s], aq[r]
+			}
+			return true
+		}
+		return false
+	}
+	Sort3(len(aq), lsw)
+}
+
+// return Sort3() time for 3 goroutines, compare with ap
+func sumtLf(ar, ap []float32) float64 {
+	Mxg = 3
+	return mfc2("sorty-lsw", sort3f, ar, ap)
+}
+
 type uicol []uint32
 type flcol []float32
 
@@ -310,6 +350,7 @@ func TestShort(t *testing.T) {
 	sumt(ap, ar) // sorty
 	sumtCi(ap, ar)
 	sumtC2i(ap, ar)
+	sumtLi(ap, ar)
 	if !IsSorted(uicol(ap)) {
 		t.Fatal("IsSorted() does not work")
 	}
@@ -323,6 +364,7 @@ func TestShort(t *testing.T) {
 	sumt2(as, aq) // sorty
 	sumtCf(as, aq)
 	sumtC2f(as, aq)
+	sumtLf(as, aq)
 	if !IsSorted(flcol(as)) {
 		t.Fatal("IsSorted() does not work")
 	}
@@ -336,24 +378,39 @@ func TestShort(t *testing.T) {
 	sumt3(ap, ar) // sorty
 
 	// Is Sort*() multi-goroutine safe?
-	fmt.Println("\nConcurrent calls to SortU4()")
+	fmt.Println("\nConcurrent calls to Sort*()")
 	name = "multi"
 	K, ch := N/2, make(chan bool, 1)
-	sas := func(sd int64, ar []uint32) {
-		fst(sd, ar, SortU4) // SortU4 and signal
+	Mxg = 2
+
+	sas := func(sd int64, ar []uint32, srt func([]uint32)) {
+		fst(sd, ar, srt) // sort and signal
 		ch <- false
 	}
-
-	Mxg = 2
-	go sas(19, ar[:K])
-	go sas(20, ar[K:])
-	go sas(19, ap[:K])
-	fst(20, ap[K:], SortU4)
+	go sas(19, ar[:K], SortU4)
+	go sas(19, ap[:K], sort3i)
+	go sas(20, ar[K:], SortU4)
+	fst(20, ap[K:], sort3i)
 
 	for i := 3; i > 0; i-- {
 		<-ch // wait others
 	}
 	compare(ar[:K], ap[:K])
+	compare(ar[K:], ap[K:])
+
+	sas2 := func(sd int64, ar []float32, srt func([]float32)) {
+		fst2(sd, ar, srt) // sort and signal
+		ch <- false
+	}
+	go sas2(21, as[:K], sort3f)
+	go sas2(21, aq[:K], SortF4)
+	go sas2(22, as[K:], sort3f)
+	fst2(22, aq[K:], SortF4)
+
+	for i := 3; i > 0; i-- {
+		<-ch // wait others
+	}
+	compare(ar[:K], ap[:K]) // same buffers
 	compare(ar[K:], ap[K:])
 
 	// SortI() calls SortI4() (on 32-bit) or SortI8() (on 64-bit).
@@ -368,7 +425,7 @@ func TestShort(t *testing.T) {
 	n := len(iar)
 	k := Search(n, func(i int) bool { return iar[i] >= 5 })
 	l := Search(n, func(i int) bool { return iar[i] >= 10 })
-	if k < 0 || k >= n || iar[k] != 5 || iar[k-1] != 4 || l != n {
+	if k <= 0 || k >= n || iar[k] != 5 || iar[k-1] != 4 || l != n {
 		t.Fatal("Search() does not work")
 	}
 }
@@ -394,14 +451,15 @@ func TestOpt(t *testing.T) {
 	aq := make([]float32, 0, N)
 	ar, ap := f2u(&as), f2u(&aq)
 
-	name := []string{"U4/F4", "S", "", "2"}
+	name := []string{"U4/F4", "S", "", "2", "3"}
 	fn := []func() float64{
 		func() float64 { return sumt(ar, ap) + sumt2(as, aq) },
 		func() float64 { return sumt3(ar, ap) },
 		func() float64 { return sumtCi(ar, ap) + sumtCf(as, aq) },
-		func() float64 { return sumtC2i(ar, ap) + sumtC2f(as, aq) }}
+		func() float64 { return sumtC2i(ar, ap) + sumtC2f(as, aq) },
+		func() float64 { return sumtLi(ar, ap) + sumtLf(as, aq) }}
 
-	for i := 0; i < 4; i++ {
+	for i := 0; i < len(fn); i++ {
 		fmt.Println("\nSort" + name[i])
 
 		_, _, _, n := opt.FindMinTri(2, 128, 449, 12, 64,

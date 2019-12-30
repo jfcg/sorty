@@ -3,9 +3,10 @@ Type-specific concurrent sorting library
 
 sorty is an in-place [QuickSort](https://en.wikipedia.org/wiki/Quicksort) implementation \(with [InsertionSort](https://en.wikipedia.org/wiki/Insertion_sort) as subroutine\) and does not require extra memory. Call corresponding Sort\*() to concurrently sort your slice (in ascending order) or collection. For example:
 ```
-sorty.SortS(string_slice)
-sorty.Sort(col)   // satisfies sort.Interface
-sorty.Sort2(col2) // satisfies sorty.Collection2
+sorty.SortS(string_slice) // native slice
+sorty.Sort(col)           // satisfies sort.Interface
+sorty.Sort2(col2)         // satisfies sorty.Collection2
+sorty.Sort3(n, lesswap)   // lesswap() function based
 ```
 Mxg (3 by default) is the maximum number of goroutines used for sorting per Sort\*() call.
 sorty uses [semantic](https://semver.org) versioning.

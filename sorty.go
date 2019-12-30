@@ -9,9 +9,10 @@
 // sorty is an in-place QuickSort implementation and does not require extra memory.
 // Call corresponding Sort*() to concurrently sort your slice (in ascending order)
 // or collection. For example:
-//  sorty.SortS(string_slice)
-//  sorty.Sort(col)   // satisfies sort.Interface
-//  sorty.Sort2(col2) // satisfies sorty.Collection2
+//  sorty.SortS(string_slice) // native slice
+//  sorty.Sort(col)           // satisfies sort.Interface
+//  sorty.Sort2(col2)         // satisfies sorty.Collection2
+//  sorty.Sort3(n, lesswap)   // lesswap() function based
 package sorty
 
 // Mxg is the maximum number of goroutines used for sorting per Sort*() call.
