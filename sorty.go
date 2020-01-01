@@ -19,9 +19,9 @@ package sorty
 var Mxg uint32 = 3
 
 // Mli is the maximum array length for insertion sort.
-// Sort(Collection) uses 1/4 of this as its limit.
-// Sort2(Collection2) and SortS(string) use 1/2 of this as their limits.
-var Mli = 80
+// SortS() and Sort3() use 1/2 of this as their limits.
+// Sort() and Sort2() use 1/4 of this as their limits.
+var Mli = 120
 
 // Mlr is the maximum array length for recursion when there is available goroutines.
 // So Mlr+1 is the minimum array length for new sorting goroutines.
