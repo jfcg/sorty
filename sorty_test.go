@@ -511,7 +511,7 @@ func TestOpt(t *testing.T) {
 	for i := 0; i < len(fn); i++ {
 		fmt.Println("\nSort" + name[i])
 
-		_, _, _, n := opt.FindMinTri(2, 128, 449, 12, 64,
+		_, _, _, n := opt.FindMinTri(2, 96, 449, 12, 64,
 			func(x, y int) float64 {
 				Mli, Mlr = x, y
 				return fn[i]()
