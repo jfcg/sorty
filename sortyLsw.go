@@ -28,7 +28,11 @@ func insertion3(lsw func(i, k, r, s int) bool, lo, hi int) {
 	}
 
 	for h := lo + 1; h <= hi; h++ {
-		for l := h; l > lo && lsw(l, l-1, l, l-1); l-- {
+		for l := h; lsw(l, l-1, l, l-1); {
+			l--
+			if l <= lo {
+				break
+			}
 		}
 	}
 }

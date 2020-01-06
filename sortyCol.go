@@ -49,8 +49,12 @@ func insertion(ar Collection, lo, hi int) {
 	}
 
 	for h := lo + 1; h <= hi; h++ {
-		for l := h; l > lo && ar.Less(l, l-1); l-- {
+		for l := h; ar.Less(l, l-1); {
 			ar.Swap(l, l-1)
+			l--
+			if l <= lo {
+				break
+			}
 		}
 	}
 }

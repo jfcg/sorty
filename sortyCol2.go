@@ -33,7 +33,11 @@ func insertion2(ar Collection2, lo, hi int) {
 	}
 
 	for h := lo + 1; h <= hi; h++ {
-		for l := h; l > lo && lsw(ar, l, l-1); l-- {
+		for l := h; lsw(ar, l, l-1); {
+			l--
+			if l <= lo {
+				break
+			}
 		}
 	}
 }
