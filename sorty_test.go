@@ -128,7 +128,7 @@ func compareS(ar, ap []string) {
 	}
 }
 
-// median of four
+// median of four durations
 func medur(a, b, c, d time.Duration) time.Duration {
 	if d < a {
 		d, a = a, d
@@ -332,6 +332,7 @@ func sumtLs(ar, ap []uint32) float64 {
 	return mfcStr("sorty-lsw", sort3s, ar, ap)
 }
 
+// types satisfying Collection* interfaces
 type uicol []uint32
 type flcol []float32
 type stcol []string
@@ -369,6 +370,7 @@ func (c stcol) LessSwap(i, k, r, s int) bool {
 	return false
 }
 
+// main test routine, needs -short flag
 func TestShort(t *testing.T) {
 	if !testing.Short() {
 		t.SkipNow()
@@ -486,6 +488,7 @@ var iar = []int{
 	-9, -8, -7, -6, -5, -4, -3, -2, -1, 0, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, -9}
 
 // Optimize max array lengths for insertion sort/recursion (Mli,Mlr)
+// takes a long time, run without -short flag
 func TestOpt(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
@@ -501,11 +504,22 @@ func TestOpt(t *testing.T) {
 
 	name := []string{"U4/F4", "S", "", "2", "3", "3s"}
 	fn := []func() float64{
+		// optimize for native arithmetic types
 		func() float64 { return sumtInt(ar, ap) + sumtFlt(as, aq) },
+
+		// optimize for native string
 		func() float64 { return sumtStr(ar, ap) },
+
+		// optimize for Collection interface
 		func() float64 { return sumtCi(ar, ap) + sumtCf(as, aq) },
+
+		// optimize for Collection2 interface
 		func() float64 { return sumtC2i(ar, ap) + sumtC2f(as, aq) },
+
+		// optimize for function-based interface
 		func() float64 { return sumtLi(ar, ap) + sumtLf(as, aq) },
+
+		// optimize for function-based interface (string key)
 		func() float64 { return sumtLs(ar, ap) }}
 
 	for i := 0; i < len(fn); i++ {

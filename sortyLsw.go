@@ -102,13 +102,27 @@ out:
 
 // Sort3 concurrently sorts underlying collection of length n via
 // lesswap() which must be equivalent to:
-//  if less(i, k) {
+//  if less(i, k) { // must be a strict ordering like < or >
 //  	if r != s {
 //  		swap(r, s)
 //  	}
 //  	return true
 //  }
 //  return false
+// Once for each non-trivial type you want to sort in a certain way, you
+// can implement a custom sorting routine (for a slice for example) as:
+//  func SortObjAsc(c []Obj) {
+//  	lsw := func(i, k, r, s int) bool {
+//  		if c[i].Key < c[k].Key { // or your custom comparator
+//  			if r != s {
+//  				c[r], c[s] = c[s], c[r]
+//  			}
+//  			return true
+//  		}
+//  		return false
+//  	}
+//  	sorty.Sort3(len(c), lsw)
+//  }
 func Sort3(n int, lesswap func(i, k, r, s int) bool) {
 	var (
 		mli       = Mli >> 1
