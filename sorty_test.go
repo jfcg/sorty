@@ -383,7 +383,7 @@ func TestShort(t *testing.T) {
 
 	fmt.Println("Sorting uint32")
 	mfcInt("sort.Slice", func(al []uint32) {
-		sort.Slice(ar, func(i, k int) bool { return al[i] < al[k] })
+		sort.Slice(al, func(i, k int) bool { return al[i] < al[k] })
 	}, ar, nil)
 	mfcInt("sortutil", sortutil.Uint32s, ap, ar)
 	mfcInt("zermelo", zuint32.Sort, ap, ar)
@@ -401,7 +401,7 @@ func TestShort(t *testing.T) {
 
 	fmt.Println("\nSorting float32")
 	mfcFlt("sort.Slice", func(al []float32) {
-		sort.Slice(ar, func(i, k int) bool { return al[i] < al[k] })
+		sort.Slice(al, func(i, k int) bool { return al[i] < al[k] })
 	}, aq, nil)
 	mfcFlt("sortutil", sortutil.Float32s, as, aq)
 	mfcFlt("zermelo", zfloat32.Sort, as, aq)
@@ -419,7 +419,7 @@ func TestShort(t *testing.T) {
 
 	fmt.Println("\nSorting string")
 	mfcStr("sort.Slice", func(al []string) {
-		sort.Slice(ar, func(i, k int) bool { return al[i] < al[k] })
+		sort.Slice(al, func(i, k int) bool { return al[i] < al[k] })
 	}, ar, nil)
 	mfcStr("sortutil", sortutil.Strings, ap, ar)
 	mfcStr("radix", radix.Sort, ap, ar)
