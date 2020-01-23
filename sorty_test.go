@@ -60,6 +60,40 @@ func fstUint2(sd int64, ar []uint64, srt func([]uint64)) time.Duration {
 	return dur
 }
 
+// fill sort test for int32
+func fstInt(sd int64, ar []int32, srt func([]int32)) time.Duration {
+	rn := rand.New(rand.NewSource(sd))
+	for i := len(ar) - 1; i >= 0; i-- {
+		ar[i] = int32(rn.Uint32())
+	}
+
+	now := time.Now()
+	srt(ar)
+	dur := time.Since(now)
+
+	if !IsSortedI4(ar) {
+		tst.Fatal(name, "not sorted")
+	}
+	return dur
+}
+
+// fill sort test for int64
+func fstInt2(sd int64, ar []int64, srt func([]int64)) time.Duration {
+	rn := rand.New(rand.NewSource(sd))
+	for i := len(ar) - 1; i >= 0; i-- {
+		ar[i] = int64(rn.Uint64())
+	}
+
+	now := time.Now()
+	srt(ar)
+	dur := time.Since(now)
+
+	if !IsSortedI8(ar) {
+		tst.Fatal(name, "not sorted")
+	}
+	return dur
+}
+
 // fill sort test for float32
 func fstFlt(sd int64, ar []float32, srt func([]float32)) time.Duration {
 	rn := rand.New(rand.NewSource(sd))
@@ -490,6 +524,28 @@ func TestShort(t *testing.T) {
 		<-ch // wait others
 	}
 	K *= 2
+	compare(ar[:K], ar[K:]) // same buffers
+	compare(ap[:K], ap[K:])
+
+	ao := *(*[]int64)(unsafe.Pointer(&aj)) // int64/32 buffers
+	an := *(*[]int32)(unsafe.Pointer(&ap))
+
+	sasi := func(sd int64, al []int32) {
+		fstInt(sd, al, SortI4) // sort and signal
+		ch <- false
+	}
+	sasj := func(sd int64, al []int64) {
+		fstInt2(sd, al, SortI8)
+		ch <- false
+	}
+	go sasi(23, an[:K])
+	go sasj(24, ao[:N/4])
+	go sasi(23, an[K:])
+	fstInt2(24, ao[N/4:], SortI8)
+
+	for i := 3; i > 0; i-- {
+		<-ch // wait others
+	}
 	compare(ar[:K], ar[K:]) // same buffers
 	compare(ap[:K], ap[K:])
 
