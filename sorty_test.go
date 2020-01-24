@@ -214,7 +214,13 @@ func medur(a, b, c, d time.Duration) time.Duration {
 	return (b + c) / 2
 }
 
-// median fst & compare for int
+func printSec(sec float64) {
+	if testing.Short() {
+		fmt.Printf("%10s %5.2fs\n", name, sec)
+	}
+}
+
+// median fst & compare for uint32
 func mfcUint(tn string, srt func([]uint32), ar, ap []uint32) float64 {
 	name = tn
 	d1 := fstUint(1, ar, srt) // median of four different sorts
@@ -224,9 +230,7 @@ func mfcUint(tn string, srt func([]uint32), ar, ap []uint32) float64 {
 	compare(ar, ap)
 
 	sec := d1.Seconds()
-	if testing.Short() {
-		fmt.Printf("%10s %5.2fs\n", name, sec)
-	}
+	printSec(sec)
 	return sec
 }
 
@@ -238,7 +242,7 @@ func u2f(p *[]uint64) []float64 {
 	return *(*[]float64)(unsafe.Pointer(p))
 }
 
-// median fst & compare for float
+// median fst & compare for float32
 func mfcFlt(tn string, srt func([]float32), ar, ap []float32) float64 {
 	name = tn
 	d1 := fstFlt(5, ar, srt) // median of four different sorts
@@ -248,9 +252,7 @@ func mfcFlt(tn string, srt func([]float32), ar, ap []float32) float64 {
 	compare(f2u(&ar), f2u(&ap))
 
 	sec := d1.Seconds()
-	if testing.Short() {
-		fmt.Printf("%10s %5.2fs\n", name, sec)
-	}
+	printSec(sec)
 	return sec
 }
 
@@ -270,9 +272,7 @@ func mfcStr(tn string, srt func([]string), ar, ap []uint32) float64 {
 	}
 
 	sec := d1.Seconds()
-	if testing.Short() {
-		fmt.Printf("%10s %5.2fs\n", name, sec)
-	}
+	printSec(sec)
 	return sec
 }
 
