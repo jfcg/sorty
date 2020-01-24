@@ -234,12 +234,21 @@ func mfcUint(tn string, srt func([]uint32), ar, ap []uint32) float64 {
 	return sec
 }
 
+// slice conversions
 func f2u(p *[]float32) []uint32 {
 	return *(*[]uint32)(unsafe.Pointer(p))
 }
 
+func f2i(p *[]float32) []int32 {
+	return *(*[]int32)(unsafe.Pointer(p))
+}
+
 func u2f(p *[]uint64) []float64 {
 	return *(*[]float64)(unsafe.Pointer(p))
+}
+
+func u2i(p *[]uint64) []int64 {
+	return *(*[]int64)(unsafe.Pointer(p))
 }
 
 // median fst & compare for float32
@@ -314,25 +323,25 @@ func sumtStr(ar, ap []uint32) float64 {
 	return s
 }
 
-// int: return Sort(Col) time for 3 goroutines, compare with ap
+// uint32: return Sort(Col) time for 3 goroutines, compare with ap
 func sumtCi(ar, ap []uint32) float64 {
 	Mxg = 3 // sort via Collection
 	return mfcUint("sorty-Col", func(aq []uint32) { Sort(uicol(aq)) }, ar, ap)
 }
 
-// int: return Sort2(Col2) time for 3 goroutines, compare with ap
+// uint32: return Sort2(Col2) time for 3 goroutines, compare with ap
 func sumtC2i(ar, ap []uint32) float64 {
 	Mxg = 3 // sort via Collection2
 	return mfcUint("sorty-Col2", func(aq []uint32) { Sort2(uicol(aq)) }, ar, ap)
 }
 
-// float: return Sort(Col) time for 3 goroutines, compare with ap
+// float32: return Sort(Col) time for 3 goroutines, compare with ap
 func sumtCf(ar, ap []float32) float64 {
 	Mxg = 3 // sort via Collection
 	return mfcFlt("sorty-Col", func(aq []float32) { Sort(flcol(aq)) }, ar, ap)
 }
 
-// float: return Sort2(Col2) time for 3 goroutines, compare with ap
+// float32: return Sort2(Col2) time for 3 goroutines, compare with ap
 func sumtC2f(ar, ap []float32) float64 {
 	Mxg = 3 // sort via Collection2
 	return mfcFlt("sorty-Col2", func(aq []float32) { Sort2(flcol(aq)) }, ar, ap)
@@ -344,7 +353,7 @@ func sumtC2s(ar, ap []uint32) float64 {
 	return mfcStr("sorty-Col2", func(aq []string) { Sort2(stcol(aq)) }, ar, ap)
 }
 
-// sort int array with Sort3()
+// sort uint32 array with Sort3()
 func sort3i(aq []uint32) {
 	lsw := func(i, k, r, s int) bool {
 		if aq[i] < aq[k] {
@@ -364,7 +373,7 @@ func sumtLi(ar, ap []uint32) float64 {
 	return mfcUint("sorty-lsw", sort3i, ar, ap)
 }
 
-// sort float array with Sort3()
+// sort float32 array with Sort3()
 func sort3f(aq []float32) {
 	lsw := func(i, k, r, s int) bool {
 		if aq[i] < aq[k] {
@@ -449,64 +458,77 @@ func TestShort(t *testing.T) {
 	}
 	tst = t
 
-	as := make([]float32, N)
-	aq := make([]float32, N)
-	ar, ap := f2u(&as), f2u(&aq)
+	// a & b buffers will hold all arrays to sort
+	af := make([]float32, N)
+	bf := make([]float32, N)
 
+	// different type views of the same buffers
+	au, bu := f2u(&af), f2u(&bf)               // uint32
+	ai, _ := f2i(&af), f2i(&bf)                // int32
+	au2, bu2 := sixb.I4tI8(au), sixb.I4tI8(bu) // uint64
+	af2, _ := u2f(&au2), u2f(&bu2)             // float64
+	_, bi2 := u2i(&au2), u2i(&bu2)             // int64
+
+	// test & time sorting uint32 arrays for different libraries
+	// compare their results
 	fmt.Println("Sorting uint32")
 	mfcUint("sort.Slice", func(al []uint32) {
 		sort.Slice(al, func(i, k int) bool { return al[i] < al[k] })
-	}, ar, nil)
-	mfcUint("sortutil", sortutil.Uint32s, ap, ar)
-	mfcUint("zermelo", zuint32.Sort, ap, ar)
-	sumtUint(ap, ar) // sorty
-	sumtCi(ap, ar)
-	sumtC2i(ap, ar)
-	sumtLi(ap, ar)
+	}, bu, nil)
+	mfcUint("sortutil", sortutil.Uint32s, au, bu)
+	mfcUint("zermelo", zuint32.Sort, au, bu)
+	sumtUint(au, bu) // sorty
+	sumtCi(au, bu)
+	sumtC2i(au, bu)
+	sumtLi(au, bu)
 
-	if !IsSorted(uicol(ap)) {
+	if !IsSorted(uicol(au)) {
 		t.Fatal("IsSorted() does not work")
 	}
-	if !IsSorted3(len(ap), func(i, k int) bool { return ap[i] < ap[k] }) {
+	if !IsSorted3(len(au), func(i, k int) bool { return au[i] < au[k] }) {
 		t.Fatal("IsSorted3() does not work")
 	}
 
+	// test & time sorting float32 arrays for different libraries
+	// compare their results
 	fmt.Println("\nSorting float32")
 	mfcFlt("sort.Slice", func(al []float32) {
 		sort.Slice(al, func(i, k int) bool { return al[i] < al[k] })
-	}, aq, nil)
-	mfcFlt("sortutil", sortutil.Float32s, as, aq)
-	mfcFlt("zermelo", zfloat32.Sort, as, aq)
-	sumtFlt(as, aq) // sorty
-	sumtCf(as, aq)
-	sumtC2f(as, aq)
-	sumtLf(as, aq)
+	}, bf, nil)
+	mfcFlt("sortutil", sortutil.Float32s, af, bf)
+	mfcFlt("zermelo", zfloat32.Sort, af, bf)
+	sumtFlt(af, bf) // sorty
+	sumtCf(af, bf)
+	sumtC2f(af, bf)
+	sumtLf(af, bf)
 
-	if !IsSorted(flcol(as)) {
+	if !IsSorted(flcol(af)) {
 		t.Fatal("IsSorted() does not work")
 	}
-	if !IsSorted3(len(as), func(i, k int) bool { return as[i] < as[k] }) {
+	if !IsSorted3(len(af), func(i, k int) bool { return af[i] < af[k] }) {
 		t.Fatal("IsSorted3() does not work")
 	}
 
+	// test & time sorting string arrays for different libraries
+	// compare their results
 	fmt.Println("\nSorting string")
 	mfcStr("sort.Slice", func(al []string) {
 		sort.Slice(al, func(i, k int) bool { return al[i] < al[k] })
-	}, ar, nil)
-	mfcStr("sortutil", sortutil.Strings, ap, ar)
-	mfcStr("radix", radix.Sort, ap, ar)
-	sumtStr(ap, ar) // sorty
-	sumtC2s(ap, ar)
-	sumtLs(ap, ar)
+	}, bu, nil)
+	mfcStr("sortutil", sortutil.Strings, au, bu)
+	mfcStr("radix", radix.Sort, au, bu)
+	sumtStr(au, bu) // sorty
+	sumtC2s(au, bu)
+	sumtLs(au, bu)
 
 	// Is Sort*() multi-goroutine safe?
 	fmt.Println("\nConcurrent calls to Sort*()")
 	name = "multi"
-	K, ch := N/4, make(chan bool, 1)
+	K, L, ch := N/2, N/4, make(chan bool, 1)
 	Mxg = 2
-	aj, ak := sixb.I4tI8(ar), sixb.I4tI8(ap)
-	am := u2f(&ak) // aj,am: uint64 & float64 buffers
 
+	// two concurrent calls to SortU8() & SortF8() each
+	// up to 8 goroutines total
 	sasu := func(sd int64, al []uint64) {
 		fstUint2(sd, al, SortU8) // sort and signal
 		ch <- false
@@ -515,21 +537,19 @@ func TestShort(t *testing.T) {
 		fstFlt2(sd, al, SortF8)
 		ch <- false
 	}
-	go sasu(21, aj[:K])
-	go sasf(22, am[:K])
-	go sasu(21, aj[K:])
-	fstFlt2(22, am[K:], SortF8)
+	go sasu(21, bu2[:L])
+	go sasf(22, af2[:L])
+	go sasu(21, bu2[L:])
+	fstFlt2(22, af2[L:], SortF8)
 
 	for i := 3; i > 0; i-- {
 		<-ch // wait others
 	}
-	K *= 2
-	compare(ar[:K], ar[K:]) // same buffers
-	compare(ap[:K], ap[K:])
+	compare(bu[:K], bu[K:]) // same buffers
+	compare(au[:K], au[K:])
 
-	ao := *(*[]int64)(unsafe.Pointer(&aj)) // int64/32 buffers
-	an := *(*[]int32)(unsafe.Pointer(&ap))
-
+	// two concurrent calls to SortI4() & SortI8() each
+	// up to 8 goroutines total
 	sasi := func(sd int64, al []int32) {
 		fstInt(sd, al, SortI4) // sort and signal
 		ch <- false
@@ -538,16 +558,16 @@ func TestShort(t *testing.T) {
 		fstInt2(sd, al, SortI8)
 		ch <- false
 	}
-	go sasi(23, an[:K])
-	go sasj(24, ao[:N/4])
-	go sasi(23, an[K:])
-	fstInt2(24, ao[N/4:], SortI8)
+	go sasi(23, ai[:K])
+	go sasj(24, bi2[:L])
+	go sasi(23, ai[K:])
+	fstInt2(24, bi2[L:], SortI8)
 
 	for i := 3; i > 0; i-- {
 		<-ch // wait others
 	}
-	compare(ar[:K], ar[K:]) // same buffers
-	compare(ap[:K], ap[K:])
+	compare(bu[:K], bu[K:]) // same buffers
+	compare(au[:K], au[K:])
 
 	// SortI() calls SortI4() (on 32-bit) or SortI8() (on 64-bit).
 	name = "SortI"
@@ -602,10 +622,10 @@ func TestOpt(t *testing.T) {
 		// optimize for Collection2 interface
 		func() float64 { return sumtC2i(ar, ap) + sumtC2f(as, aq) },
 
-		// optimize for function-based interface
+		// optimize for function-based sort
 		func() float64 { return sumtLi(ar, ap) + sumtLf(as, aq) },
 
-		// optimize for function-based interface (string key)
+		// optimize for function-based sort (string key)
 		func() float64 { return sumtLs(ar, ap) }}
 
 	for i := 0; i < len(fn); i++ {
