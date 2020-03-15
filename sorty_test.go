@@ -27,7 +27,7 @@ var tst *testing.T
 var name string
 
 // fill sort test for uint32
-func fstUint(sd int64, ar []uint32, srt func([]uint32)) time.Duration {
+func fstU4(sd int64, ar []uint32, srt func([]uint32)) time.Duration {
 	rn := rand.New(rand.NewSource(sd))
 	for i := len(ar) - 1; i >= 0; i-- {
 		ar[i] = rn.Uint32()
@@ -44,7 +44,7 @@ func fstUint(sd int64, ar []uint32, srt func([]uint32)) time.Duration {
 }
 
 // fill sort test for uint64
-func fstUint2(sd int64, ar []uint64, srt func([]uint64)) time.Duration {
+func fstU8(sd int64, ar []uint64, srt func([]uint64)) time.Duration {
 	rn := rand.New(rand.NewSource(sd))
 	for i := len(ar) - 1; i >= 0; i-- {
 		ar[i] = rn.Uint64()
@@ -61,7 +61,7 @@ func fstUint2(sd int64, ar []uint64, srt func([]uint64)) time.Duration {
 }
 
 // fill sort test for int32
-func fstInt(sd int64, ar []int32, srt func([]int32)) time.Duration {
+func fstI4(sd int64, ar []int32, srt func([]int32)) time.Duration {
 	rn := rand.New(rand.NewSource(sd))
 	for i := len(ar) - 1; i >= 0; i-- {
 		ar[i] = int32(rn.Uint32())
@@ -78,7 +78,7 @@ func fstInt(sd int64, ar []int32, srt func([]int32)) time.Duration {
 }
 
 // fill sort test for int64
-func fstInt2(sd int64, ar []int64, srt func([]int64)) time.Duration {
+func fstI8(sd int64, ar []int64, srt func([]int64)) time.Duration {
 	rn := rand.New(rand.NewSource(sd))
 	for i := len(ar) - 1; i >= 0; i-- {
 		ar[i] = int64(rn.Uint64())
@@ -95,7 +95,7 @@ func fstInt2(sd int64, ar []int64, srt func([]int64)) time.Duration {
 }
 
 // fill sort test for float32
-func fstFlt(sd int64, ar []float32, srt func([]float32)) time.Duration {
+func fstF4(sd int64, ar []float32, srt func([]float32)) time.Duration {
 	rn := rand.New(rand.NewSource(sd))
 	for i := len(ar) - 1; i >= 0; i-- {
 		ar[i] = float32(rn.NormFloat64())
@@ -112,7 +112,7 @@ func fstFlt(sd int64, ar []float32, srt func([]float32)) time.Duration {
 }
 
 // fill sort test for float64
-func fstFlt2(sd int64, ar []float64, srt func([]float64)) time.Duration {
+func fstF8(sd int64, ar []float64, srt func([]float64)) time.Duration {
 	rn := rand.New(rand.NewSource(sd))
 	for i := len(ar) - 1; i >= 0; i-- {
 		ar[i] = rn.NormFloat64()
@@ -149,7 +149,7 @@ func implant(ar []uint32, fill bool) ([]string, []uint32) {
 }
 
 // fill sort test for string
-func fstStr(sd int64, ar []uint32, srt func([]string)) time.Duration {
+func fstS(sd int64, ar []uint32, srt func([]string)) time.Duration {
 	as, ar := implant(ar, true)
 
 	rn := rand.New(rand.NewSource(sd))
@@ -167,7 +167,7 @@ func fstStr(sd int64, ar []uint32, srt func([]string)) time.Duration {
 	return dur
 }
 
-func compare(ar, ap []uint32) {
+func compareU4(ar, ap []uint32) {
 	l := len(ap)
 	if l <= 0 {
 		return
@@ -221,13 +221,13 @@ func printSec(sec float64) {
 }
 
 // median fst & compare for uint32
-func mfcUint(tn string, srt func([]uint32), ar, ap []uint32) float64 {
+func mfcU4(tn string, srt func([]uint32), ar, ap []uint32) float64 {
 	name = tn
-	d1 := fstUint(1, ar, srt) // median of four different sorts
-	d2 := fstUint(2, ar, srt)
-	d3 := fstUint(3, ar, srt)
-	d1 = medur(fstUint(4, ar, srt), d1, d2, d3)
-	compare(ar, ap)
+	d1 := fstU4(1, ar, srt) // median of four different sorts
+	d2 := fstU4(2, ar, srt)
+	d3 := fstU4(3, ar, srt)
+	d1 = medur(fstU4(4, ar, srt), d1, d2, d3)
+	compareU4(ar, ap)
 
 	sec := d1.Seconds()
 	printSec(sec)
@@ -235,30 +235,30 @@ func mfcUint(tn string, srt func([]uint32), ar, ap []uint32) float64 {
 }
 
 // slice conversions
-func f2u(p *[]float32) []uint32 {
+func F4toU4(p *[]float32) []uint32 {
 	return *(*[]uint32)(unsafe.Pointer(p))
 }
 
-func f2i(p *[]float32) []int32 {
+func F4toI4(p *[]float32) []int32 {
 	return *(*[]int32)(unsafe.Pointer(p))
 }
 
-func u2f(p *[]uint64) []float64 {
+func U8toF8(p *[]uint64) []float64 {
 	return *(*[]float64)(unsafe.Pointer(p))
 }
 
-func u2i(p *[]uint64) []int64 {
+func U8toI8(p *[]uint64) []int64 {
 	return *(*[]int64)(unsafe.Pointer(p))
 }
 
 // median fst & compare for float32
-func mfcFlt(tn string, srt func([]float32), ar, ap []float32) float64 {
+func mfcF4(tn string, srt func([]float32), ar, ap []float32) float64 {
 	name = tn
-	d1 := fstFlt(5, ar, srt) // median of four different sorts
-	d2 := fstFlt(6, ar, srt)
-	d3 := fstFlt(7, ar, srt)
-	d1 = medur(fstFlt(8, ar, srt), d1, d2, d3)
-	compare(f2u(&ar), f2u(&ap))
+	d1 := fstF4(5, ar, srt) // median of four different sorts
+	d2 := fstF4(6, ar, srt)
+	d3 := fstF4(7, ar, srt)
+	d1 = medur(fstF4(8, ar, srt), d1, d2, d3)
+	compareU4(F4toU4(&ar), F4toU4(&ap))
 
 	sec := d1.Seconds()
 	printSec(sec)
@@ -266,18 +266,18 @@ func mfcFlt(tn string, srt func([]float32), ar, ap []float32) float64 {
 }
 
 // median fst & compare for string
-func mfcStr(tn string, srt func([]string), ar, ap []uint32) float64 {
+func mfcS(tn string, srt func([]string), ar, ap []uint32) float64 {
 	name = tn
-	d1 := fstStr(9, ar, srt) // median of four different sorts
-	d2 := fstStr(10, ar, srt)
-	d3 := fstStr(11, ar, srt)
-	d1 = medur(fstStr(12, ar, srt), d1, d2, d3)
+	d1 := fstS(9, ar, srt) // median of four different sorts
+	d2 := fstS(10, ar, srt)
+	d3 := fstS(11, ar, srt)
+	d1 = medur(fstS(12, ar, srt), d1, d2, d3)
 
 	if len(ap) > 0 {
 		as, ar := implant(ar, false)
 		aq, ap := implant(ap, false)
 		compareS(as, aq)
-		compare(ar, ap)
+		compareU4(ar, ap)
 	}
 
 	sec := d1.Seconds()
@@ -289,11 +289,11 @@ var srnm = []byte("sorty-0")
 
 // return sum of SortU4() times for 2..4 goroutines
 // compare with ap and among themselves
-func sumtUint(ar, ap []uint32) float64 {
+func sumtU4(ar, ap []uint32) float64 {
 	s := .0
 	for Mxg = 2; Mxg < 5; Mxg++ {
 		srnm[6] = byte(Mxg + '0')
-		s += mfcUint(string(srnm), SortU4, ar, ap)
+		s += mfcU4(string(srnm), SortU4, ar, ap)
 		ap, ar = ar, ap[:cap(ap)]
 	}
 	return s
@@ -301,11 +301,11 @@ func sumtUint(ar, ap []uint32) float64 {
 
 // return sum of SortF4() times for 2..4 goroutines
 // compare with ap and among themselves
-func sumtFlt(ar, ap []float32) float64 {
+func sumtF4(ar, ap []float32) float64 {
 	s := .0
 	for Mxg = 2; Mxg < 5; Mxg++ {
 		srnm[6] = byte(Mxg + '0')
-		s += mfcFlt(string(srnm), SortF4, ar, ap)
+		s += mfcF4(string(srnm), SortF4, ar, ap)
 		ap, ar = ar, ap[:cap(ap)]
 	}
 	return s
@@ -313,44 +313,44 @@ func sumtFlt(ar, ap []float32) float64 {
 
 // return sum of SortS() times for 2..4 goroutines
 // compare with ap and among themselves
-func sumtStr(ar, ap []uint32) float64 {
+func sumtS(ar, ap []uint32) float64 {
 	s := .0
 	for Mxg = 2; Mxg < 5; Mxg++ {
 		srnm[6] = byte(Mxg + '0')
-		s += mfcStr(string(srnm), SortS, ar, ap)
+		s += mfcS(string(srnm), SortS, ar, ap)
 		ap, ar = ar, ap[:cap(ap)]
 	}
 	return s
 }
 
 // uint32: return Sort(Col) time for 3 goroutines, compare with ap
-func sumtCi(ar, ap []uint32) float64 {
+func sumtColU4(ar, ap []uint32) float64 {
 	Mxg = 3 // sort via Collection
-	return mfcUint("sorty-Col", func(aq []uint32) { Sort(uicol(aq)) }, ar, ap)
+	return mfcU4("sorty-Col", func(aq []uint32) { Sort(uicol(aq)) }, ar, ap)
 }
 
 // uint32: return Sort2(Col2) time for 3 goroutines, compare with ap
-func sumtC2i(ar, ap []uint32) float64 {
+func sumtCol2U4(ar, ap []uint32) float64 {
 	Mxg = 3 // sort via Collection2
-	return mfcUint("sorty-Col2", func(aq []uint32) { Sort2(uicol(aq)) }, ar, ap)
+	return mfcU4("sorty-Col2", func(aq []uint32) { Sort2(uicol(aq)) }, ar, ap)
 }
 
 // float32: return Sort(Col) time for 3 goroutines, compare with ap
-func sumtCf(ar, ap []float32) float64 {
+func sumtColF4(ar, ap []float32) float64 {
 	Mxg = 3 // sort via Collection
-	return mfcFlt("sorty-Col", func(aq []float32) { Sort(flcol(aq)) }, ar, ap)
+	return mfcF4("sorty-Col", func(aq []float32) { Sort(flcol(aq)) }, ar, ap)
 }
 
 // float32: return Sort2(Col2) time for 3 goroutines, compare with ap
-func sumtC2f(ar, ap []float32) float64 {
+func sumtCol2F4(ar, ap []float32) float64 {
 	Mxg = 3 // sort via Collection2
-	return mfcFlt("sorty-Col2", func(aq []float32) { Sort2(flcol(aq)) }, ar, ap)
+	return mfcF4("sorty-Col2", func(aq []float32) { Sort2(flcol(aq)) }, ar, ap)
 }
 
 // string: return Sort2(Col2) time for 3 goroutines, compare with ap
-func sumtC2s(ar, ap []uint32) float64 {
+func sumtCol2S(ar, ap []uint32) float64 {
 	Mxg = 3 // sort via Collection2
-	return mfcStr("sorty-Col2", func(aq []string) { Sort2(stcol(aq)) }, ar, ap)
+	return mfcS("sorty-Col2", func(aq []string) { Sort2(stcol(aq)) }, ar, ap)
 }
 
 // sort uint32 array with Sort3()
@@ -368,9 +368,9 @@ func sort3i(aq []uint32) {
 }
 
 // return Sort3() time for 3 goroutines, compare with ap
-func sumtLi(ar, ap []uint32) float64 {
+func sumtLswU4(ar, ap []uint32) float64 {
 	Mxg = 3
-	return mfcUint("sorty-lsw", sort3i, ar, ap)
+	return mfcU4("sorty-lsw", sort3i, ar, ap)
 }
 
 // sort float32 array with Sort3()
@@ -388,9 +388,9 @@ func sort3f(aq []float32) {
 }
 
 // return Sort3() time for 3 goroutines, compare with ap
-func sumtLf(ar, ap []float32) float64 {
+func sumtLswF4(ar, ap []float32) float64 {
 	Mxg = 3
-	return mfcFlt("sorty-lsw", sort3f, ar, ap)
+	return mfcF4("sorty-lsw", sort3f, ar, ap)
 }
 
 // sort string array with Sort3()
@@ -408,9 +408,9 @@ func sort3s(aq []string) {
 }
 
 // return Sort3() time for 3 goroutines, compare with ap
-func sumtLs(ar, ap []uint32) float64 {
+func sumtLswS(ar, ap []uint32) float64 {
 	Mxg = 3
-	return mfcStr("sorty-lsw", sort3s, ar, ap)
+	return mfcS("sorty-lsw", sort3s, ar, ap)
 }
 
 // types satisfying Collection* interfaces
@@ -463,24 +463,24 @@ func TestShort(t *testing.T) {
 	bf := make([]float32, N)
 
 	// different type views of the same buffers
-	au, bu := f2u(&af), f2u(&bf)               // uint32
-	ai, _ := f2i(&af), f2i(&bf)                // int32
+	au, bu := F4toU4(&af), F4toU4(&bf)         // uint32
+	ai, _ := F4toI4(&af), F4toI4(&bf)          // int32
 	au2, bu2 := sixb.I4tI8(au), sixb.I4tI8(bu) // uint64
-	af2, _ := u2f(&au2), u2f(&bu2)             // float64
-	_, bi2 := u2i(&au2), u2i(&bu2)             // int64
+	af2, _ := U8toF8(&au2), U8toF8(&bu2)       // float64
+	_, bi2 := U8toI8(&au2), U8toI8(&bu2)       // int64
 
 	// test & time sorting uint32 arrays for different libraries
 	// compare their results
 	fmt.Println("Sorting uint32")
-	mfcUint("sort.Slice", func(al []uint32) {
+	mfcU4("sort.Slice", func(al []uint32) {
 		sort.Slice(al, func(i, k int) bool { return al[i] < al[k] })
 	}, bu, nil)
-	mfcUint("sortutil", sortutil.Uint32s, au, bu)
-	mfcUint("zermelo", zuint32.Sort, au, bu)
-	sumtUint(au, bu) // sorty
-	sumtCi(au, bu)
-	sumtC2i(au, bu)
-	sumtLi(au, bu)
+	mfcU4("sortutil", sortutil.Uint32s, au, bu)
+	mfcU4("zermelo", zuint32.Sort, au, bu)
+	sumtU4(au, bu) // sorty
+	sumtColU4(au, bu)
+	sumtCol2U4(au, bu)
+	sumtLswU4(au, bu)
 
 	if !IsSorted(uicol(au)) {
 		t.Fatal("IsSorted() does not work")
@@ -492,15 +492,15 @@ func TestShort(t *testing.T) {
 	// test & time sorting float32 arrays for different libraries
 	// compare their results
 	fmt.Println("\nSorting float32")
-	mfcFlt("sort.Slice", func(al []float32) {
+	mfcF4("sort.Slice", func(al []float32) {
 		sort.Slice(al, func(i, k int) bool { return al[i] < al[k] })
 	}, bf, nil)
-	mfcFlt("sortutil", sortutil.Float32s, af, bf)
-	mfcFlt("zermelo", zfloat32.Sort, af, bf)
-	sumtFlt(af, bf) // sorty
-	sumtCf(af, bf)
-	sumtC2f(af, bf)
-	sumtLf(af, bf)
+	mfcF4("sortutil", sortutil.Float32s, af, bf)
+	mfcF4("zermelo", zfloat32.Sort, af, bf)
+	sumtF4(af, bf) // sorty
+	sumtColF4(af, bf)
+	sumtCol2F4(af, bf)
+	sumtLswF4(af, bf)
 
 	if !IsSorted(flcol(af)) {
 		t.Fatal("IsSorted() does not work")
@@ -512,14 +512,14 @@ func TestShort(t *testing.T) {
 	// test & time sorting string arrays for different libraries
 	// compare their results
 	fmt.Println("\nSorting string")
-	mfcStr("sort.Slice", func(al []string) {
+	mfcS("sort.Slice", func(al []string) {
 		sort.Slice(al, func(i, k int) bool { return al[i] < al[k] })
 	}, bu, nil)
-	mfcStr("sortutil", sortutil.Strings, au, bu)
-	mfcStr("radix", radix.Sort, au, bu)
-	sumtStr(au, bu) // sorty
-	sumtC2s(au, bu)
-	sumtLs(au, bu)
+	mfcS("sortutil", sortutil.Strings, au, bu)
+	mfcS("radix", radix.Sort, au, bu)
+	sumtS(au, bu) // sorty
+	sumtCol2S(au, bu)
+	sumtLswS(au, bu)
 
 	// Is Sort*() multi-goroutine safe?
 	fmt.Println("\nConcurrent calls to Sort*()")
@@ -529,45 +529,45 @@ func TestShort(t *testing.T) {
 
 	// two concurrent calls to SortU8() & SortF8() each
 	// up to 8 goroutines total
-	sasu := func(sd int64, al []uint64) {
-		fstUint2(sd, al, SortU8) // sort and signal
+	sasU8 := func(sd int64, al []uint64) {
+		fstU8(sd, al, SortU8) // sort and signal
 		ch <- false
 	}
-	sasf := func(sd int64, al []float64) {
-		fstFlt2(sd, al, SortF8)
+	sasF8 := func(sd int64, al []float64) {
+		fstF8(sd, al, SortF8)
 		ch <- false
 	}
-	go sasu(21, bu2[:L])
-	go sasf(22, af2[:L])
-	go sasu(21, bu2[L:])
-	fstFlt2(22, af2[L:], SortF8)
+	go sasU8(21, bu2[:L])
+	go sasF8(22, af2[:L])
+	go sasU8(21, bu2[L:])
+	fstF8(22, af2[L:], SortF8)
 
 	for i := 3; i > 0; i-- {
 		<-ch // wait others
 	}
-	compare(bu[:K], bu[K:]) // same buffers
-	compare(au[:K], au[K:])
+	compareU4(bu[:K], bu[K:]) // same buffers
+	compareU4(au[:K], au[K:])
 
 	// two concurrent calls to SortI4() & SortI8() each
 	// up to 8 goroutines total
-	sasi := func(sd int64, al []int32) {
-		fstInt(sd, al, SortI4) // sort and signal
+	sasI4 := func(sd int64, al []int32) {
+		fstI4(sd, al, SortI4) // sort and signal
 		ch <- false
 	}
-	sasj := func(sd int64, al []int64) {
-		fstInt2(sd, al, SortI8)
+	sasI8 := func(sd int64, al []int64) {
+		fstI8(sd, al, SortI8)
 		ch <- false
 	}
-	go sasi(23, ai[:K])
-	go sasj(24, bi2[:L])
-	go sasi(23, ai[K:])
-	fstInt2(24, bi2[L:], SortI8)
+	go sasI4(23, ai[:K])
+	go sasI8(24, bi2[:L])
+	go sasI4(23, ai[K:])
+	fstI8(24, bi2[L:], SortI8)
 
 	for i := 3; i > 0; i-- {
 		<-ch // wait others
 	}
-	compare(bu[:K], bu[K:]) // same buffers
-	compare(au[:K], au[K:])
+	compareU4(bu[:K], bu[K:]) // same buffers
+	compareU4(au[:K], au[K:])
 
 	// SortI() calls SortI4() (on 32-bit) or SortI8() (on 64-bit).
 	name = "SortI"
@@ -606,27 +606,27 @@ func TestOpt(t *testing.T) {
 	}
 	as := make([]float32, N)
 	aq := make([]float32, 0, N)
-	ar, ap := f2u(&as), f2u(&aq)
+	ar, ap := F4toU4(&as), F4toU4(&aq)
 
 	name := []string{"U4/F4", "S", "", "2", "3", "3s"}
 	fn := []func() float64{
 		// optimize for native arithmetic types
-		func() float64 { return sumtUint(ar, ap) + sumtFlt(as, aq) },
+		func() float64 { return sumtU4(ar, ap) + sumtF4(as, aq) },
 
 		// optimize for native string
-		func() float64 { return sumtStr(ar, ap) },
+		func() float64 { return sumtS(ar, ap) },
 
 		// optimize for Collection interface
-		func() float64 { return sumtCi(ar, ap) + sumtCf(as, aq) },
+		func() float64 { return sumtColU4(ar, ap) + sumtColF4(as, aq) },
 
 		// optimize for Collection2 interface
-		func() float64 { return sumtC2i(ar, ap) + sumtC2f(as, aq) },
+		func() float64 { return sumtCol2U4(ar, ap) + sumtCol2F4(as, aq) },
 
 		// optimize for function-based sort
-		func() float64 { return sumtLi(ar, ap) + sumtLf(as, aq) },
+		func() float64 { return sumtLswU4(ar, ap) + sumtLswF4(as, aq) },
 
 		// optimize for function-based sort (string key)
-		func() float64 { return sumtLs(ar, ap) }}
+		func() float64 { return sumtLswS(ar, ap) }}
 
 	for i := 0; i < len(fn); i++ {
 		fmt.Println("\nSort" + name[i])
