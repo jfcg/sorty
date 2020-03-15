@@ -207,9 +207,9 @@ func medur(a, b, c, d time.Duration) time.Duration {
 		d, b = b, d
 	}
 	if c < a {
-		c, a = a, c
+		c = a
 	} else if d < c {
-		d, c = c, d
+		c = d
 	}
 	return (b + c) / 2
 }
