@@ -1,5 +1,5 @@
-## sorty [![Go Report Card](https://goreportcard.com/badge/github.com/jfcg/sorty)](https://goreportcard.com/report/github.com/jfcg/sorty) [![GoDoc](https://godoc.org/github.com/jfcg/sorty?status.svg)](https://godoc.org/github.com/jfcg/sorty)
-Type-specific concurrent / parallel sorting library.
+## sorty [![go report card](https://goreportcard.com/badge/github.com/jfcg/sorty)](https://goreportcard.com/report/github.com/jfcg/sorty) [![go.dev reference](/.github/godev.svg)](https://pkg.go.dev/github.com/jfcg/sorty?tab=doc)
+Type-specific, fast concurrent / parallel sorting library.
 
 sorty is an in-place [QuickSort](https://en.wikipedia.org/wiki/Quicksort) implementation (with [InsertionSort](https://en.wikipedia.org/wiki/Insertion_sort) as subroutine) and does not require extra memory. Call corresponding Sort\*() to concurrently sort your slice (in ascending order) or collection. For example:
 ```
@@ -68,7 +68,8 @@ Now update `Mli, Mlr` in sorty.go and compare your tuned sorty with others:
 ```
 go test -short -timeout 1h -gcflags '-B -wb=0 -smallframes' -ldflags '-s -w'
 ```
-Remember to build your sorty with the same flags you used for tuning.
+Remember to build sorty (and your functions like `SortObjAsc()`) with the same
+optimization flags you used for tuning.
 
 ### Support
 If you use sorty and like it, please support via ETH:`0x464B840ee70bBe7962b90bD727Aac172Fa8B9C15`

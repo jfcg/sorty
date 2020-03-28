@@ -4,7 +4,7 @@
 	file, You can obtain one at http://mozilla.org/MPL/2.0/.
 */
 
-// Package sorty provides type-specific concurrent / parallel sorting functionality
+// Package sorty provides type-specific concurrent / parallel sorting functionality.
 //
 // sorty is an in-place QuickSort implementation and does not require extra memory.
 // Call corresponding Sort*() to concurrently sort your slice (in ascending order)
