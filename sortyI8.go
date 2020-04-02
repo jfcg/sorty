@@ -82,8 +82,7 @@ func pivotI8(ar []int64, l, h int) (int, int, int64) {
 func partitionI8(ar []int64, l, h int) (int, int) {
 	l, h, pv := pivotI8(ar, l, h)
 
-	for ; l < h; l, h = l+1, h-1 {
-
+	for {
 		if ar[h] < pv { // avoid unnecessary comparisons
 			for {
 				if pv < ar[l] {
@@ -106,6 +105,11 @@ func partitionI8(ar []int64, l, h int) (int, int) {
 					break
 				}
 			}
+		}
+		l++
+		h--
+		if l >= h {
+			break
 		}
 	}
 

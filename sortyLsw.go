@@ -65,8 +65,7 @@ func pivot3(lsw func(i, k, r, s int) bool, l, h int) (a, b, c int) {
 func partition3(lsw func(i, k, r, s int) bool, l, h int) (int, int) {
 	l, h, pv := pivot3(lsw, l, h)
 
-	for ; l < h; l, h = l+1, h-1 {
-
+	for {
 		if lsw(h, pv, 0, 0) { // avoid unnecessary comparisons
 			for {
 				if lsw(pv, l, h, l) {
@@ -87,6 +86,11 @@ func partition3(lsw func(i, k, r, s int) bool, l, h int) (int, int) {
 					break
 				}
 			}
+		}
+		l++
+		h--
+		if l >= h {
+			break
 		}
 	}
 

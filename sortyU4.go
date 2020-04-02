@@ -82,8 +82,7 @@ func pivotU4(ar []uint32, l, h int) (int, int, uint32) {
 func partitionU4(ar []uint32, l, h int) (int, int) {
 	l, h, pv := pivotU4(ar, l, h)
 
-	for ; l < h; l, h = l+1, h-1 {
-
+	for {
 		if ar[h] < pv { // avoid unnecessary comparisons
 			for {
 				if pv < ar[l] {
@@ -106,6 +105,11 @@ func partitionU4(ar []uint32, l, h int) (int, int) {
 					break
 				}
 			}
+		}
+		l++
+		h--
+		if l >= h {
+			break
 		}
 	}
 

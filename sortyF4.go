@@ -82,8 +82,7 @@ func pivotF4(ar []float32, l, h int) (int, int, float32) {
 func partitionF4(ar []float32, l, h int) (int, int) {
 	l, h, pv := pivotF4(ar, l, h)
 
-	for ; l < h; l, h = l+1, h-1 {
-
+	for {
 		if ar[h] < pv { // avoid unnecessary comparisons
 			for {
 				if pv < ar[l] {
@@ -106,6 +105,11 @@ func partitionF4(ar []float32, l, h int) (int, int) {
 					break
 				}
 			}
+		}
+		l++
+		h--
+		if l >= h {
+			break
 		}
 	}
 

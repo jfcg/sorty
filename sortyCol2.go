@@ -70,8 +70,7 @@ func pivot2(ar Collection2, l, h int) (a, b, c int) {
 func partition2(ar Collection2, l, h int) (int, int) {
 	l, h, pv := pivot2(ar, l, h)
 
-	for ; l < h; l, h = l+1, h-1 {
-
+	for {
 		if ar.Less(h, pv) { // avoid unnecessary comparisons
 			for {
 				if ar.LessSwap(pv, l, h, l) {
@@ -92,6 +91,11 @@ func partition2(ar Collection2, l, h int) (int, int) {
 					break
 				}
 			}
+		}
+		l++
+		h--
+		if l >= h {
+			break
 		}
 	}
 
