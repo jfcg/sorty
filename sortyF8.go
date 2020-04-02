@@ -81,7 +81,7 @@ func pivotF8(ar []float64, l, h int) (int, int, float64) {
 // partition ar into two groups: >= and <= pivot
 func partitionF8(ar []float64, l, h int) (int, int) {
 	l, h, pv := pivotF8(ar, l, h)
-out:
+
 	for ; l < h; l, h = l+1, h-1 {
 
 		if ar[h] < pv { // avoid unnecessary comparisons
@@ -92,14 +92,14 @@ out:
 				}
 				l++
 				if l >= h {
-					break out
+					return l + 1, h
 				}
 			}
 		} else if pv < ar[l] { // extend ranges in balance
 			for {
 				h--
 				if l >= h {
-					break out
+					return l, h - 1
 				}
 				if ar[h] < pv {
 					ar[l], ar[h] = ar[h], ar[l]

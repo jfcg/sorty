@@ -64,7 +64,7 @@ func pivot3(lsw func(i, k, r, s int) bool, l, h int) (a, b, c int) {
 // partition ar into two groups: >= and <= pivot
 func partition3(lsw func(i, k, r, s int) bool, l, h int) (int, int) {
 	l, h, pv := pivot3(lsw, l, h)
-out:
+
 	for ; l < h; l, h = l+1, h-1 {
 
 		if lsw(h, pv, 0, 0) { // avoid unnecessary comparisons
@@ -74,14 +74,14 @@ out:
 				}
 				l++
 				if l >= h {
-					break out
+					return l + 1, h
 				}
 			}
 		} else if lsw(pv, l, 0, 0) { // extend ranges in balance
 			for {
 				h--
 				if l >= h {
-					break out
+					return l, h - 1
 				}
 				if lsw(h, pv, h, l) {
 					break
