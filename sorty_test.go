@@ -214,10 +214,12 @@ func medur(a, b, c, d time.Duration) time.Duration {
 	return (b + c) / 2
 }
 
-func printSec(sec float64) {
+func printSec(d time.Duration) float64 {
+	sec := d.Seconds()
 	if testing.Short() {
 		fmt.Printf("%10s %5.2fs\n", name, sec)
 	}
+	return sec
 }
 
 // median fst & compare for uint32
@@ -229,9 +231,7 @@ func mfcU4(tn string, srt func([]uint32), ar, ap []uint32) float64 {
 	d1 = medur(fstU4(4, ar, srt), d1, d2, d3)
 	compareU4(ar, ap)
 
-	sec := d1.Seconds()
-	printSec(sec)
-	return sec
+	return printSec(d1)
 }
 
 // slice conversions
@@ -260,9 +260,7 @@ func mfcF4(tn string, srt func([]float32), ar, ap []float32) float64 {
 	d1 = medur(fstF4(8, ar, srt), d1, d2, d3)
 	compareU4(F4toU4(&ar), F4toU4(&ap))
 
-	sec := d1.Seconds()
-	printSec(sec)
-	return sec
+	return printSec(d1)
 }
 
 // median fst & compare for string
@@ -280,9 +278,7 @@ func mfcS(tn string, srt func([]string), ar, ap []uint32) float64 {
 		compareU4(ar, ap)
 	}
 
-	sec := d1.Seconds()
-	printSec(sec)
-	return sec
+	return printSec(d1)
 }
 
 var srnm = []byte("sorty-0")
