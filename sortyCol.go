@@ -84,7 +84,7 @@ func pivot(ar Collection, l, h int) (a, b, c int) {
 
 	if ar.Less(m, l) {
 		ar.Swap(m, l)
-		if k > h && ar.Less(h, h+1) {
+		if k > h && ar.Less(h, k) {
 			k = h
 		}
 		if ar.Less(k, m) {

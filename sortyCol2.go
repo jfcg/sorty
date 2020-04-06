@@ -57,7 +57,7 @@ func pivot2(ar Collection2, l, h int) (a, b, c int) {
 
 	l++
 	if lsw(ar, m, l) {
-		if k > h && ar.Less(h, h+1) {
+		if k > h && ar.Less(h, k) {
 			k = h
 		}
 		lsw(ar, k, m)

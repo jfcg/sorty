@@ -52,7 +52,7 @@ func pivot3(lsw func(i, k, r, s int) bool, l, h int) (a, b, c int) {
 
 	l++
 	if lsw(m, l, m, l) {
-		if k > h && lsw(h, h+1, 0, 0) {
+		if k > h && lsw(h, k, 0, 0) {
 			k = h
 		}
 		lsw(k, m, k, m)
