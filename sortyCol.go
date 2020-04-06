@@ -60,7 +60,7 @@ func insertion(ar Collection, lo, hi int) {
 }
 
 // set such that ar[l,l+1] <= ar[m] = pivot <= ar[h-1,h]
-func pivot(ar Collection, l, h int) (a, b, c int) {
+func pivot(ar Collection, l, h int) (int, int, int) {
 	m := mid(l, h)
 	if ar.Less(h, l) {
 		ar.Swap(h, l)
@@ -80,8 +80,8 @@ func pivot(ar Collection, l, h int) (a, b, c int) {
 			ar.Swap(m, l)
 		}
 	}
-	l++
 
+	l++
 	if ar.Less(m, l) {
 		ar.Swap(m, l)
 		if k > h && ar.Less(h, k) {
@@ -91,7 +91,6 @@ func pivot(ar Collection, l, h int) (a, b, c int) {
 			ar.Swap(k, m)
 		}
 	}
-
 	return l + 1, h - 1, m
 }
 

@@ -43,10 +43,12 @@ func insertion2(ar Collection2, lo, hi int) {
 }
 
 // set such that ar[l,l+1] <= ar[m] = pivot <= ar[h-1,h]
-func pivot2(ar Collection2, l, h int) (a, b, c int) {
+func pivot2(ar Collection2, l, h int) (int, int, int) {
 	m := mid(l, h)
 	lsw(ar, h, l)
-	_ = lsw(ar, h, m) || lsw(ar, m, l)
+	if !lsw(ar, h, m) {
+		lsw(ar, m, l)
+	}
 	// ar[l] <= ar[m] <= ar[h]
 
 	k, h := h, h-1
@@ -62,7 +64,6 @@ func pivot2(ar Collection2, l, h int) (a, b, c int) {
 		}
 		lsw(ar, k, m)
 	}
-
 	return l + 1, h - 1, m
 }
 

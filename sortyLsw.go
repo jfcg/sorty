@@ -38,10 +38,12 @@ func insertion3(lsw func(i, k, r, s int) bool, lo, hi int) {
 }
 
 // set such that ar[l,l+1] <= ar[m] = pivot <= ar[h-1,h]
-func pivot3(lsw func(i, k, r, s int) bool, l, h int) (a, b, c int) {
+func pivot3(lsw func(i, k, r, s int) bool, l, h int) (int, int, int) {
 	m := mid(l, h)
 	lsw(h, l, h, l)
-	_ = lsw(h, m, h, m) || lsw(m, l, m, l)
+	if !lsw(h, m, h, m) {
+		lsw(m, l, m, l)
+	}
 	// ar[l] <= ar[m] <= ar[h]
 
 	k, h := h, h-1
@@ -57,7 +59,6 @@ func pivot3(lsw func(i, k, r, s int) bool, l, h int) (a, b, c int) {
 		}
 		lsw(k, m, k, m)
 	}
-
 	return l + 1, h - 1, m
 }
 
