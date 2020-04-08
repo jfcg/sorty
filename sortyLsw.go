@@ -20,8 +20,18 @@ func IsSorted3(n int, less func(i, k int) bool) bool {
 	return true
 }
 
+// Lesswap function operates on an underlying collection to be sorted as:
+//  if less(i, k) { // strict ordering like < or >
+//  	if r != s {
+//  		swap(r, s)
+//  	}
+//  	return true
+//  }
+//  return false
+type Lesswap func(i, k, r, s int) bool
+
 // insertion sort
-func insertion3(lsw func(i, k, r, s int) bool, lo, hi int) {
+func insertion3(lsw Lesswap, lo, hi int) {
 
 	for l, h := mid(lo, hi+1)-2, hi; l >= lo; l, h = l-1, h-1 {
 		lsw(h, l, h, l)
@@ -38,7 +48,7 @@ func insertion3(lsw func(i, k, r, s int) bool, lo, hi int) {
 }
 
 // set such that ar[l,l+1] <= ar[m] = pivot <= ar[h-1,h]
-func pivot3(lsw func(i, k, r, s int) bool, l, h int) (int, int, int) {
+func pivot3(lsw Lesswap, l, h int) (int, int, int) {
 	m := mid(l, h)
 	lsw(h, l, h, l)
 	if !lsw(h, m, h, m) {
@@ -63,7 +73,7 @@ func pivot3(lsw func(i, k, r, s int) bool, l, h int) (int, int, int) {
 }
 
 // partition ar into two groups: >= and <= pivot
-func partition3(lsw func(i, k, r, s int) bool, l, h int) (int, int) {
+func partition3(lsw Lesswap, l, h int) (int, int) {
 	l, h, pv := pivot3(lsw, l, h)
 
 	for {
@@ -105,20 +115,12 @@ func partition3(lsw func(i, k, r, s int) bool, l, h int) (int, int) {
 	return l, h
 }
 
-// Sort3 concurrently sorts underlying collection of length n via
-// lesswap() which must be equivalent to:
-//  if less(i, k) { // must be a strict ordering like < or >
-//  	if r != s {
-//  		swap(r, s)
-//  	}
-//  	return true
-//  }
-//  return false
+// Sort3 concurrently sorts underlying collection of length n via lsw().
 // Once for each non-trivial type you want to sort in a certain way, you
 // can implement a custom sorting routine (for a slice for example) as:
 //  func SortObjAsc(c []Obj) {
 //  	lsw := func(i, k, r, s int) bool {
-//  		if c[i].Key < c[k].Key { // or your custom comparator
+//  		if c[i].Key < c[k].Key { // your custom strict comparator (like < or >)
 //  			if r != s {
 //  				c[r], c[s] = c[s], c[r]
 //  			}
@@ -128,7 +130,7 @@ func partition3(lsw func(i, k, r, s int) bool, l, h int) (int, int) {
 //  	}
 //  	sorty.Sort3(len(c), lsw)
 //  }
-func Sort3(n int, lesswap func(i, k, r, s int) bool) {
+func Sort3(n int, lsw Lesswap) {
 	var (
 		mli       = Mli >> 1
 		ngr       uint32         // number of sorting goroutines including this
@@ -145,7 +147,7 @@ func Sort3(n int, lesswap func(i, k, r, s int) bool) {
 
 	srt = func(lo, hi int) { // assumes hi-lo >= mli
 	start:
-		l, h := partition3(lesswap, lo, hi)
+		l, h := partition3(lsw, lo, hi)
 
 		if h-lo < hi-l {
 			h, hi = hi, h // [lo,h] is the longer range
@@ -155,10 +157,10 @@ func Sort3(n int, lesswap func(i, k, r, s int) bool) {
 		// branches below are optimally laid out for fewer jumps
 		// at least one short range?
 		if hi-l < mli {
-			insertion3(lesswap, l, hi)
+			insertion3(lsw, l, hi)
 
 			if h-lo < mli { // two short ranges?
-				insertion3(lesswap, lo, h)
+				insertion3(lsw, lo, h)
 				return
 			}
 			hi = h
@@ -193,5 +195,5 @@ func Sort3(n int, lesswap func(i, k, r, s int) bool) {
 		srt(0, n) // single goroutine
 		return
 	}
-	insertion3(lesswap, 0, n)
+	insertion3(lsw, 0, n)
 }
