@@ -69,12 +69,12 @@ func pivot3(lsw Lesswap, l, h int) (int, int, int) {
 		}
 		lsw(k, m, k, m)
 	}
-	return l + 1, h - 1, m
+	return l + 1, m, h - 1
 }
 
 // partition ar into two groups: >= and <= pivot
 func partition3(lsw Lesswap, l, h int) (int, int) {
-	l, h, pv := pivot3(lsw, l, h)
+	l, pv, h := pivot3(lsw, l, h)
 
 	for {
 		if lsw(h, pv, 0, 0) { // avoid unnecessary comparisons

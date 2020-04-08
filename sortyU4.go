@@ -43,7 +43,7 @@ func insertionU4(ar []uint32) {
 }
 
 // set such that ar[l,l+1] <= ar[m] = pivot <= ar[h-1,h]
-func pivotU4(ar []uint32, l, h int) (int, int, uint32) {
+func pivotU4(ar []uint32, l, h int) (int, uint32, int) {
 	m := mid(l, h)
 	vl, va, pv, vb, vh := ar[l], ar[l+1], ar[m], ar[h-1], ar[h]
 
@@ -75,12 +75,12 @@ func pivotU4(ar []uint32, l, h int) (int, int, uint32) {
 	}
 
 	ar[l], ar[l+1], ar[m], ar[h-1], ar[h] = vl, va, pv, vb, vh
-	return l + 2, h - 2, pv
+	return l + 2, pv, h - 2
 }
 
 // partition ar into two groups: >= and <= pivot
 func partitionU4(ar []uint32, l, h int) (int, int) {
-	l, h, pv := pivotU4(ar, l, h)
+	l, pv, h := pivotU4(ar, l, h)
 
 	for {
 		if ar[h] < pv { // avoid unnecessary comparisons

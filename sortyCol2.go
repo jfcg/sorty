@@ -64,12 +64,12 @@ func pivot2(ar Collection2, l, h int) (int, int, int) {
 		}
 		lsw(ar, k, m)
 	}
-	return l + 1, h - 1, m
+	return l + 1, m, h - 1
 }
 
 // partition ar into two groups: >= and <= pivot
 func partition2(ar Collection2, l, h int) (int, int) {
-	l, h, pv := pivot2(ar, l, h)
+	l, pv, h := pivot2(ar, l, h)
 
 	for {
 		if ar.Less(h, pv) { // avoid unnecessary comparisons

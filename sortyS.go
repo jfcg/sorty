@@ -43,7 +43,7 @@ func insertionS(ar []string) {
 }
 
 // set such that ar[l,l+1] <= ar[m] = pivot <= ar[h-1,h]
-func pivotS(ar []string, l, h int) (int, int, string) {
+func pivotS(ar []string, l, h int) (int, string, int) {
 	m := mid(l, h)
 	vl, va, pv, vb, vh := ar[l], ar[l+1], ar[m], ar[h-1], ar[h]
 
@@ -77,12 +77,12 @@ func pivotS(ar []string, l, h int) (int, int, string) {
 	}
 
 	ar[l], ar[l+1], ar[m], ar[h-1], ar[h] = vl, va, pv, vb, vh
-	return l + 2, h - 2, pv
+	return l + 2, pv, h - 2
 }
 
 // partition ar into two groups: >= and <= pivot
 func partitionS(ar []string, l, h int) (int, int) {
-	l, h, pv := pivotS(ar, l, h)
+	l, pv, h := pivotS(ar, l, h)
 
 	for {
 		if ar[h] < pv { // avoid unnecessary comparisons

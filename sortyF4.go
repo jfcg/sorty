@@ -43,7 +43,7 @@ func insertionF4(ar []float32) {
 }
 
 // set such that ar[l,l+1] <= ar[m] = pivot <= ar[h-1,h]
-func pivotF4(ar []float32, l, h int) (int, int, float32) {
+func pivotF4(ar []float32, l, h int) (int, float32, int) {
 	m := mid(l, h)
 	vl, va, pv, vb, vh := ar[l], ar[l+1], ar[m], ar[h-1], ar[h]
 
@@ -75,12 +75,12 @@ func pivotF4(ar []float32, l, h int) (int, int, float32) {
 	}
 
 	ar[l], ar[l+1], ar[m], ar[h-1], ar[h] = vl, va, pv, vb, vh
-	return l + 2, h - 2, pv
+	return l + 2, pv, h - 2
 }
 
 // partition ar into two groups: >= and <= pivot
 func partitionF4(ar []float32, l, h int) (int, int) {
-	l, h, pv := pivotF4(ar, l, h)
+	l, pv, h := pivotF4(ar, l, h)
 
 	for {
 		if ar[h] < pv { // avoid unnecessary comparisons
