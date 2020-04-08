@@ -57,9 +57,8 @@ func pivotS(ar []string, l, h int) (int, string, int) {
 	}
 	// vl <= pv <= vh
 
-	k := 0
-	if vb < pv {
-		k++
+	cm := vb < pv
+	if cm {
 		vb, pv = pv, vb
 		if pv < vl {
 			pv, vl = vl, pv
@@ -68,7 +67,7 @@ func pivotS(ar []string, l, h int) (int, string, int) {
 
 	if pv < va {
 		pv, va = va, pv
-		if k == 0 && vh < vb {
+		if !cm && vh < vb {
 			vh, vb = vb, vh
 		}
 		if vb < pv {
