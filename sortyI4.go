@@ -126,14 +126,14 @@ func partitionI4(ar []int32, l, h int) (int, int) {
 // SortI4 concurrently sorts ar in ascending order.
 func SortI4(ar []int32) {
 	var (
-		ng        uint32         // number of sorting goroutines including this
+		ngr       uint32         // number of sorting goroutines including this
 		done      chan bool      // end signal
 		srt, gsrt func(int, int) // recursive & new-goroutine sort functions
 	)
 
 	gsrt = func(lo, hi int) {
 		srt(lo, hi)
-		if atomic.AddUint32(&ng, ^uint32(0)) == 0 { // decrease goroutine counter
+		if atomic.AddUint32(&ngr, ^uint32(0)) == 0 { // decrease goroutine counter
 			done <- false // we are the last, all done
 		}
 	}
@@ -162,13 +162,13 @@ func SortI4(ar []int32) {
 
 		// range not long enough for new goroutine? max goroutines?
 		// not atomic but good enough
-		if hi-l < Mlr || ng >= Mxg {
+		if hi-l < Mlr || ngr >= Mxg {
 			srt(l, hi) // start a recursive sort on the shorter range
 			hi = h
 			goto start
 		}
 
-		if atomic.AddUint32(&ng, 1) == 0 { // increase goroutine counter
+		if atomic.AddUint32(&ngr, 1) == 0 { // increase goroutine counter
 			panic("SortI4: counter overflow")
 		}
 		go gsrt(lo, h) // start a new-goroutine sort on the longer range
@@ -178,7 +178,7 @@ func SortI4(ar []int32) {
 
 	arhi := len(ar) - 1
 	if arhi > 2*Mlr {
-		ng, done = 1, make(chan bool, 1)
+		ngr, done = 1, make(chan bool, 1)
 		gsrt(0, arhi) // start master sort
 		<-done
 		return
