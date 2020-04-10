@@ -1,4 +1,4 @@
-// +build 386 arm mips mipsle
+// +build 386 arm mips mipsle wasm
 
 /*	Copyright (c) 2019, Serhat Şevki Dinçer.
 	This Source Code Form is subject to the terms of the Mozilla Public
