@@ -28,8 +28,7 @@ var Mli = 88
 var Mlr = 496
 
 func init() {
-	li2 := 2 * Mli
-	if !(65536 > Mxg && Mxg > 1 && Mlr > li2 && li2 > 63) {
+	if !(65536 > Mxg && Mxg > 1 && Mlr > 2*Mli && 2*Mli > 63) {
 		panic("sorty: check your Mxg/Mli/Mlr values")
 	}
 }
