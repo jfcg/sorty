@@ -363,10 +363,18 @@ func sort3i(aq []uint32) {
 	Sort3(len(aq), lsw)
 }
 
-// return Sort3() time for 3 goroutines, compare with ap
+var lswnm = []byte("sortyLsw-0")
+
+// return sum of sort3i() times for 2..4 goroutines
+// compare with ap and among themselves
 func sumtLswU4(ar, ap []uint32) float64 {
-	Mxg = 3
-	return mfcU4("sorty-lsw", sort3i, ar, ap)
+	s := .0
+	for Mxg = 2; Mxg < 5; Mxg++ {
+		lswnm[9] = byte(Mxg + '0')
+		s += mfcU4(string(lswnm), sort3i, ar, ap)
+		ap, ar = ar, ap[:cap(ap)]
+	}
+	return s
 }
 
 // sort float32 array with Sort3()
@@ -383,10 +391,16 @@ func sort3f(aq []float32) {
 	Sort3(len(aq), lsw)
 }
 
-// return Sort3() time for 3 goroutines, compare with ap
+// return sum of sort3f() times for 2..4 goroutines
+// compare with ap and among themselves
 func sumtLswF4(ar, ap []float32) float64 {
-	Mxg = 3
-	return mfcF4("sorty-lsw", sort3f, ar, ap)
+	s := .0
+	for Mxg = 2; Mxg < 5; Mxg++ {
+		lswnm[9] = byte(Mxg + '0')
+		s += mfcF4(string(lswnm), sort3f, ar, ap)
+		ap, ar = ar, ap[:cap(ap)]
+	}
+	return s
 }
 
 // sort string array with Sort3()
@@ -403,10 +417,16 @@ func sort3s(aq []string) {
 	Sort3(len(aq), lsw)
 }
 
-// return Sort3() time for 3 goroutines, compare with ap
+// return sum of sort3s() times for 2..4 goroutines
+// compare with ap and among themselves
 func sumtLswS(ar, ap []uint32) float64 {
-	Mxg = 3
-	return mfcS("sorty-lsw", sort3s, ar, ap)
+	s := .0
+	for Mxg = 2; Mxg < 5; Mxg++ {
+		lswnm[9] = byte(Mxg + '0')
+		s += mfcS(string(lswnm), sort3s, ar, ap)
+		ap, ar = ar, ap[:cap(ap)]
+	}
+	return s
 }
 
 // types satisfying Collection* interfaces
