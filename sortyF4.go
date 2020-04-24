@@ -43,7 +43,7 @@ func insertionF4(ar []float32) {
 }
 
 // set such that ar[l,l+1] <= ar[m] = pivot <= ar[h-1,h]
-func pivotF4(ar []float32, l, h int) (int, float32, int) {
+func pivotF4(ar []float32, l, h int) (int, int, int) {
 	m := mid(l, h)
 	vl, va, pv, vb, vh := ar[l], ar[l+1], ar[m], ar[h-1], ar[h]
 
@@ -75,13 +75,11 @@ func pivotF4(ar []float32, l, h int) (int, float32, int) {
 	}
 
 	ar[l], ar[l+1], ar[m], ar[h-1], ar[h] = vl, va, pv, vb, vh
-	return l + 2, pv, h - 2
+	return l + 2, m, h - 2
 }
 
 // partition ar into two groups: >= and <= pivot
-func partitionF4(ar []float32, l, h int) (int, int) {
-	l, pv, h := pivotF4(ar, l, h)
-
+func partitionF4(ar []float32, l int, pv float32, h int) int {
 	for {
 		if ar[h] < pv { // avoid unnecessary comparisons
 			for {
@@ -91,14 +89,14 @@ func partitionF4(ar []float32, l, h int) (int, int) {
 				}
 				l++
 				if l >= h {
-					return l + 1, h
+					return l + 1
 				}
 			}
 		} else if pv < ar[l] { // extend ranges in balance
 			for {
 				h--
 				if l >= h {
-					return l, h - 1
+					return l
 				}
 				if ar[h] < pv {
 					ar[l], ar[h] = ar[h], ar[l]
@@ -113,20 +111,16 @@ func partitionF4(ar []float32, l, h int) (int, int) {
 		}
 	}
 
-	if l == h {
-		if pv < ar[l] { // classify mid element
-			h--
-		} else {
-			l++
-		}
+	if l == h && ar[h] < pv { // classify mid element
+		l++
 	}
-	return l, h
+	return l
 }
 
 // SortF4 concurrently sorts ar in ascending order.
 func SortF4(ar []float32) {
 	var (
-		ngr       uint32         // number of sorting goroutines including this
+		ngr       = uint32(1)    // number of sorting goroutines including this
 		done      chan bool      // end signal
 		srt, gsrt func(int, int) // recursive & new-goroutine sort functions
 	)
@@ -140,7 +134,9 @@ func SortF4(ar []float32) {
 
 	srt = func(lo, hi int) { // assumes hi-lo >= Mli
 	start:
-		l, h := partitionF4(ar, lo, hi)
+		l, p, h := pivotF4(ar, lo, hi)
+		l = partitionF4(ar, l, ar[p], h)
+		h = l - 1
 
 		if h-lo < hi-l {
 			h, hi = hi, h // [lo,h] is the longer range
@@ -176,16 +172,16 @@ func SortF4(ar []float32) {
 		goto start
 	}
 
-	arhi := len(ar) - 1
-	if arhi > 2*Mlr {
-		ngr, done = 1, make(chan bool, 1)
-		gsrt(0, arhi) // start master sort
+	n := len(ar) - 1
+	if n > 2*Mlr {
+		done = make(chan bool, 1)
+		gsrt(0, n) // start master sort
 		<-done
 		return
 	}
 
-	if arhi >= Mli {
-		srt(0, arhi) // single goroutine
+	if n >= Mli {
+		srt(0, n) // single goroutine
 		return
 	}
 	insertionF4(ar)

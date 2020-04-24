@@ -72,28 +72,26 @@ func pivot3(lsw Lesswap, l, h int) (int, int, int) {
 	return l + 1, m, h - 1
 }
 
-// partition ar into two groups: >= and <= pivot
-func partition3(lsw Lesswap, l, h int) (int, int) {
-	l, pv, h := pivot3(lsw, l, h)
-
+// partition ar[l,h] into two groups: >= and <= pivot
+func partition3(lsw Lesswap, l, p, h int) int {
 	for {
-		if lsw(h, pv, 0, 0) { // avoid unnecessary comparisons
+		if lsw(h, p, 0, 0) { // avoid unnecessary comparisons
 			for {
-				if lsw(pv, l, h, l) {
+				if lsw(p, l, h, l) {
 					break
 				}
 				l++
 				if l >= h {
-					return l + 1, h
+					return l + 1
 				}
 			}
-		} else if lsw(pv, l, 0, 0) { // extend ranges in balance
+		} else if lsw(p, l, 0, 0) { // extend ranges in balance
 			for {
 				h--
 				if l >= h {
-					return l, h - 1
+					return l
 				}
-				if lsw(h, pv, h, l) {
+				if lsw(h, p, h, l) {
 					break
 				}
 			}
@@ -105,14 +103,10 @@ func partition3(lsw Lesswap, l, h int) (int, int) {
 		}
 	}
 
-	if l == h {
-		if lsw(pv, l, 0, 0) { // classify mid element
-			h--
-		} else {
-			l++
-		}
+	if l == h && h != p && lsw(h, p, 0, 0) { // classify mid element
+		l++
 	}
-	return l, h
+	return l
 }
 
 // Sort3 concurrently sorts underlying collection of length n via lsw().
@@ -133,7 +127,7 @@ func partition3(lsw Lesswap, l, h int) (int, int) {
 func Sort3(n int, lsw Lesswap) {
 	var (
 		mli       = Mli >> 1
-		ngr       uint32         // number of sorting goroutines including this
+		ngr       = uint32(1)    // number of sorting goroutines including this
 		done      chan bool      // end signal
 		srt, gsrt func(int, int) // recursive & new-goroutine sort functions
 	)
@@ -147,7 +141,9 @@ func Sort3(n int, lsw Lesswap) {
 
 	srt = func(lo, hi int) { // assumes hi-lo >= mli
 	start:
-		l, h := partition3(lsw, lo, hi)
+		l, p, h := pivot3(lsw, lo, hi)
+		l = partition3(lsw, l, p, h)
+		h = l - 1
 
 		if h-lo < hi-l {
 			h, hi = hi, h // [lo,h] is the longer range
@@ -185,7 +181,7 @@ func Sort3(n int, lsw Lesswap) {
 
 	n--
 	if n > 2*Mlr {
-		ngr, done = 1, make(chan bool, 1)
+		done = make(chan bool, 1)
 		gsrt(0, n) // start master sort
 		<-done
 		return

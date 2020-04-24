@@ -43,7 +43,7 @@ func insertionS(ar []string) {
 }
 
 // set such that ar[l,l+1] <= ar[m] = pivot <= ar[h-1,h]
-func pivotS(ar []string, l, h int) (int, string, int) {
+func pivotS(ar []string, l, h int) (int, int, int) {
 	m := mid(l, h)
 	vl, va, pv, vb, vh := ar[l], ar[l+1], ar[m], ar[h-1], ar[h]
 
@@ -76,13 +76,12 @@ func pivotS(ar []string, l, h int) (int, string, int) {
 	}
 
 	ar[l], ar[l+1], ar[m], ar[h-1], ar[h] = vl, va, pv, vb, vh
-	return l + 2, pv, h - 2
+	return l + 2, m, h - 2
 }
 
 // partition ar into two groups: >= and <= pivot
-func partitionS(ar []string, l, h int) (int, int) {
-	l, pv, h := pivotS(ar, l, h)
-
+func partitionS(ar []string, l, p, h int) int {
+	pv := ar[p]
 	for {
 		if ar[h] < pv { // avoid unnecessary comparisons
 			for {
@@ -92,14 +91,14 @@ func partitionS(ar []string, l, h int) (int, int) {
 				}
 				l++
 				if l >= h {
-					return l + 1, h
+					return l + 1
 				}
 			}
 		} else if pv < ar[l] { // extend ranges in balance
 			for {
 				h--
 				if l >= h {
-					return l, h - 1
+					return l
 				}
 				if ar[h] < pv {
 					ar[l], ar[h] = ar[h], ar[l]
@@ -114,21 +113,17 @@ func partitionS(ar []string, l, h int) (int, int) {
 		}
 	}
 
-	if l == h {
-		if pv < ar[l] { // classify mid element
-			h--
-		} else {
-			l++
-		}
+	if l == h && h != p && ar[h] < pv { // classify mid element
+		l++
 	}
-	return l, h
+	return l
 }
 
 // SortS concurrently sorts ar in ascending order.
 func SortS(ar []string) {
 	var (
-		arhi, mli = len(ar) - 1, Mli >> 1
-		ngr       uint32         // number of sorting goroutines including this
+		mli       = Mli >> 1
+		ngr       = uint32(1)    // number of sorting goroutines including this
 		done      chan bool      // end signal
 		srt, gsrt func(int, int) // recursive & new-goroutine sort functions
 	)
@@ -142,7 +137,9 @@ func SortS(ar []string) {
 
 	srt = func(lo, hi int) { // assumes hi-lo >= mli
 	start:
-		l, h := partitionS(ar, lo, hi)
+		l, p, h := pivotS(ar, lo, hi)
+		l = partitionS(ar, l, p, h)
+		h = l - 1
 
 		if h-lo < hi-l {
 			h, hi = hi, h // [lo,h] is the longer range
@@ -178,15 +175,16 @@ func SortS(ar []string) {
 		goto start
 	}
 
-	if arhi > 2*Mlr {
-		ngr, done = 1, make(chan bool, 1)
-		gsrt(0, arhi) // start master sort
+	n := len(ar) - 1
+	if n > 2*Mlr {
+		done = make(chan bool, 1)
+		gsrt(0, n) // start master sort
 		<-done
 		return
 	}
 
-	if arhi >= mli {
-		srt(0, arhi) // single goroutine
+	if n >= mli {
+		srt(0, n) // single goroutine
 		return
 	}
 	insertionS(ar)

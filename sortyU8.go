@@ -43,7 +43,7 @@ func insertionU8(ar []uint64) {
 }
 
 // set such that ar[l,l+1] <= ar[m] = pivot <= ar[h-1,h]
-func pivotU8(ar []uint64, l, h int) (int, uint64, int) {
+func pivotU8(ar []uint64, l, h int) (int, int, int) {
 	m := mid(l, h)
 	vl, va, pv, vb, vh := ar[l], ar[l+1], ar[m], ar[h-1], ar[h]
 
@@ -75,13 +75,11 @@ func pivotU8(ar []uint64, l, h int) (int, uint64, int) {
 	}
 
 	ar[l], ar[l+1], ar[m], ar[h-1], ar[h] = vl, va, pv, vb, vh
-	return l + 2, pv, h - 2
+	return l + 2, m, h - 2
 }
 
 // partition ar into two groups: >= and <= pivot
-func partitionU8(ar []uint64, l, h int) (int, int) {
-	l, pv, h := pivotU8(ar, l, h)
-
+func partitionU8(ar []uint64, l int, pv uint64, h int) int {
 	for {
 		if ar[h] < pv { // avoid unnecessary comparisons
 			for {
@@ -91,14 +89,14 @@ func partitionU8(ar []uint64, l, h int) (int, int) {
 				}
 				l++
 				if l >= h {
-					return l + 1, h
+					return l + 1
 				}
 			}
 		} else if pv < ar[l] { // extend ranges in balance
 			for {
 				h--
 				if l >= h {
-					return l, h - 1
+					return l
 				}
 				if ar[h] < pv {
 					ar[l], ar[h] = ar[h], ar[l]
@@ -113,20 +111,16 @@ func partitionU8(ar []uint64, l, h int) (int, int) {
 		}
 	}
 
-	if l == h {
-		if pv < ar[l] { // classify mid element
-			h--
-		} else {
-			l++
-		}
+	if l == h && ar[h] < pv { // classify mid element
+		l++
 	}
-	return l, h
+	return l
 }
 
 // SortU8 concurrently sorts ar in ascending order.
 func SortU8(ar []uint64) {
 	var (
-		ngr       uint32         // number of sorting goroutines including this
+		ngr       = uint32(1)    // number of sorting goroutines including this
 		done      chan bool      // end signal
 		srt, gsrt func(int, int) // recursive & new-goroutine sort functions
 	)
@@ -140,7 +134,9 @@ func SortU8(ar []uint64) {
 
 	srt = func(lo, hi int) { // assumes hi-lo >= Mli
 	start:
-		l, h := partitionU8(ar, lo, hi)
+		l, p, h := pivotU8(ar, lo, hi)
+		l = partitionU8(ar, l, ar[p], h)
+		h = l - 1
 
 		if h-lo < hi-l {
 			h, hi = hi, h // [lo,h] is the longer range
@@ -176,16 +172,16 @@ func SortU8(ar []uint64) {
 		goto start
 	}
 
-	arhi := len(ar) - 1
-	if arhi > 2*Mlr {
-		ngr, done = 1, make(chan bool, 1)
-		gsrt(0, arhi) // start master sort
+	n := len(ar) - 1
+	if n > 2*Mlr {
+		done = make(chan bool, 1)
+		gsrt(0, n) // start master sort
 		<-done
 		return
 	}
 
-	if arhi >= Mli {
-		srt(0, arhi) // single goroutine
+	if n >= Mli {
+		srt(0, n) // single goroutine
 		return
 	}
 	insertionU8(ar)
