@@ -8,10 +8,10 @@ package sorty
 
 import "sync/atomic"
 
-// IsSorted3 checks if underlying collection of length n is sorted as per less().
+// IsSorted checks if underlying collection of length n is sorted as per less().
 // An existing lesswap() can be used like:
-//  IsSorted3(n, func(i, k int) bool { return lesswap(i, k, 0, 0) })
-func IsSorted3(n int, less func(i, k int) bool) bool {
+//  IsSorted(n, func(i, k int) bool { return lesswap(i, k, 0, 0) })
+func IsSorted(n int, less func(i, k int) bool) bool {
 	for i := n - 1; i > 0; i-- {
 		if less(i, i-1) {
 			return false
@@ -31,7 +31,7 @@ func IsSorted3(n int, less func(i, k int) bool) bool {
 type Lesswap func(i, k, r, s int) bool
 
 // insertion sort
-func insertion3(lsw Lesswap, lo, hi int) {
+func insertion(lsw Lesswap, lo, hi int) {
 
 	for l, h := mid(lo, hi+1)-2, hi; l >= lo; l, h = l-1, h-1 {
 		lsw(h, l, h, l)
@@ -48,7 +48,7 @@ func insertion3(lsw Lesswap, lo, hi int) {
 }
 
 // set such that ar[l,l+1] <= ar[m] = pivot <= ar[h-1,h]
-func pivot3(lsw Lesswap, l, h int) (int, int, int) {
+func pivot(lsw Lesswap, l, h int) (int, int, int) {
 	m := mid(l, h)
 	lsw(h, l, h, l)
 	if !lsw(h, m, h, m) {
@@ -73,7 +73,7 @@ func pivot3(lsw Lesswap, l, h int) (int, int, int) {
 }
 
 // partition ar[l,h] into two groups: >= and <= pivot
-func partition3(lsw Lesswap, l, p, h int) int {
+func partition(lsw Lesswap, l, p, h int) int {
 	for {
 		if lsw(h, p, 0, 0) { // avoid unnecessary comparisons
 			for {
@@ -109,7 +109,7 @@ func partition3(lsw Lesswap, l, p, h int) int {
 	return l
 }
 
-// Sort3 concurrently sorts underlying collection of length n via lsw().
+// Sort concurrently sorts underlying collection of length n via lsw().
 // Once for each non-trivial type you want to sort in a certain way, you
 // can implement a custom sorting routine (for a slice for example) as:
 //  func SortObjAsc(c []Obj) {
@@ -122,9 +122,9 @@ func partition3(lsw Lesswap, l, p, h int) int {
 //  		}
 //  		return false
 //  	}
-//  	sorty.Sort3(len(c), lsw)
+//  	sorty.Sort(len(c), lsw)
 //  }
-func Sort3(n int, lsw Lesswap) {
+func Sort(n int, lsw Lesswap) {
 	var (
 		mli       = Mli >> 1
 		ngr       = uint32(1)    // number of sorting goroutines including this
@@ -141,8 +141,8 @@ func Sort3(n int, lsw Lesswap) {
 
 	srt = func(lo, hi int) { // assumes hi-lo >= mli
 	start:
-		l, p, h := pivot3(lsw, lo, hi)
-		l = partition3(lsw, l, p, h)
+		l, p, h := pivot(lsw, lo, hi)
+		l = partition(lsw, l, p, h)
 		h = l - 1
 
 		if h-lo < hi-l {
@@ -153,10 +153,10 @@ func Sort3(n int, lsw Lesswap) {
 		// branches below are optimally laid out for fewer jumps
 		// at least one short range?
 		if hi-l < mli {
-			insertion3(lsw, l, hi)
+			insertion(lsw, l, hi)
 
 			if h-lo < mli { // two short ranges?
-				insertion3(lsw, lo, h)
+				insertion(lsw, lo, h)
 				return
 			}
 			hi = h
@@ -172,7 +172,7 @@ func Sort3(n int, lsw Lesswap) {
 		}
 
 		if atomic.AddUint32(&ngr, 1) == 0 { // increase goroutine counter
-			panic("Sort3: counter overflow")
+			panic("Sort: counter overflow")
 		}
 		go gsrt(lo, h) // start a new-goroutine sort on the longer range
 		lo = l
@@ -191,5 +191,5 @@ func Sort3(n int, lsw Lesswap) {
 		srt(0, n) // single goroutine
 		return
 	}
-	insertion3(lsw, 0, n)
+	insertion(lsw, 0, n)
 }

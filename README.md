@@ -1,12 +1,10 @@
-## sorty [![go report card](https://goreportcard.com/badge/github.com/jfcg/sorty)](https://goreportcard.com/report/github.com/jfcg/sorty) [![go.dev reference](/.github/godev.svg)](https://pkg.go.dev/github.com/jfcg/sorty?tab=doc)
+## sorty [![go report card](https://goreportcard.com/badge/github.com/jfcg/sorty)](https://goreportcard.com/report/github.com/jfcg/sorty) [![go.dev ref](/.github/godev.svg)](https://pkg.go.dev/github.com/jfcg/sorty?tab=doc)
 Type-specific, fast concurrent / parallel sorting library.
 
 sorty is an in-place [QuickSort](https://en.wikipedia.org/wiki/Quicksort) implementation (with [InsertionSort](https://en.wikipedia.org/wiki/Insertion_sort) as subroutine) and does not require extra memory. Call corresponding Sort\*() to concurrently sort your slice (in ascending order) or collection. For example:
 ```
 sorty.SortS(string_slice) // native slice
-sorty.Sort(col)           // satisfies sort.Interface
-sorty.Sort2(col2)         // satisfies sorty.Collection2
-sorty.Sort3(n, lesswap)   // lesswap() function based
+sorty.Sort(n, lesswap)    // lesswap() function based
 ```
 Mxg (3 by default) is the maximum number of goroutines used for sorting per Sort\*() call.
 sorty uses [semantic](https://semver.org) versioning.
@@ -16,44 +14,45 @@ All computers run 64-bit Manjaro Linux. Comparing against [sort.Slice](https://g
 
 Sorting uint32 array (in seconds):
 
-Library|Server with AMD Ryzen 5 1600|Desktop with Intel Core i5-2400
-:---|:---:|:---:
-sort.Slice|16.03|17.37
-sortutil  | 3.00| 3.49
-zermelo   | 2.20| 1.85
-sorty-2   | 3.29| 3.08
-sorty-3   | 2.46| 2.24
-sorty-4   | 2.04| 1.81
-sorty-Col | 7.02| 6.98
-sorty-Col2| 6.35| 6.33
-sorty-lsw | 5.41| 5.43
+Library(-Mxg)|AMD Ryzen 5 1600
+:---|:---:
+sort.Slice|16.03
+sortutil  | 3.00
+zermelo   | 2.20
+sorty-2   | 3.29
+sorty-3   | 2.46
+sorty-4   | 2.04
+sortyLsw-2| 7.27
+sortyLsw-3| 5.36
+sortyLsw-4| 4.39
 
 Sorting float32 array (in seconds):
 
-Library|Server with AMD Ryzen 5 1600|Desktop with Intel Core i5-2400
-:---|:---:|:---:
-sort.Slice|17.43|17.96
-sortutil  | 3.01| 4.13
-zermelo   | 4.69| 3.40
-sorty-2   | 4.07| 3.48
-sorty-3   | 3.00| 2.52
-sorty-4   | 2.43| 2.08
-sorty-Col | 7.72| 7.27
-sorty-Col2| 7.03| 6.52
-sorty-lsw | 6.01| 5.63
+Library(-Mxg)|AMD Ryzen 5 1600
+:---|:---:
+sort.Slice|17.43
+sortutil  | 3.01
+zermelo   | 4.69
+sorty-2   | 4.07
+sorty-3   | 3.00
+sorty-4   | 2.43
+sortyLsw-2| 8.06
+sortyLsw-3| 5.94
+sortyLsw-4| 4.80
 
 Sorting string array (in seconds):
 
-Library|Server with AMD Ryzen 5 1600|Desktop with Intel Core i5-2400
-:---|:---:|:---:
-sort.Slice| 8.72| 8.03
-sortutil  | 2.00| 2.35
-radix     | 4.83| 3.31
-sorty-2   | 3.24| 3.47
-sorty-3   | 2.48| 2.56
-sorty-4   | 2.07| 2.12
-sorty-Col2| 3.26| 3.44
-sorty-lsw | 3.10| 3.39
+Library(-Mxg)|AMD Ryzen 5 1600
+:---|:---:
+sort.Slice| 8.72
+sortutil  | 2.00
+radix     | 4.83
+sorty-2   | 3.24
+sorty-3   | 2.48
+sorty-4   | 2.07
+sortyLsw-2| 4.10
+sortyLsw-3| 3.12
+sortyLsw-4| 2.60
 
 ### Testing & Parameter Tuning
 First, make sure everything is fine:

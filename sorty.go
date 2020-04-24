@@ -10,17 +10,14 @@
 // Call corresponding Sort*() to concurrently sort your slice (in ascending order)
 // or collection. For example:
 //  sorty.SortS(string_slice) // native slice
-//  sorty.Sort(col)           // satisfies sort.Interface
-//  sorty.Sort2(col2)         // satisfies sorty.Collection2
-//  sorty.Sort3(n, lesswap)   // lesswap() function based
+//  sorty.Sort(n, lesswap)    // lesswap() function based
 package sorty
 
 // Mxg is the maximum number of goroutines used for sorting per Sort*() call.
 var Mxg uint32 = 3
 
 // Mli is the maximum array length for insertion sort.
-// SortS() and Sort3() use 1/2 of this as their limits.
-// Sort() and Sort2() use 1/4 of this as their limits.
+// SortS() and Sort() use 1/2 of this as their limits.
 var Mli = 88
 
 // Mlr is the maximum array length for recursion when there is available goroutines.

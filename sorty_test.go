@@ -229,8 +229,8 @@ func mfcU4(tn string, srt func([]uint32), ar, ap []uint32) float64 {
 	d2 := fstU4(2, ar, srt)
 	d3 := fstU4(3, ar, srt)
 	d1 = medur(fstU4(4, ar, srt), d1, d2, d3)
-	compareU4(ar, ap)
 
+	compareU4(ar, ap)
 	return printSec(d1)
 }
 
@@ -258,8 +258,8 @@ func mfcF4(tn string, srt func([]float32), ar, ap []float32) float64 {
 	d2 := fstF4(6, ar, srt)
 	d3 := fstF4(7, ar, srt)
 	d1 = medur(fstF4(8, ar, srt), d1, d2, d3)
-	compareU4(F4toU4(&ar), F4toU4(&ap))
 
+	compareU4(F4toU4(&ar), F4toU4(&ap))
 	return printSec(d1)
 }
 
@@ -277,7 +277,6 @@ func mfcS(tn string, srt func([]string), ar, ap []uint32) float64 {
 		compareS(as, aq)
 		compareU4(ar, ap)
 	}
-
 	return printSec(d1)
 }
 
@@ -319,37 +318,7 @@ func sumtS(ar, ap []uint32) float64 {
 	return s
 }
 
-// uint32: return Sort(Col) time for 3 goroutines, compare with ap
-func sumtColU4(ar, ap []uint32) float64 {
-	Mxg = 3 // sort via Collection
-	return mfcU4("sorty-Col", func(aq []uint32) { Sort(uicol(aq)) }, ar, ap)
-}
-
-// uint32: return Sort2(Col2) time for 3 goroutines, compare with ap
-func sumtCol2U4(ar, ap []uint32) float64 {
-	Mxg = 3 // sort via Collection2
-	return mfcU4("sorty-Col2", func(aq []uint32) { Sort2(uicol(aq)) }, ar, ap)
-}
-
-// float32: return Sort(Col) time for 3 goroutines, compare with ap
-func sumtColF4(ar, ap []float32) float64 {
-	Mxg = 3 // sort via Collection
-	return mfcF4("sorty-Col", func(aq []float32) { Sort(flcol(aq)) }, ar, ap)
-}
-
-// float32: return Sort2(Col2) time for 3 goroutines, compare with ap
-func sumtCol2F4(ar, ap []float32) float64 {
-	Mxg = 3 // sort via Collection2
-	return mfcF4("sorty-Col2", func(aq []float32) { Sort2(flcol(aq)) }, ar, ap)
-}
-
-// string: return Sort2(Col2) time for 3 goroutines, compare with ap
-func sumtCol2S(ar, ap []uint32) float64 {
-	Mxg = 3 // sort via Collection2
-	return mfcS("sorty-Col2", func(aq []string) { Sort2(stcol(aq)) }, ar, ap)
-}
-
-// sort uint32 array with Sort3()
+// sort uint32 array with Sort()
 func sort3i(aq []uint32) {
 	lsw := func(i, k, r, s int) bool {
 		if aq[i] < aq[k] {
@@ -360,7 +329,7 @@ func sort3i(aq []uint32) {
 		}
 		return false
 	}
-	Sort3(len(aq), lsw)
+	Sort(len(aq), lsw)
 }
 
 var lswnm = []byte("sortyLsw-0")
@@ -377,7 +346,7 @@ func sumtLswU4(ar, ap []uint32) float64 {
 	return s
 }
 
-// sort float32 array with Sort3()
+// sort float32 array with Sort()
 func sort3f(aq []float32) {
 	lsw := func(i, k, r, s int) bool {
 		if aq[i] < aq[k] {
@@ -388,7 +357,7 @@ func sort3f(aq []float32) {
 		}
 		return false
 	}
-	Sort3(len(aq), lsw)
+	Sort(len(aq), lsw)
 }
 
 // return sum of sort3f() times for 2..4 goroutines
@@ -403,7 +372,7 @@ func sumtLswF4(ar, ap []float32) float64 {
 	return s
 }
 
-// sort string array with Sort3()
+// sort string array with Sort()
 func sort3s(aq []string) {
 	lsw := func(i, k, r, s int) bool {
 		if aq[i] < aq[k] {
@@ -414,7 +383,7 @@ func sort3s(aq []string) {
 		}
 		return false
 	}
-	Sort3(len(aq), lsw)
+	Sort(len(aq), lsw)
 }
 
 // return sum of sort3s() times for 2..4 goroutines
@@ -427,44 +396,6 @@ func sumtLswS(ar, ap []uint32) float64 {
 		ap, ar = ar, ap[:cap(ap)]
 	}
 	return s
-}
-
-// types satisfying Collection* interfaces
-type uicol []uint32
-type flcol []float32
-type stcol []string
-
-func (c uicol) Len() int           { return len(c) }
-func (c uicol) Less(i, k int) bool { return c[i] < c[k] }
-func (c uicol) Swap(i, k int)      { c[i], c[k] = c[k], c[i] }
-func (c uicol) LessSwap(i, k, r, s int) bool {
-	if c[i] < c[k] {
-		c[r], c[s] = c[s], c[r]
-		return true
-	}
-	return false
-}
-
-func (c flcol) Len() int           { return len(c) }
-func (c flcol) Less(i, k int) bool { return c[i] < c[k] }
-func (c flcol) Swap(i, k int)      { c[i], c[k] = c[k], c[i] }
-func (c flcol) LessSwap(i, k, r, s int) bool {
-	if c[i] < c[k] {
-		c[r], c[s] = c[s], c[r]
-		return true
-	}
-	return false
-}
-
-func (c stcol) Len() int           { return len(c) }
-func (c stcol) Less(i, k int) bool { return c[i] < c[k] }
-func (c stcol) Swap(i, k int)      { c[i], c[k] = c[k], c[i] }
-func (c stcol) LessSwap(i, k, r, s int) bool {
-	if c[i] < c[k] {
-		c[r], c[s] = c[s], c[r]
-		return true
-	}
-	return false
 }
 
 // main test routine, needs -short flag
@@ -494,15 +425,10 @@ func TestShort(t *testing.T) {
 	mfcU4("sortutil", sortutil.Uint32s, au, bu)
 	mfcU4("zermelo", zuint32.Sort, au, bu)
 	sumtU4(au, bu) // sorty
-	sumtColU4(au, bu)
-	sumtCol2U4(au, bu)
 	sumtLswU4(au, bu)
 
-	if !IsSorted(uicol(au)) {
+	if !IsSorted(len(au), func(i, k int) bool { return au[i] < au[k] }) {
 		t.Fatal("IsSorted() does not work")
-	}
-	if !IsSorted3(len(au), func(i, k int) bool { return au[i] < au[k] }) {
-		t.Fatal("IsSorted3() does not work")
 	}
 
 	// test & time sorting float32 arrays for different libraries
@@ -514,15 +440,10 @@ func TestShort(t *testing.T) {
 	mfcF4("sortutil", sortutil.Float32s, af, bf)
 	mfcF4("zermelo", zfloat32.Sort, af, bf)
 	sumtF4(af, bf) // sorty
-	sumtColF4(af, bf)
-	sumtCol2F4(af, bf)
 	sumtLswF4(af, bf)
 
-	if !IsSorted(flcol(af)) {
+	if !IsSorted(len(af), func(i, k int) bool { return af[i] < af[k] }) {
 		t.Fatal("IsSorted() does not work")
-	}
-	if !IsSorted3(len(af), func(i, k int) bool { return af[i] < af[k] }) {
-		t.Fatal("IsSorted3() does not work")
 	}
 
 	// test & time sorting string arrays for different libraries
@@ -534,7 +455,6 @@ func TestShort(t *testing.T) {
 	mfcS("sortutil", sortutil.Strings, au, bu)
 	mfcS("radix", radix.Sort, au, bu)
 	sumtS(au, bu) // sorty
-	sumtCol2S(au, bu)
 	sumtLswS(au, bu)
 
 	// Is Sort*() multi-goroutine safe?
@@ -624,19 +544,13 @@ func TestOpt(t *testing.T) {
 	aq := make([]float32, 0, N)
 	ar, ap := F4toU4(&as), F4toU4(&aq)
 
-	name := []string{"U4/F4", "S", "", "2", "3", "3s"}
+	name := []string{"SortU4/F4", "SortS", "Lsw-U4/F4", "Lsw-S"}
 	fn := []func() float64{
 		// optimize for native arithmetic types
 		func() float64 { return sumtU4(ar, ap) + sumtF4(as, aq) },
 
 		// optimize for native string
 		func() float64 { return sumtS(ar, ap) },
-
-		// optimize for Collection interface
-		func() float64 { return sumtColU4(ar, ap) + sumtColF4(as, aq) },
-
-		// optimize for Collection2 interface
-		func() float64 { return sumtCol2U4(ar, ap) + sumtCol2F4(as, aq) },
 
 		// optimize for function-based sort
 		func() float64 { return sumtLswU4(ar, ap) + sumtLswF4(as, aq) },
@@ -645,7 +559,7 @@ func TestOpt(t *testing.T) {
 		func() float64 { return sumtLswS(ar, ap) }}
 
 	for i := 0; i < len(fn); i++ {
-		fmt.Println("\nSort" + name[i])
+		fmt.Println(name[i])
 
 		_, _, _, n := opt.FindMinTri(2, 96, 424, 16, 136,
 			func(x, y int) float64 {
