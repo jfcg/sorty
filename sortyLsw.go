@@ -31,25 +31,34 @@ func IsSorted(n int, less func(i, k int) bool) bool {
 type Lesswap func(i, k, r, s int) bool
 
 // insertion sort
-func insertion(lsw Lesswap, lo, hi int) {
+func insertion(lsw Lesswap, lo, hi int) { // assumes lo+2 < hi
 
-	for l, h := mid(lo, hi+1)-2, hi; l >= lo; l, h = l-1, h-1 {
+	for l, h := mid(lo, hi-1)-1, hi; ; {
 		lsw(h, l, h, l)
+		h--
+		l--
+		if l < lo {
+			break
+		}
 	}
 
-	for h := lo + 1; h <= hi; h++ {
-		for l := h; lsw(l, l-1, l, l-1); {
+	for h := lo; ; {
+		for l := h; lsw(l+1, l, l+1, l); {
 			l--
-			if l <= lo {
+			if l < lo {
 				break
 			}
+		}
+		h++
+		if h >= hi {
+			break
 		}
 	}
 }
 
 // arrange ar[l,l+1,a-1,a] <= ar[m] = pivot <= ar[b,b+1,h-1,h]
 // if dual: a,b = mid(l,m), mid(m,h) else: a,b = l+3,h-3
-// pivot ensures partitioning yields ranges of length at least 4
+// pivot ensures partitioning yields ranges of length 4+
 func pivot(lsw Lesswap, l, h int, dual bool) (int, int, int) {
 	s := [9]int{l, l + 1, 0, 0, mid(l, h), 0, 0, h - 1, h}
 	if dual {
@@ -128,13 +137,13 @@ func partition(lsw Lesswap, l, p, h int) int {
 //  }
 func Sort(n int, lsw Lesswap) {
 	var (
-		mli       = Mli >> 1
-		ngr       = uint32(1)    // number of sorting goroutines including this
-		done      chan bool      // end signal
-		srt, gsrt func(int, int) // recursive & new-goroutine sort functions
+		mli  = Mli >> 1
+		ngr  = uint32(1)    // number of sorting goroutines including this
+		done chan bool      // end signal
+		srt  func(int, int) // recursive sort function
 	)
 
-	gsrt = func(lo, hi int) {
+	gsrt := func(lo, hi int) { // new-goroutine sort function
 		srt(lo, hi)
 		if atomic.AddUint32(&ngr, ^uint32(0)) == 0 { // decrease goroutine counter
 			done <- false // we are the last, all done
@@ -181,17 +190,29 @@ func Sort(n int, lsw Lesswap) {
 		goto start
 	}
 
-	n--
+	n-- // high indice
 	if n > 2*Mlr {
 		done = make(chan bool, 1)
 		gsrt(0, n) // start master sort
 		<-done
 		return
 	}
-
 	if n >= mli {
 		srt(0, n) // single goroutine
 		return
 	}
-	insertion(lsw, 0, n)
+	if n > 2 {
+		insertion(lsw, 0, n) // length 4+
+		return
+	}
+
+	if n > 0 { // handle arrays of length 2,3
+		for {
+			lsw(1, 0, 1, 0)
+			n--
+			if n <= 0 || !lsw(2, 1, 2, 1) {
+				break
+			}
+		}
+	}
 }

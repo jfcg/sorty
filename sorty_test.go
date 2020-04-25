@@ -505,6 +505,32 @@ func TestShort(t *testing.T) {
 	compareU4(bu[:K], bu[K:]) // same buffers
 	compareU4(au[:K], au[K:])
 
+	// Sort()ing short arrays
+	name = "shortLsw"
+	lsw := func(i, k, r, s int) bool {
+		if iar[i] < iar[k] {
+			if r != s {
+				iar[r], iar[s] = iar[s], iar[r]
+			}
+			return true
+		}
+		return false
+	}
+	for l := -3; l < 2; l++ {
+		Sort(l, lsw)
+		if iar[0] != 9 || iar[1] != 8 {
+			t.Fatal("Sort()ing short arrays does not work")
+		}
+	}
+	for l := 2; l < 4; l++ {
+		Sort(l, lsw)
+		for k := 2; k >= 0; k-- {
+			if iar[k] != iar[12+k-l] {
+				t.Fatal("Sort()ing short arrays does not work")
+			}
+		}
+	}
+
 	// SortI() calls SortI4() (on 32-bit) or SortI8() (on 64-bit).
 	name = "SortI"
 	SortI(iar)
@@ -523,7 +549,7 @@ func TestShort(t *testing.T) {
 }
 
 var iar = []int{
-	9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 1, 2, 0, -1, 1, 2, 0,
+	9, 8, 7, 6, 5, 4, 3, 2, 1, 7, 8, 9, 7, 6, 5, 4, 3, 2, 1, 0, 1, 2, 0, -1, 1, 2, 0,
 	-9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 1, 2, 0, -1,
 	9, 8, 7, 6, 5, 4, 3, 2, 1, 0, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 0, -1,
 	-9, 8, -7, 6, -5, 4, -3, 2, -1, 0, 9, -8, 7, -6, 5, -4, 3, -2, 1, 0, 1, 2, 0, -1,
