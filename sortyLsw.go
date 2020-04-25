@@ -47,32 +47,34 @@ func insertion(lsw Lesswap, lo, hi int) {
 	}
 }
 
-// set such that ar[l,l+1] <= ar[m] = pivot <= ar[h-1,h]
-func pivot(lsw Lesswap, l, h int) (int, int, int) {
-	m := mid(l, h)
-	lsw(h, l, h, l)
-	if !lsw(h, m, h, m) {
-		lsw(m, l, m, l)
+// arrange ar[l,l+1,a-1,a] <= ar[m] = pivot <= ar[b,b+1,h-1,h]
+// if dual: a,b = mid(l,m), mid(m,h) else: a,b = l+3,h-3
+// pivot ensures partitioning yields ranges of length at least 4
+func pivot(lsw Lesswap, l, h int, dual bool) (int, int, int) {
+	s := [9]int{l, l + 1, 0, 0, mid(l, h), 0, 0, h - 1, h}
+	if dual {
+		s[3], s[5] = mid(l, s[4]), mid(s[4], h)
+	} else {
+		s[3], s[5] = l+3, h-3
 	}
-	// ar[l] <= ar[m] <= ar[h]
+	s[2], s[6] = s[3]-1, s[5]+1
 
-	k, h := h, h-1
-	if lsw(h, m, h, m) {
-		k--
-		lsw(m, l, m, l)
+	for i := 2; i >= 0; i-- { // insertion sort via s
+		lsw(s[i+6], s[i], s[i+6], s[i])
 	}
-
-	l++
-	if lsw(m, l, m, l) {
-		if k > h && lsw(h, k, 0, 0) {
-			k = h
+	for i := 1; i < len(s); i++ {
+		for k, r := i-1, s[i]; lsw(r, s[k], r, s[k]); {
+			r = s[k]
+			k--
+			if k < 0 {
+				break
+			}
 		}
-		lsw(k, m, k, m)
 	}
-	return l + 1, m, h - 1
+	return s[3] + 1, s[4], s[5] - 1
 }
 
-// partition ar[l,h] into two groups: >= and <= pivot
+// partition ar[l..h] into two groups: >= and <= pivot
 func partition(lsw Lesswap, l, p, h int) int {
 	for {
 		if lsw(h, p, 0, 0) { // avoid unnecessary comparisons
@@ -141,7 +143,7 @@ func Sort(n int, lsw Lesswap) {
 
 	srt = func(lo, hi int) { // assumes hi-lo >= mli
 	start:
-		l, p, h := pivot(lsw, lo, hi)
+		l, p, h := pivot(lsw, lo, hi, false)
 		l = partition(lsw, l, p, h)
 		h = l - 1
 
