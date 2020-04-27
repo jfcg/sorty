@@ -83,9 +83,49 @@ func pivot(lsw Lesswap, l, h int, dual bool) (int, int, int) {
 	return s[3] + 1, s[4], s[5] - 1 // l,pv,h suitable for partition()
 }
 
-// partition ar[l..h] into <= and >= pivot, assumes l < h
+// partition ar[l..h] into <= and >= pivot, assumes l < pv < h
 func partition(lsw Lesswap, l, pv, h int) int {
 	for {
+		if lsw(h, pv, 0, 0) { // avoid unnecessary comparisons
+			for {
+				if lsw(pv, l, h, l) {
+					break
+				}
+				l++
+				if l >= pv { // until pv & avoid it
+					l++
+					goto next
+				}
+			}
+		} else if lsw(pv, l, 0, 0) { // extend ranges in balance
+			for {
+				h--
+				if pv >= h { // until pv & avoid it
+					h--
+					goto next
+				}
+				if lsw(h, pv, h, l) {
+					break
+				}
+			}
+		}
+		l++
+		h--
+		if l >= pv {
+			l++
+			break
+		}
+		if pv >= h {
+			h--
+			goto next
+		}
+	}
+	if pv >= h {
+		h--
+	}
+
+next:
+	for l < h {
 		if lsw(h, pv, 0, 0) { // avoid unnecessary comparisons
 			for {
 				if lsw(pv, l, h, l) {
@@ -109,17 +149,14 @@ func partition(lsw Lesswap, l, pv, h int) int {
 		}
 		l++
 		h--
-		if l >= h {
-			break
-		}
 	}
-	if l == h && h != pv && lsw(h, pv, 0, 0) { // classify mid element
+	if l == h && lsw(h, pv, 0, 0) { // classify mid element
 		l++
 	}
 	return l
 }
 
-// rearrange ar[l..a] & ar[b..h] into <= and >= pivot, assumes l <= a < b <= h
+// rearrange ar[l..a] & ar[b..h] into <= and >= pivot, assumes l <= a < pv < b <= h
 // gap (a..b) expands until one of the intervals is fully consumed
 func dpartition(lsw Lesswap, l, a, pv, b, h int) (int, int) {
 	for {
