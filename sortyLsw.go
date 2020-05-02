@@ -55,18 +55,18 @@ func insertion(lsw Lesswap, lo, hi int) {
 	}
 }
 
-// arrange median-of-9 as ar[l,l+1, a-1,a] <= ar[m] = pivot <= ar[b,b+1, h-1,h]
-// if dual: a,b = mid(l,m), mid(m,h) else: a,b = l+3,h-3
-// pivot() ensures partitioning yields ranges of length 4+
-// users of pivot() must ensure l+11 < h
-func pivot(lsw Lesswap, l, h int, dual bool) (int, int, int) {
-	s := [9]int{l, l + 1, 0, 0, mid(l, h), 0, 0, h - 1, h}
-	if dual {
-		s[3], s[5] = mid(l, s[4]), mid(s[4], h)
-	} else {
-		s[3], s[5] = l+3, h-3
-	}
-	s[2], s[6] = s[3]-1, s[5]+1
+// arrange median-of-9 as ar[a-1] <= ar[l,l+1] <= ar[a] <= ar[m] = pivot <= ar[b] <=
+// ar[h-1,h] <= ar[b+1] where m,a,b = mid(l,h), mid(l,m), mid(m,h). After pivot() ar
+// will look like: 2nd 3rd .. 1st 4th .. 5th=pivot .. 6th 9th .. 7th 8th.
+// This allows ar[l,l+1] and ar[h-1,h] to assist pivot()ing of the two sub-ranges in
+// the next call: 7 new values from a sub-range, 2 expectedly good values from parent
+// range. pivot() ensures that partitioning yields ranges of length 4+.
+// Users of pivot() must ensure l+11 < h
+func pivot9(lsw Lesswap, l, h int) (int, int, int) {
+
+	s := [9]int{0, l, l + 1, 0, mid(l, h), 0, h - 1, h, 0}
+	s[3], s[5] = mid(l, s[4]), mid(s[4], h)
+	s[0], s[8] = s[3]-1, s[5]+1
 
 	for i := 2; i >= 0; i-- { // insertion sort via s
 		lsw(s[i+6], s[i], s[i+6], s[i])
@@ -224,29 +224,38 @@ func Sort(n int, lsw Lesswap) {
 
 	// dual partitioning
 	dualpar := func(par *chan int, lo, hi int) int {
+		a, pv, b := pivot9(lsw, lo, hi)
 
-		if atomic.AddUint32(&ngr, 1) == 0 { // increase goroutine counter
-			panic("Sort: dualpar: counter overflow")
-		}
-		if *par == nil {
-			*par = make(chan int) // make it when 1st time we need it
-		}
-		a, pv, b := pivot(lsw, lo, hi, true)
-
-		go func(a, b int) {
-			*par <- partition(lsw, a, pv, b)
-
-			if atomic.AddUint32(&ngr, ^uint32(0)) == 0 { // decrease goroutine counter
-				panic("Sort: dualpar: counter underflow")
+		// range long enough for dual partitioning? available goroutine?
+		// not atomic but good enough
+		m, dual := 0, hi-lo > 8*Mlr && ngr < Mxg
+		if dual {
+			if atomic.AddUint32(&ngr, 1) == 0 { // increase goroutine counter
+				panic("Sort: dualpar: counter overflow")
 			}
-		}(a, b)
+			if *par == nil {
+				*par = make(chan int) // make it when 1st time we need it
+			}
+
+			go func(a, b int) {
+				*par <- partition(lsw, a, pv, b)
+
+				if atomic.AddUint32(&ngr, ^uint32(0)) == 0 { // decrease goroutine counter
+					panic("Sort: dualpar: counter underflow")
+				}
+			}(a, b)
+		} else {
+			m = partition(lsw, a, pv, b) // <= and >= boundary
+		}
 
 		a -= 3
 		b += 3
 		lo += 2
 		hi -= 2
 		a, b = dpartition(lsw, lo, a, pv, b, hi)
-		m := <-*par // <= and >= boundary
+		if dual {
+			m = <-*par
+		}
 
 		// only one gap is possible
 		for ; lo <= a; a-- { // gap left in low range?
@@ -270,15 +279,7 @@ func Sort(n int, lsw Lesswap) {
 
 	srt = func(par *chan int, lo, hi int) { // assumes hi-lo >= mli
 	start:
-		var l int
-		// range long enough for dual partitioning? available goroutine?
-		// not atomic but good enough
-		if hi-lo > 2*Mlr && ngr < Mxg {
-			l = dualpar(par, lo, hi)
-		} else {
-			a, pv, b := pivot(lsw, lo, hi, false)
-			l = partition(lsw, a, pv, b)
-		}
+		l := dualpar(par, lo, hi)
 		h := l - 1
 
 		if h-lo < hi-l {
