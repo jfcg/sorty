@@ -345,7 +345,25 @@ func Sort(n int, lsw Lesswap) {
 	n-- // high indice
 	if n > 2*Mlr {
 		done = make(chan int, 1)
-		gsrt(0, n) // start master sort
+		// concurrent partitioning for 1st big partition
+		l := cdualpar(done, lsw, 0, n) // use done for partitioning
+
+		p, r := 0, l-1
+		if r < n-l {
+			n, r = r, n // [p,r] is the longer range
+			l, p = p, l
+		}
+
+		if n-l >= Mlr { // handle short range
+			ngr++
+			go gsrt(l, n)
+		} else if n-l >= mli {
+			srt(l, n)
+		} else if n-l > 0 {
+			insertion(lsw, l, n)
+		}
+
+		gsrt(p, r) // long range
 		<-done
 		return
 	}
