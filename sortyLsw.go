@@ -30,16 +30,13 @@ func IsSorted(n int, less func(i, k int) bool) bool {
 //  return false
 type Lesswap func(i, k, r, s int) bool
 
-// insertion sort ar[lo..hi], assumes lo+2 < hi
+// insertion sort ar[lo..hi], assumes lo < hi
 func insertion(lsw Lesswap, lo, hi int) {
 
-	for l, h := mid(lo, hi-1)-1, hi; ; {
+	for l, h := mid(lo, hi-1)-1, hi; l >= lo; {
 		lsw(h, l, h, l)
 		h--
 		l--
-		if l < lo {
-			break
-		}
 	}
 	for h := lo; ; {
 		for l := h; lsw(l+1, l, l+1, l); {
@@ -55,13 +52,38 @@ func insertion(lsw Lesswap, lo, hi int) {
 	}
 }
 
+// arrange median-of-5 as ar[l,l+1] <= ar[m] = pivot <= ar[h-1,h]
+// This allows ar[l,l+1] and ar[h-1,h] to assist pivoting of the two sub-ranges in
+// next pivot5() calls: 3 new values from a sub-range, 2 expectedly good values from
+// parent range. Users of pivot5() must ensure l+5 < h
+func pivot5(lsw Lesswap, l, h int) (int, int, int) {
+	e, c := l, mid(l, h)
+	lsw(h, l, h, l)
+	l++
+	h--
+	b, d := h, l
+	lsw(h, l, h, l)
+
+	if lsw(h+1, h, 0, 0) {
+		d, e = e, d
+		b++
+	}
+	lsw(c, e, c, e)
+
+	if lsw(b, c, b, c) {
+		d = e
+	}
+	lsw(c, d, c, d)
+
+	return l + 1, c, h - 1
+}
+
 // arrange median-of-9 as ar[a-1] <= ar[l,l+1] <= ar[a] <= ar[m] = pivot <= ar[b] <=
-// ar[h-1,h] <= ar[b+1] where m,a,b = mid(l,h), mid(l,m), mid(m,h). After pivot() ar
+// ar[h-1,h] <= ar[b+1] where m,a,b = mid(l,h), mid(l,m), mid(m,h). After pivot9() ar
 // will look like: 2nd 3rd .. 1st 4th .. 5th=pivot .. 6th 9th .. 7th 8th.
-// This allows ar[l,l+1] and ar[h-1,h] to assist pivot()ing of the two sub-ranges in
-// the next call: 7 new values from a sub-range, 2 expectedly good values from parent
-// range. pivot() ensures that partitioning yields ranges of length 4+.
-// Users of pivot() must ensure l+11 < h
+// This allows ar[l,l+1] and ar[h-1,h] to assist pivoting of the two sub-ranges in
+// next pivot9() or pivot5() calls: 7 or 3 new values from a sub-range, 2 expectedly
+// good values from parent range. Users of pivot9() must ensure l+11 < h
 func pivot9(lsw Lesswap, l, h int) (int, int, int) {
 
 	s := [9]int{0, l, l + 1, 0, mid(l, h), 0, h - 1, h, 0}
@@ -71,7 +93,8 @@ func pivot9(lsw Lesswap, l, h int) (int, int, int) {
 	for i := 2; i >= 0; i-- { // insertion sort via s
 		lsw(s[i+6], s[i], s[i+6], s[i])
 	}
-	for i := 1; i < len(s); i++ {
+	lsw(s[1], s[0], s[1], s[0])
+	for i := 2; i < len(s); i++ {
 		for k, r := i-1, s[i]; lsw(r, s[k], r, s[k]); {
 			r = s[k]
 			k--
@@ -228,7 +251,7 @@ func Sort(n int, lsw Lesswap) {
 
 		// range long enough for dual partitioning? available goroutine?
 		// not atomic but good enough
-		m, dual := 0, hi-lo > 8*Mlr && ngr < Mxg
+		m, dual := 0, hi-lo >= 8*Mlr && ngr < Mxg
 		if dual {
 			if atomic.AddUint32(&ngr, 1) == 0 { // increase goroutine counter
 				panic("Sort: dualpar: counter overflow")
@@ -279,7 +302,13 @@ func Sort(n int, lsw Lesswap) {
 
 	srt = func(par *chan int, lo, hi int) { // assumes hi-lo >= mli
 	start:
-		l := dualpar(par, lo, hi)
+		var l int
+		if hi-lo < 4*mli {
+			a, pv, b := pivot5(lsw, lo, hi)
+			l = partition(lsw, a, pv, b)
+		} else {
+			l = dualpar(par, lo, hi)
+		}
 		h := l - 1
 
 		if h-lo < hi-l {
@@ -327,18 +356,7 @@ func Sort(n int, lsw Lesswap) {
 		srt(nil, 0, n) // single goroutine
 		return
 	}
-	if n > 2 {
-		insertion(lsw, 0, n) // length 4+
-		return
-	}
-
-	if n > 0 { // handle arrays of length 2,3
-		for {
-			lsw(1, 0, 1, 0)
-			n--
-			if n <= 0 || !lsw(2, 1, 2, 1) {
-				return
-			}
-		}
+	if n > 0 {
+		insertion(lsw, 0, n) // length 2+
 	}
 }
