@@ -212,6 +212,61 @@ func dpartition(lsw Lesswap, l, a, pv, b, h int) (int, int) {
 	}
 }
 
+// dual partitioning
+func dualpar(lsw Lesswap, lo, hi int) int {
+	a, pv, b := pivot9(lsw, lo, hi)
+
+	m := partition(lsw, a, pv, b) // <= and >= boundary
+
+	a -= 3
+	b += 3
+	lo += 2
+	hi -= 2
+	a, b = dpartition(lsw, lo, a, pv, b, hi)
+
+	return rmgap(lsw, lo, a, m, pv, b, hi) // remove gaps
+}
+
+// concurrent dual partitioning
+func cdualpar(par chan int, lsw Lesswap, lo, hi int) int {
+	a, pv, b := pivot9(lsw, lo, hi)
+
+	go func(a, b int) {
+		par <- partition(lsw, a, pv, b)
+	}(a, b)
+
+	a -= 3
+	b += 3
+	lo += 2
+	hi -= 2
+	a, b = dpartition(lsw, lo, a, pv, b, hi)
+	m := <-par
+
+	return rmgap(lsw, lo, a, m, pv, b, hi) // remove gaps
+}
+
+// remove remaining gaps at the ends
+func rmgap(lsw Lesswap, lo, a, m, pv, b, hi int) int {
+	// only one gap is possible
+	for ; lo <= a; a-- { // gap left in low range?
+		if lsw(pv, a, m-1, a) {
+			m--
+			if m == pv { // swapped pivot when closing gap?
+				pv = a // Thanks to my wife Tansu who discovered this
+			}
+		}
+	}
+	for ; b <= hi; b++ { // gap left in high range?
+		if lsw(b, pv, b, m) {
+			if m == pv { // swapped pivot when closing gap?
+				pv = b // It took days of agony to discover these two if's :D
+			}
+			m++
+		}
+	}
+	return m
+}
+
 // Sort concurrently sorts underlying collection of length n via lsw().
 // Once for each non-trivial type you want to sort in a certain way, you
 // can implement a custom sorting routine (for a slice for example) as:
@@ -230,84 +285,26 @@ func dpartition(lsw Lesswap, l, a, pv, b, h int) (int, int) {
 func Sort(n int, lsw Lesswap) {
 	var (
 		mli  = Mli >> 1
-		ngr  = uint32(1)               // number of sorting goroutines including this
-		done chan bool                 // end signal
-		srt  func(*chan int, int, int) // recursive sort function
+		ngr  = uint32(1)    // number of sorting goroutines including this
+		done chan int       // end signal
+		srt  func(int, int) // recursive sort function
 	)
 
-	// new-goroutine sort function
-	gsrt := func(lo, hi int) {
-		var par chan int // dual partitioning channel
-		srt(&par, lo, hi)
-
+	gsrt := func(lo, hi int) { // new-goroutine sort function
+		srt(lo, hi)
 		if atomic.AddUint32(&ngr, ^uint32(0)) == 0 { // decrease goroutine counter
-			done <- false // we are the last, all done
+			done <- 0 // we are the last, all done
 		}
 	}
 
-	// dual partitioning
-	dualpar := func(par *chan int, lo, hi int) int {
-		a, pv, b := pivot9(lsw, lo, hi)
-
-		// range long enough for dual partitioning? available goroutine?
-		// not atomic but good enough
-		m, dual := 0, hi-lo >= 8*Mlr && ngr < Mxg
-		if dual {
-			if atomic.AddUint32(&ngr, 1) == 0 { // increase goroutine counter
-				panic("Sort: dualpar: counter overflow")
-			}
-			if *par == nil {
-				*par = make(chan int) // make it when 1st time we need it
-			}
-
-			go func(a, b int) {
-				*par <- partition(lsw, a, pv, b)
-
-				if atomic.AddUint32(&ngr, ^uint32(0)) == 0 { // decrease goroutine counter
-					panic("Sort: dualpar: counter underflow")
-				}
-			}(a, b)
-		} else {
-			m = partition(lsw, a, pv, b) // <= and >= boundary
-		}
-
-		a -= 3
-		b += 3
-		lo += 2
-		hi -= 2
-		a, b = dpartition(lsw, lo, a, pv, b, hi)
-		if dual {
-			m = <-*par
-		}
-
-		// only one gap is possible
-		for ; lo <= a; a-- { // gap left in low range?
-			if lsw(pv, a, m-1, a) {
-				m--
-				if m == pv { // swapped pivot when closing gap?
-					pv = a // Thanks to my wife Tansu who discovered this
-				}
-			}
-		}
-		for ; b <= hi; b++ { // gap left in high range?
-			if lsw(b, pv, b, m) {
-				if m == pv { // swapped pivot when closing gap?
-					pv = b // It took days of agony to discover these two if's :D
-				}
-				m++
-			}
-		}
-		return m
-	}
-
-	srt = func(par *chan int, lo, hi int) { // assumes hi-lo >= mli
+	srt = func(lo, hi int) { // assumes hi-lo >= mli
 	start:
 		var l int
 		if hi-lo < 4*mli {
 			a, pv, b := pivot5(lsw, lo, hi)
 			l = partition(lsw, a, pv, b)
 		} else {
-			l = dualpar(par, lo, hi)
+			l = dualpar(lsw, lo, hi)
 		}
 		h := l - 1
 
@@ -332,7 +329,7 @@ func Sort(n int, lsw Lesswap) {
 		// range not long enough for new goroutine? max goroutines?
 		// not atomic but good enough
 		if hi-l < Mlr || ngr >= Mxg {
-			srt(par, l, hi) // start a recursive sort on the shorter range
+			srt(l, hi) // start a recursive sort on the shorter range
 			hi = h
 			goto start
 		}
@@ -347,13 +344,13 @@ func Sort(n int, lsw Lesswap) {
 
 	n-- // high indice
 	if n > 2*Mlr {
-		done = make(chan bool, 1)
+		done = make(chan int, 1)
 		gsrt(0, n) // start master sort
 		<-done
 		return
 	}
 	if n >= mli {
-		srt(nil, 0, n) // single goroutine
+		srt(0, n) // single goroutine
 		return
 	}
 	if n > 0 {
