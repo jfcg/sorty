@@ -427,7 +427,7 @@ func TestShort(t *testing.T) {
 	sumtU4(au, bu) // sorty
 	sumtLswU4(au, bu)
 
-	if !IsSorted(len(au), func(i, k int) bool { return au[i] < au[k] }) {
+	if 0 != IsSorted(len(au), func(i, k, r, s int) bool { return au[i] < au[k] }) {
 		t.Fatal("IsSorted() does not work")
 	}
 
@@ -442,7 +442,7 @@ func TestShort(t *testing.T) {
 	sumtF4(af, bf) // sorty
 	sumtLswF4(af, bf)
 
-	if !IsSorted(len(af), func(i, k int) bool { return af[i] < af[k] }) {
+	if 0 != IsSorted(len(af), func(i, k, r, s int) bool { return af[i] < af[k] }) {
 		t.Fatal("IsSorted() does not work")
 	}
 

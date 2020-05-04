@@ -8,18 +8,6 @@ package sorty
 
 import "sync/atomic"
 
-// IsSorted checks if underlying collection of length n is sorted as per less().
-// An existing lesswap() can be used like:
-//  IsSorted(n, func(i, k int) bool { return lesswap(i, k, 0, 0) })
-func IsSorted(n int, less func(i, k int) bool) bool {
-	for i := n - 1; i > 0; i-- {
-		if less(i, i-1) {
-			return false
-		}
-	}
-	return true
-}
-
 // Lesswap function operates on an underlying collection to be sorted as:
 //  if less(i, k) { // strict ordering like < or >
 //  	if r != s {
@@ -29,6 +17,17 @@ func IsSorted(n int, less func(i, k int) bool) bool {
 //  }
 //  return false
 type Lesswap func(i, k, r, s int) bool
+
+// IsSorted returns 0 if underlying collection of length n is sorted,
+// otherwise it returns i>0 with less(i,i-1)=true.
+func IsSorted(n int, lsw Lesswap) int {
+	for i := n - 1; i > 0; i-- {
+		if lsw(i, i-1, 0, 0) {
+			return i
+		}
+	}
+	return 0
+}
 
 // insertion sort ar[lo..hi], assumes lo < hi
 func insertion(lsw Lesswap, lo, hi int) {
