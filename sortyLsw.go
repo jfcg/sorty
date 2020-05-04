@@ -38,16 +38,14 @@ func insertion(lsw Lesswap, lo, hi int) {
 		h--
 		l--
 	}
-	for h := lo; ; {
+	h := lo + 1
+	lsw(h, lo, h, lo)
+	for ; h < hi; h++ {
 		for l := h; lsw(l+1, l, l+1, l); {
 			l--
 			if l < lo {
 				break
 			}
-		}
-		h++
-		if h >= hi {
-			break
 		}
 	}
 }
@@ -75,7 +73,7 @@ func pivot5(lsw Lesswap, l, h int) (int, int, int) {
 	}
 	lsw(c, d, c, d)
 
-	return l + 1, c, h - 1
+	return l + 1, c, h - 1 // l,pv,h suitable for part1()
 }
 
 // arrange median-of-9 as ar[a-1] <= ar[l,l+1] <= ar[a] <= ar[m] = pivot <= ar[b] <=
@@ -103,11 +101,11 @@ func pivot9(lsw Lesswap, l, h int) (int, int, int) {
 			}
 		}
 	}
-	return s[3] + 1, s[4], s[5] - 1 // l,pv,h suitable for partition()
+	return s[0] - 1, s[4], s[8] + 1 // a,pv,b suitable for part2(), part1s()
 }
 
 // partition ar[l..h] into <= and >= pivot, assumes l < pv < h
-func partition(lsw Lesswap, l, pv, h int) int {
+func part1(lsw Lesswap, l, pv, h int) int {
 	for {
 		if lsw(h, pv, 0, 0) { // avoid unnecessary comparisons
 			for {
@@ -148,6 +146,11 @@ func partition(lsw Lesswap, l, pv, h int) int {
 	}
 
 next:
+	return part0(lsw, l, pv, h)
+}
+
+// partition ar[l..h] into <= and >= pivot, assumes pv is outside [l..h]
+func part0(lsw Lesswap, l, pv, h int) int {
 	for l < h {
 		if lsw(h, pv, 0, 0) { // avoid unnecessary comparisons
 			for {
@@ -179,9 +182,9 @@ next:
 	return l
 }
 
-// rearrange ar[l..a] & ar[b..h] into <= and >= pivot, assumes l <= a < pv < b <= h
+// rearrange ar[l..a] and ar[b..h] into <= and >= pivot, assumes l <= a < pv < b <= h
 // gap (a..b) expands until one of the intervals is fully consumed
-func dpartition(lsw Lesswap, l, a, pv, b, h int) (int, int) {
+func part2(lsw Lesswap, l, a, pv, b, h int) (int, int) {
 	for {
 		if lsw(b, pv, 0, 0) { // avoid unnecessary comparisons
 			for {
@@ -212,41 +215,19 @@ func dpartition(lsw Lesswap, l, a, pv, b, h int) (int, int) {
 	}
 }
 
-// dual partitioning
-func dualpar(lsw Lesswap, lo, hi int) int {
-	a, pv, b := pivot9(lsw, lo, hi)
-
-	m := partition(lsw, a, pv, b) // <= and >= boundary
-
-	a -= 3
-	b += 3
-	lo += 2
-	hi -= 2
-	a, b = dpartition(lsw, lo, a, pv, b, hi)
-
-	return rmgap(lsw, lo, a, m, pv, b, hi) // remove gaps
-}
-
 // concurrent dual partitioning
 func cdualpar(par chan int, lsw Lesswap, lo, hi int) int {
 	a, pv, b := pivot9(lsw, lo, hi)
 
-	go func(a, b int) {
-		par <- partition(lsw, a, pv, b)
-	}(a, b)
+	go func(l, h int) {
+		par <- part1(lsw, l, pv, h)
+	}(a+3, b-3)
 
-	a -= 3
-	b += 3
 	lo += 2
 	hi -= 2
-	a, b = dpartition(lsw, lo, a, pv, b, hi)
+	a, b = part2(lsw, lo, a, pv, b, hi)
 	m := <-par
 
-	return rmgap(lsw, lo, a, m, pv, b, hi) // remove gaps
-}
-
-// remove remaining gaps at the ends
-func rmgap(lsw Lesswap, lo, a, m, pv, b, hi int) int {
 	// only one gap is possible
 	for ; lo <= a; a-- { // gap left in low range?
 		if lsw(pv, a, m-1, a) {
@@ -265,6 +246,76 @@ func rmgap(lsw Lesswap, lo, a, m, pv, b, hi int) int {
 		}
 	}
 	return m
+}
+
+// partition ar[l..h] into <= and >= pivot with pivot9(), skipping around a,b
+// assumes l+11 < h
+func part1s(lsw Lesswap, l, h int) int {
+	a, pv, b := pivot9(lsw, l, h)
+	a++
+	b-- // skipping a,a+1,b-1,b
+	l += 2
+	h -= 2
+	for {
+		if lsw(h, pv, 0, 0) { // avoid unnecessary comparisons
+			for {
+				if lsw(pv, l, h, l) {
+					break
+				}
+				l++
+				if l >= a { // until a & avoid pair
+					l++
+					if a == pv {
+						goto next
+					}
+					l++
+					a = pv
+				}
+			}
+		} else if lsw(pv, l, 0, 0) { // extend ranges in balance
+			for {
+				h--
+				if b >= h { // until b & avoid pair
+					h--
+					if b == pv {
+						goto next
+					}
+					h--
+					b = pv
+				}
+				if lsw(h, pv, h, l) {
+					break
+				}
+			}
+		}
+		l++
+		h--
+		if l >= a {
+			l++
+			if a == pv {
+				break
+			}
+			l++
+			a = pv
+		}
+		if b >= h {
+			h--
+			if b == pv {
+				goto next
+			}
+			h--
+			b = pv
+		}
+	}
+	if b >= h {
+		h--
+		if b != pv {
+			h--
+		}
+	}
+
+next:
+	return part0(lsw, l, pv, h)
 }
 
 // Sort concurrently sorts underlying collection of length n via lsw().
@@ -300,11 +351,11 @@ func Sort(n int, lsw Lesswap) {
 	srt = func(lo, hi int) { // assumes hi-lo >= mli
 	start:
 		var l int
-		if hi-lo < 4*mli {
-			a, pv, b := pivot5(lsw, lo, hi)
-			l = partition(lsw, a, pv, b)
+		if hi-lo <= 8*mli {
+			c, pv, d := pivot5(lsw, lo, hi)
+			l = part1(lsw, c, pv, d)
 		} else {
-			l = dualpar(lsw, lo, hi)
+			l = part1s(lsw, lo, hi)
 		}
 		h := l - 1
 
