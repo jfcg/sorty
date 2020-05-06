@@ -34,17 +34,19 @@ func insertion(lsw Lesswap, lo, hi int) {
 
 	for l, h := mid(lo, hi-1)-1, hi; l >= lo; {
 		lsw(h, l, h, l)
-		h--
 		l--
+		h--
 	}
-	h := lo + 1
-	lsw(h, lo, h, lo)
-	for ; h < hi; h++ {
+	for h := lo; ; {
 		for l := h; lsw(l+1, l, l+1, l); {
 			l--
 			if l < lo {
 				break
 			}
+		}
+		h++
+		if h >= hi {
+			break
 		}
 	}
 }
@@ -90,8 +92,7 @@ func pivot9(lsw Lesswap, l, h int) (int, int, int) {
 	for i := 2; i >= 0; i-- { // insertion sort via s
 		lsw(s[i+6], s[i], s[i+6], s[i])
 	}
-	lsw(s[1], s[0], s[1], s[0])
-	for i := 2; i < len(s); i++ {
+	for i := 1; i < len(s); i++ {
 		for k, r := i-1, s[i]; lsw(r, s[k], r, s[k]); {
 			r = s[k]
 			k--
@@ -335,60 +336,60 @@ next:
 func Sort(n int, lsw Lesswap) {
 	var (
 		mli  = Mli >> 1
+		mlp5 = 8 * mli      // max range length for pivot5()
 		ngr  = uint32(1)    // number of sorting goroutines including this
 		done chan int       // end signal
 		srt  func(int, int) // recursive sort function
 	)
 
-	gsrt := func(lo, hi int) { // new-goroutine sort function
-		srt(lo, hi)
+	gsrt := func(lo, no int) { // new-goroutine sort function
+		srt(lo, no)
 		if atomic.AddUint32(&ngr, ^uint32(0)) == 0 { // decrease goroutine counter
 			done <- 0 // we are the last, all done
 		}
 	}
 
-	srt = func(lo, hi int) { // assumes hi-lo >= mli
+	srt = func(lo, no int) { // assumes no >= mli
 	start:
-		var l int
-		if hi-lo <= 8*mli {
-			c, pv, d := pivot5(lsw, lo, hi)
+		l, n := 0, lo+no
+		if no < mlp5 {
+			c, pv, d := pivot5(lsw, lo, n)
 			l = part1(lsw, c, pv, d)
 		} else {
-			l = part1s(lsw, lo, hi)
+			l = part1s(lsw, lo, n)
 		}
-		h := l - 1
+		n -= l
+		no -= n + 1
 
-		if h-lo < hi-l {
-			h, hi = hi, h // [lo,h] is the longer range
+		if no < n {
+			n, no = no, n // [lo,lo+no] is the longer range
 			l, lo = lo, l
 		}
 
 		// branches below are optimally laid out for fewer jumps
 		// at least one short range?
-		if hi-l < mli {
-			insertion(lsw, l, hi)
+		if n < mli {
+			insertion(lsw, l, l+n)
 
-			if h-lo < mli { // two short ranges?
-				insertion(lsw, lo, h)
+			if no < mli { // two short ranges?
+				insertion(lsw, lo, lo+no)
 				return
 			}
-			hi = h
 			goto start
 		}
 
 		// range not long enough for new goroutine? max goroutines?
 		// not atomic but good enough
-		if hi-l < Mlr || ngr >= Mxg {
-			srt(l, hi) // start a recursive sort on the shorter range
-			hi = h
+		if n < Mlr || ngr >= Mxg {
+			srt(l, n) // start a recursive sort on the shorter range
 			goto start
 		}
 
 		if atomic.AddUint32(&ngr, 1) == 0 { // increase goroutine counter
 			panic("Sort: counter overflow")
 		}
-		go gsrt(lo, h) // start a new-goroutine sort on the longer range
-		lo = l
+		go gsrt(lo, no) // start a new-goroutine sort on the longer range
+		lo, no = l, n
 		goto start
 	}
 
@@ -397,23 +398,24 @@ func Sort(n int, lsw Lesswap) {
 		done = make(chan int, 1)
 		// concurrent partitioning for 1st big partition
 		l := cdualpar(done, lsw, 0, n) // use done for partitioning
+		n -= l
 
-		p, r := 0, l-1
-		if r < n-l {
-			n, r = r, n // [p,r] is the longer range
-			l, p = p, l
+		lo, no := 0, l-1
+		if no < n {
+			n, no = no, n // [lo,lo+no] is the longer range
+			l, lo = lo, l
 		}
 
-		if n-l >= Mlr { // handle short range
+		if n >= Mlr { // handle short range
 			ngr++
 			go gsrt(l, n)
-		} else if n-l >= mli {
+		} else if n >= mli {
 			srt(l, n)
-		} else if n-l > 0 {
-			insertion(lsw, l, n)
+		} else if n > 0 {
+			insertion(lsw, l, l+n)
 		}
 
-		gsrt(p, r) // long range
+		gsrt(lo, no) // long range
 		<-done
 		return
 	}
