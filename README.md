@@ -20,11 +20,11 @@ sort.Slice|16.03
 sortutil  | 3.00
 zermelo   | 2.20
 sorty-2   | 3.29
-sorty-3   | 2.46
-sorty-4   | 2.04
-sortyLsw-2| 7.27
-sortyLsw-3| 5.36
-sortyLsw-4| 4.39
+sorty-3   | 2.48
+sorty-4   | 2.05
+sortyLsw-2| 7.68
+sortyLsw-3| 5.64
+sortyLsw-4| 4.49
 
 Sorting float32 array (in seconds):
 
@@ -34,11 +34,11 @@ sort.Slice|17.43
 sortutil  | 3.01
 zermelo   | 4.69
 sorty-2   | 4.07
-sorty-3   | 3.00
-sorty-4   | 2.43
-sortyLsw-2| 8.06
-sortyLsw-3| 5.94
-sortyLsw-4| 4.80
+sorty-3   | 3.03
+sorty-4   | 2.47
+sortyLsw-2| 8.38
+sortyLsw-3| 6.22
+sortyLsw-4| 4.98
 
 Sorting string array (in seconds):
 
@@ -48,11 +48,11 @@ sort.Slice| 8.72
 sortutil  | 2.00
 radix     | 4.83
 sorty-2   | 3.24
-sorty-3   | 2.48
+sorty-3   | 2.47
 sorty-4   | 2.07
-sortyLsw-2| 4.10
-sortyLsw-3| 3.12
-sortyLsw-4| 2.60
+sortyLsw-2| 4.12
+sortyLsw-3| 3.10
+sortyLsw-4| 2.58
 
 ### Testing & Parameter Tuning
 First, make sure everything is fine:

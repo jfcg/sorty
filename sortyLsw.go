@@ -19,7 +19,7 @@ import "sync/atomic"
 type Lesswap func(i, k, r, s int) bool
 
 // IsSorted returns 0 if underlying collection of length n is sorted,
-// otherwise it returns i>0 with less(i,i-1)=true.
+// otherwise it returns i > 0 with less(i,i-1) = true.
 func IsSorted(n int, lsw Lesswap) int {
 	for i := n - 1; i > 0; i-- {
 		if lsw(i, i-1, 0, 0) {
