@@ -37,7 +37,7 @@ func fstU4(sd int64, ar []uint32, srt func([]uint32)) time.Duration {
 	srt(ar)
 	dur := time.Since(now)
 
-	if !IsSortedU4(ar) {
+	if 0 != IsSortedU4(ar) {
 		tst.Fatal(name, "not sorted")
 	}
 	return dur
@@ -54,7 +54,7 @@ func fstU8(sd int64, ar []uint64, srt func([]uint64)) time.Duration {
 	srt(ar)
 	dur := time.Since(now)
 
-	if !IsSortedU8(ar) {
+	if 0 != IsSortedU8(ar) {
 		tst.Fatal(name, "not sorted")
 	}
 	return dur
@@ -71,7 +71,7 @@ func fstI4(sd int64, ar []int32, srt func([]int32)) time.Duration {
 	srt(ar)
 	dur := time.Since(now)
 
-	if !IsSortedI4(ar) {
+	if 0 != IsSortedI4(ar) {
 		tst.Fatal(name, "not sorted")
 	}
 	return dur
@@ -88,7 +88,7 @@ func fstI8(sd int64, ar []int64, srt func([]int64)) time.Duration {
 	srt(ar)
 	dur := time.Since(now)
 
-	if !IsSortedI8(ar) {
+	if 0 != IsSortedI8(ar) {
 		tst.Fatal(name, "not sorted")
 	}
 	return dur
@@ -105,7 +105,7 @@ func fstF4(sd int64, ar []float32, srt func([]float32)) time.Duration {
 	srt(ar)
 	dur := time.Since(now)
 
-	if !IsSortedF4(ar) {
+	if 0 != IsSortedF4(ar) {
 		tst.Fatal(name, "not sorted")
 	}
 	return dur
@@ -122,7 +122,7 @@ func fstF8(sd int64, ar []float64, srt func([]float64)) time.Duration {
 	srt(ar)
 	dur := time.Since(now)
 
-	if !IsSortedF8(ar) {
+	if 0 != IsSortedF8(ar) {
 		tst.Fatal(name, "not sorted")
 	}
 	return dur
@@ -161,7 +161,7 @@ func fstS(sd int64, ar []uint32, srt func([]string)) time.Duration {
 	srt(as)
 	dur := time.Since(now)
 
-	if !IsSortedS(as) {
+	if 0 != IsSortedS(as) {
 		tst.Fatal(name, "not sorted")
 	}
 	return dur
@@ -534,7 +534,7 @@ func TestShort(t *testing.T) {
 	// SortI() calls SortI4() (on 32-bit) or SortI8() (on 64-bit).
 	name = "SortI"
 	SortI(iar)
-	if !IsSortedI(iar) {
+	if 0 != IsSortedI(iar) {
 		t.Fatal("SortI() does not work")
 	}
 

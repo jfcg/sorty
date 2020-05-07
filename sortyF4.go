@@ -8,14 +8,15 @@ package sorty
 
 import "sync/atomic"
 
-// IsSortedF4 checks if ar is sorted in ascending order.
-func IsSortedF4(ar []float32) bool {
+// IsSortedF4 returns 0 if ar is sorted in ascending order,
+// otherwise it returns i > 0 with ar[i] < ar[i-1]
+func IsSortedF4(ar []float32) int {
 	for i := len(ar) - 1; i > 0; i-- {
 		if ar[i] < ar[i-1] {
-			return false
+			return i
 		}
 	}
-	return true
+	return 0
 }
 
 // insertion sort, assumes 0 < hi < len(ar)

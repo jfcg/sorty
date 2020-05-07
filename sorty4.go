@@ -17,18 +17,21 @@ func init() {
 	}
 }
 
-// IsSortedI checks if ar is sorted in ascending order.
-func IsSortedI(ar []int) bool {
+// IsSortedI returns 0 if ar is sorted in ascending order,
+// otherwise it returns i > 0 with ar[i] < ar[i-1]
+func IsSortedI(ar []int) int {
 	return IsSortedI4(*(*[]int32)(unsafe.Pointer(&ar)))
 }
 
-// IsSortedU checks if ar is sorted in ascending order.
-func IsSortedU(ar []uint) bool {
+// IsSortedU returns 0 if ar is sorted in ascending order,
+// otherwise it returns i > 0 with ar[i] < ar[i-1]
+func IsSortedU(ar []uint) int {
 	return IsSortedU4(*(*[]uint32)(unsafe.Pointer(&ar)))
 }
 
-// IsSortedP checks if ar is sorted in ascending order.
-func IsSortedP(ar []uintptr) bool {
+// IsSortedP returns 0 if ar is sorted in ascending order,
+// otherwise it returns i > 0 with ar[i] < ar[i-1]
+func IsSortedP(ar []uintptr) int {
 	return IsSortedU4(*(*[]uint32)(unsafe.Pointer(&ar)))
 }
 
