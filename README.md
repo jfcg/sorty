@@ -23,8 +23,8 @@ sorty-2   | 3.29
 sorty-3   | 2.48
 sorty-4   | 2.05
 sortyLsw-2| 7.68
-sortyLsw-3| 5.64
-sortyLsw-4| 4.49
+sortyLsw-3| 4.98
+sortyLsw-4| 4.31
 
 Sorting float32 array (in seconds):
 
@@ -36,9 +36,9 @@ zermelo   | 4.69
 sorty-2   | 4.07
 sorty-3   | 3.03
 sorty-4   | 2.47
-sortyLsw-2| 8.38
-sortyLsw-3| 6.22
-sortyLsw-4| 4.98
+sortyLsw-2| 8.35
+sortyLsw-3| 5.78
+sortyLsw-4| 4.67
 
 Sorting string array (in seconds):
 
@@ -50,9 +50,9 @@ radix     | 4.83
 sorty-2   | 3.24
 sorty-3   | 2.47
 sorty-4   | 2.07
-sortyLsw-2| 4.12
-sortyLsw-3| 3.10
-sortyLsw-4| 2.58
+sortyLsw-2| 4.19
+sortyLsw-3| 2.94
+sortyLsw-4| 2.47
 
 ### Testing & Parameter Tuning
 First, make sure everything is fine:

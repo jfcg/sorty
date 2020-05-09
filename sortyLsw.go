@@ -394,36 +394,49 @@ func Sort(n int, lsw Lesswap) {
 	}
 
 	n-- // high indice
-	if n > 2*Mlr {
-		done = make(chan int, 1)
-		// concurrent partitioning for 1st big partition
-		l := cdualpar(done, lsw, 0, n) // use done for partitioning
-		n -= l
+	if n <= 2*Mlr {
+		if n >= mli {
+			srt(0, n) // single goroutine
+			return
+		}
+		if n > 0 {
+			insertion(lsw, 0, n) // length 2+
+		}
+		return
+	}
 
-		lo, no := 0, l-1
+	done = make(chan int, 1)
+	lo, no := 0, n
+	for {
+		// concurrent dual partitioning
+		l := cdualpar(done, lsw, lo, n) // use done for partitioning
+		n -= l
+		no -= n + 1
+
 		if no < n {
 			n, no = no, n // [lo,lo+no] is the longer range
 			l, lo = lo, l
 		}
 
-		if n >= Mlr { // handle short range
-			ngr++
+		// handle short range
+		if n >= Mlr {
+			if atomic.AddUint32(&ngr, 1) == 0 { // increase goroutine counter
+				panic("Sort: dual: counter overflow")
+			}
 			go gsrt(l, n)
 		} else if n >= mli {
 			srt(l, n)
-		} else if n > 0 {
+		} else {
 			insertion(lsw, l, l+n)
 		}
 
-		gsrt(lo, no) // long range
-		<-done
-		return
+		if no <= 2*Mlr || ngr >= Mxg {
+			break
+		}
+		n = lo + no
 	}
-	if n >= mli {
-		srt(0, n) // single goroutine
-		return
-	}
-	if n > 0 {
-		insertion(lsw, 0, n) // length 2+
-	}
+
+	// we know no >= Mlr
+	gsrt(lo, no) // long range
+	<-done
 }
