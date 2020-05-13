@@ -13,19 +13,23 @@
 //  sorty.Sort(n, lesswap)    // lesswap() function based
 package sorty
 
-// Mxg is the maximum number of goroutines used for sorting per Sort*() call.
-var Mxg uint32 = 3
+var (
+	// Mxg is the maximum number of goroutines used for sorting per Sort*() call.
+	Mxg uint32 = 3
 
-// Mli is the maximum array length for insertion sort.
-// SortS() and Sort() use 1/2 of this as their limits.
-var Mli = 88
+	// Mli is the maximum array length for insertion sort in
+	// Sort*() except SortS() and Sort().
+	Mli = 88
+	// Hmli is the maximum array length for insertion sort in SortS() and Sort().
+	Hmli = Mli >> 1
 
-// Mlr is the maximum array length for recursion when there is available goroutines.
-// So Mlr+1 is the minimum array length for new sorting goroutines.
-var Mlr = 496
+	// Mlr is the maximum array length for recursion when there is available goroutines.
+	// So Mlr+1 is the minimum array length for new sorting goroutines.
+	Mlr = 496
+)
 
 func init() {
-	if !(65536 > Mxg && Mxg > 1 && Mlr > 2*Mli && 2*Mli > 63) {
+	if !(4097 > Mxg && Mxg > 1 && Mlr > 2*Mli && 2*Mli > 63) {
 		panic("sorty: check your Mxg/Mli/Mlr values")
 	}
 }

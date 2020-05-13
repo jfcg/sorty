@@ -127,7 +127,6 @@ func partitionS(ar []string, l, h int) int {
 // SortS concurrently sorts ar in ascending order.
 func SortS(ar []string) {
 	var (
-		mli  = Mli >> 1
 		ngr  = uint32(1)    // number of sorting goroutines including this
 		done chan bool      // end signal
 		srt  func(int, int) // recursive sort function
@@ -140,7 +139,7 @@ func SortS(ar []string) {
 		}
 	}
 
-	srt = func(lo, no int) { // assumes no >= mli
+	srt = func(lo, no int) { // assumes no >= Hmli
 	start:
 		n := lo + no
 		l := partitionS(ar, lo, n)
@@ -154,10 +153,10 @@ func SortS(ar []string) {
 
 		// branches below are optimally laid out for fewer jumps
 		// at least one short range?
-		if n < mli {
+		if n < Hmli {
 			insertionS(ar[l:], n)
 
-			if no < mli { // two short ranges?
+			if no < Hmli { // two short ranges?
 				insertionS(ar[lo:], no)
 				return
 			}
@@ -186,7 +185,7 @@ func SortS(ar []string) {
 		<-done
 		return
 	}
-	if n >= mli {
+	if n >= Hmli {
 		srt(0, n) // single goroutine
 		return
 	}

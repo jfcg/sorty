@@ -587,9 +587,9 @@ func TestOpt(t *testing.T) {
 	for i := 0; i < len(fn); i++ {
 		fmt.Println(name[i])
 
-		_, _, _, n := opt.FindMinTri(2, 96, 424, 16, 136,
+		_, _, _, n := opt.FindMinTri(2, 96, 480, 16, 80,
 			func(x, y int) float64 {
-				Mli, Mlr = x, y
+				Mli, Hmli, Mlr = x, x>>1, y
 				return fn[i]()
 			}, pro)
 		fmt.Println(n, "calls")
