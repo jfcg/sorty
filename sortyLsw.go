@@ -102,7 +102,7 @@ func pivot9(lsw Lesswap, l, h int) (int, int, int) {
 			}
 		}
 	}
-	return s[0] - 1, s[4], s[8] + 1 // a,pv,b suitable for part2(), part1s()
+	return s[0], s[4], s[8] // a,pv,b suitable for part2(), part1s()
 }
 
 // partition ar[l..h] into <= and >= pivot, assumes l < pv < h
@@ -222,12 +222,12 @@ func cdualpar(par chan int, lsw Lesswap, lo, hi int) int {
 
 	go func(l, h int) {
 		par <- part1(lsw, l, pv, h)
-	}(a+3, b-3)
+	}(a+2, b-2)
 
 	lo += 2
 	hi -= 2
-	a, b = part2(lsw, lo, a, pv, b, hi)
-	m := <-par
+	a, b = part2(lsw, lo, a-1, pv, b+1, hi)
+	m := <-par // ar[:m] <= pivot, ar[m:] >= pivot
 
 	// only one gap is possible
 	for ; lo <= a; a-- { // gap left in low range?
@@ -253,8 +253,6 @@ func cdualpar(par chan int, lsw Lesswap, lo, hi int) int {
 // assumes l+11 < h
 func part1s(lsw Lesswap, l, h int) int {
 	a, pv, b := pivot9(lsw, l, h)
-	a++
-	b-- // skipping a,a+1,b-1,b
 	l += 2
 	h -= 2
 	for {
@@ -264,7 +262,7 @@ func part1s(lsw Lesswap, l, h int) int {
 					break
 				}
 				l++
-				if l >= a { // until a & avoid pair
+				if l >= a { // until a & avoid a,a+1
 					l++
 					if a == pv {
 						goto next
@@ -276,7 +274,7 @@ func part1s(lsw Lesswap, l, h int) int {
 		} else if lsw(pv, l, 0, 0) { // extend ranges in balance
 			for {
 				h--
-				if b >= h { // until b & avoid pair
+				if b >= h { // until b & avoid b-1,b
 					h--
 					if b == pv {
 						goto next
