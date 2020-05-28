@@ -570,7 +570,8 @@ func TestOpt(t *testing.T) {
 	aq := make([]float32, 0, N)
 	ar, ap := F4toU4(&as), F4toU4(&aq)
 
-	name := []string{"SortU4/F4", "SortS", "Lsw-U4/F4", "Lsw-S"}
+	name = "opt"
+	nm := []string{"SortU4/F4", "SortS", "Lsw-U4/F4", "Lsw-S"}
 	fn := []func() float64{
 		// optimize for native arithmetic types
 		func() float64 { return sumtU4(ar, ap) + sumtF4(as, aq) },
@@ -585,7 +586,7 @@ func TestOpt(t *testing.T) {
 		func() float64 { return sumtLswS(ar, ap) }}
 
 	for i := 0; i < len(fn); i++ {
-		fmt.Println(name[i])
+		fmt.Println(nm[i])
 
 		_, _, _, n := opt.FindMinTri(2, 96, 480, 16, 80,
 			func(x, y int) float64 {
