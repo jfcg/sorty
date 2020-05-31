@@ -8,17 +8,18 @@ package sorty
 
 import (
 	"fmt"
+	"math/rand"
+	"sort"
+	"testing"
+	"time"
+	"unsafe"
+
 	"github.com/jfcg/opt"
 	"github.com/jfcg/sixb"
 	"github.com/shawnsmithdev/zermelo/zfloat32"
 	"github.com/shawnsmithdev/zermelo/zuint32"
 	"github.com/twotwotwo/sorts/sortutil"
 	"github.com/yourbasic/radix"
-	"math/rand"
-	"sort"
-	"testing"
-	"time"
-	"unsafe"
 )
 
 const N = 1 << 26
