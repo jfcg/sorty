@@ -10,49 +10,49 @@ Mxg (3 by default) is the maximum number of goroutines used for sorting per Sort
 sorty uses [semantic](https://semver.org) versioning.
 
 ### Benchmarks
-All computers run 64-bit Manjaro Linux. Comparing against [sort.Slice](https://golang.org/pkg/sort), [sortutil](https://github.com/twotwotwo/sorts), [zermelo](https://github.com/shawnsmithdev/zermelo) and [radix](https://github.com/yourbasic/radix) with Go 1.14.2.
+Comparing against [sort.Slice](https://golang.org/pkg/sort), [sortutil](https://github.com/twotwotwo/sorts), [zermelo](https://github.com/shawnsmithdev/zermelo) and [radix](https://github.com/yourbasic/radix) with Go 1.14.3.
 
 Sorting uint32 array (in seconds):
 
-Library(-Mxg)|AMD Ryzen 5 1600
-:---|:---:
-sort.Slice|16.03
-sortutil  | 3.00
-zermelo   | 2.20
-sorty-2   | 3.29
-sorty-3   | 2.48
-sorty-4   | 2.05
-sortyLsw-2| 7.64
-sortyLsw-3| 5.00
-sortyLsw-4| 4.36
+Library(-Mxg)|Manjaro on Ryzen 1600|Ubuntu 20.04 on Xeon Haswell
+:---|:---:|:---:
+sort.Slice|16.03|20.24
+sortutil  | 3.00| 3.34
+zermelo   | 2.20| 1.75
+sorty-2   | 3.29| 4.66
+sorty-3   | 2.48| 3.66
+sorty-4   | 2.05| 3.37
+sortyLsw-2| 7.64| 9.21
+sortyLsw-3| 5.00| 5.71
+sortyLsw-4| 4.36| 4.98
 
 Sorting float32 array (in seconds):
 
-Library(-Mxg)|AMD Ryzen 5 1600
-:---|:---:
-sort.Slice|17.43
-sortutil  | 3.01
-zermelo   | 4.69
-sorty-2   | 4.07
-sorty-3   | 3.03
-sorty-4   | 2.47
-sortyLsw-2| 8.31
-sortyLsw-3| 5.66
-sortyLsw-4| 4.61
+Library(-Mxg)|Manjaro on Ryzen 1600|Ubuntu 20.04 on Xeon Haswell
+:---|:---:|:---:
+sort.Slice|17.43|20.84
+sortutil  | 3.01| 3.21
+zermelo   | 4.69| 4.12
+sorty-2   | 4.07| 4.76
+sorty-3   | 3.03| 3.42
+sorty-4   | 2.47| 2.77
+sortyLsw-2| 8.31| 9.66
+sortyLsw-3| 5.66| 6.33
+sortyLsw-4| 4.61| 5.22
 
 Sorting string array (in seconds):
 
-Library(-Mxg)|AMD Ryzen 5 1600
-:---|:---:
-sort.Slice| 8.72
-sortutil  | 2.00
-radix     | 4.83
-sorty-2   | 3.24
-sorty-3   | 2.47
-sorty-4   | 2.07
-sortyLsw-2| 4.07
-sortyLsw-3| 2.88
-sortyLsw-4| 2.39
+Library(-Mxg)|Manjaro on Ryzen 1600|Ubuntu 20.04 on Xeon Haswell
+:---|:---:|:---:
+sort.Slice| 8.72| 9.52
+sortutil  | 2.00| 2.01
+radix     | 4.83| 4.41
+sorty-2   | 3.24| 3.76
+sorty-3   | 2.47| 2.62
+sorty-4   | 2.07| 2.16
+sortyLsw-2| 4.07| 4.83
+sortyLsw-3| 2.88| 3.13
+sortyLsw-4| 2.39| 2.54
 
 ### Testing & Parameter Tuning
 First, make sure everything is fine:
