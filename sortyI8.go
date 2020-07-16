@@ -155,11 +155,11 @@ func SortI8(ar []int64) {
 		if n < Mli {
 			insertionI8(ar[l:], n)
 
-			if no < Mli { // two short ranges?
-				insertionI8(ar[lo:], no)
-				return
+			if no >= Mli { // two short ranges?
+				goto start
 			}
-			goto start
+			insertionI8(ar[lo:], no)
+			return
 		}
 
 		// range not long enough for new goroutine? max goroutines?

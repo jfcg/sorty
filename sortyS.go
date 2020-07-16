@@ -156,11 +156,11 @@ func SortS(ar []string) {
 		if n < Hmli {
 			insertionS(ar[l:], n)
 
-			if no < Hmli { // two short ranges?
-				insertionS(ar[lo:], no)
-				return
+			if no >= Hmli { // two short ranges?
+				goto start
 			}
-			goto start
+			insertionS(ar[lo:], no)
+			return
 		}
 
 		// range not long enough for new goroutine? max goroutines?

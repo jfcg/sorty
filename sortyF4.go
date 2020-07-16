@@ -155,11 +155,11 @@ func SortF4(ar []float32) {
 		if n < Mli {
 			insertionF4(ar[l:], n)
 
-			if no < Mli { // two short ranges?
-				insertionF4(ar[lo:], no)
-				return
+			if no >= Mli { // two short ranges?
+				goto start
 			}
-			goto start
+			insertionF4(ar[lo:], no)
+			return
 		}
 
 		// range not long enough for new goroutine? max goroutines?
