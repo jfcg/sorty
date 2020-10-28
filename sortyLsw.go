@@ -51,108 +51,66 @@ func insertion(lsw Lesswap, lo, hi int) {
 	}
 }
 
-// arrange median-of-5 as ar[l,l+1] <= ar[m] = pivot <= ar[h-1,h]
-// This allows ar[l,l+1] and ar[h-1,h] to assist pivoting of the two sub-ranges in
-// next pivot5() calls: 3 new values from a sub-range, 2 expectedly good values from
-// parent range. Users of pivot5() must ensure l+5 < h
-func pivot5(lsw Lesswap, l, h int) (int, int, int) {
-	e := l
-	lsw(h, l, h, l)
-	l++
-	h--
-	b, d := h, l
-	lsw(h, l, h, l)
+// pivot divides [l..h] range into 2n+1 equal intervals, sorts mid-points of them
+// to find median-of-2n+1 pivot. ensures lo/hi ranges have at least n elements by
+// moving 2n of mid-points to n positions at lo/hi ends.
+// assumes n > 0, l+4n+1 < h. returns start,pivot,end for partitioning.
+func pivot(lsw Lesswap, lo, hi, n int) (int, int, int) {
+	m := mid(lo, hi)
+	s := int(uint(hi-lo+1) / uint(2*n+1)) // step > 1
+	l, h := m-n*s, m+n*s
 
-	if lsw(h+1, h, 0, 0) {
-		d, e = e, d
-		b++
+	for q, k := h, m-2*s; k >= l; { // insertion sort ar[m+i*s], i=-n..n
+		lsw(q, k, q, k)
+		q -= s
+		k -= s
 	}
-	c := mid(l, h)
-	lsw(c, e, c, e)
-
-	if lsw(b, c, b, c) {
-		d = e
-	}
-	lsw(c, d, c, d)
-
-	return l + 1, c, h - 1 // l,pv,h suitable for part1()
-}
-
-// arrange median-of-9 as ar[a-1] <= ar[l,l+1] <= ar[a] <= ar[m] = pivot <= ar[b] <=
-// ar[h-1,h] <= ar[b+1] where m,a,b = mid(l,h), mid(l,m), mid(m,h). After pivot9() ar
-// will look like: 2nd 3rd .. 1st 4th .. 5th=pivot .. 6th 9th .. 7th 8th.
-// This allows ar[l,l+1] and ar[h-1,h] to assist pivoting of the two sub-ranges in
-// next pivot9() or pivot5() calls: 7 or 3 new values from a sub-range, 2 expectedly
-// good values from parent range. Users of pivot9() must ensure l+11 < h
-func pivot9(lsw Lesswap, l, h int) (int, int, int) {
-
-	s := [9]int{0, l, l + 1, 0, mid(l, h), 0, h - 1, h, 0}
-	s[3], s[5] = mid(l, s[4]), mid(s[4], h)
-	s[0], s[8] = s[3]-1, s[5]+1
-
-	for i := 2; i >= 0; i-- { // insertion sort via s
-		lsw(s[i+6], s[i], s[i+6], s[i])
-	}
-	for i := 1; i < len(s); i++ {
-		for k, r := i-1, s[i]; lsw(r, s[k], r, s[k]); {
-			r = s[k]
-			k--
-			if k < 0 {
+	r := l + s
+	lsw(r, l, r, l)
+	for {
+		k := r
+		r += s
+		q := r
+		for lsw(q, k, q, k) {
+			q = k
+			k -= s
+			if k < l {
 				break
 			}
 		}
-	}
-	return s[0], s[4], s[8] // a,pv,b suitable for part2(), part1s()
-}
-
-// partition ar[l..h] into <= and >= pivot, assumes l < pv < h
-func part1(lsw Lesswap, l, pv, h int) int {
-	for {
-		if lsw(h, pv, 0, 0) { // avoid unnecessary comparisons
-			for {
-				if lsw(pv, l, h, l) {
-					break
-				}
-				l++
-				if l >= pv { // until pv & avoid it
-					l++
-					goto next
-				}
-			}
-		} else if lsw(pv, l, 0, 0) { // extend ranges in balance
-			for {
-				h--
-				if pv >= h { // until pv & avoid it
-					h--
-					goto next
-				}
-				if lsw(h, pv, h, l) {
-					break
-				}
-			}
-		}
-		l++
-		h--
-		if l >= pv {
-			l++
+		if r >= h {
 			break
 		}
-		if pv >= h {
-			h--
-			goto next
+	}
+
+	// move hi mid-points to hi end
+	for {
+		if h == hi || lsw(hi, h, hi, h) {
+			h -= s
+		}
+		hi--
+		if h <= m {
+			break
 		}
 	}
-	if pv >= h {
-		h--
-	}
 
-next:
-	return part0(lsw, l, pv, h)
+	// move lo mid-points to lo end
+	for {
+		if l == lo || lsw(l, lo, l, lo) {
+			l += s
+		}
+		lo++
+		if l >= m {
+			break
+		}
+	}
+	return lo, m, hi // lo <= m-s+1, m+s-1 <= hi
 }
 
-// partition ar[l..h] into <= and >= pivot, assumes pv is outside [l..h]
-func part0(lsw Lesswap, l, pv, h int) int {
-	for l < h {
+// partition ar[l..h] into <= and >= pivot, assumes l < h
+// returns m with ar[:m] <= pivot, ar[m:] >= pivot
+func partition1(lsw Lesswap, l, pv, h int) int {
+	for {
 		if lsw(h, pv, 0, 0) { // avoid unnecessary comparisons
 			for {
 				if lsw(pv, l, h, l) {
@@ -176,8 +134,11 @@ func part0(lsw Lesswap, l, pv, h int) int {
 		}
 		l++
 		h--
+		if l >= h {
+			break
+		}
 	}
-	if l == h && lsw(h, pv, 0, 0) { // classify mid element
+	if l == h && (h == pv || lsw(h, pv, 0, 0)) { // classify mid element
 		l++
 	}
 	return l
@@ -185,7 +146,7 @@ func part0(lsw Lesswap, l, pv, h int) int {
 
 // rearrange ar[l..a] and ar[b..h] into <= and >= pivot, assumes l <= a < pv < b <= h
 // gap (a..b) expands until one of the intervals is fully consumed
-func part2(lsw Lesswap, l, a, pv, b, h int) (int, int) {
+func partition2(lsw Lesswap, l, a, pv, b, h int) (int, int) {
 	for {
 		if lsw(b, pv, 0, 0) { // avoid unnecessary comparisons
 			for {
@@ -217,17 +178,24 @@ func part2(lsw Lesswap, l, a, pv, b, h int) (int, int) {
 }
 
 // concurrent dual partitioning
+// returns m with ar[:m] <= pivot, ar[m:] >= pivot
 func cdualpar(par chan int, lsw Lesswap, lo, hi int) int {
-	a, pv, b := pivot9(lsw, lo, hi)
+
+	lo, pv, hi := pivot(lsw, lo, hi, 4) // median-of-9
+
+	if hi-lo <= 2*Mlr { // guard against short remaining range
+		return partition1(lsw, lo, pv, hi)
+	}
+
+	m := mid(lo, hi) // in pivot() lo/hi changed by possibly unequal amounts
+	a, b := mid(lo, m), mid(m, hi)
 
 	go func(l, h int) {
-		par <- part1(lsw, l, pv, h)
-	}(a+2, b-2)
+		par <- partition1(lsw, l, pv, h) // mid half range
+	}(a, b)
 
-	lo += 2
-	hi -= 2
-	a, b = part2(lsw, lo, a-1, pv, b+1, hi)
-	m := <-par // ar[:m] <= pivot, ar[m:] >= pivot
+	a, b = partition2(lsw, lo, a-1, pv, b+1, hi) // left/right quarter ranges
+	m = <-par
 
 	// only one gap is possible
 	for ; lo <= a; a-- { // gap left in low range?
@@ -249,80 +217,12 @@ func cdualpar(par chan int, lsw Lesswap, lo, hi int) int {
 	return m
 }
 
-// partition ar[l..h] into <= and >= pivot with pivot9(), skipping around a,b
-// assumes l+11 < h
-func part1s(lsw Lesswap, l, h int) int {
-	a, pv, b := pivot9(lsw, l, h)
-	l += 2
-	h -= 2
-	for {
-		if lsw(h, pv, 0, 0) { // avoid unnecessary comparisons
-			for {
-				if lsw(pv, l, h, l) {
-					break
-				}
-				l++
-				if l >= a { // until a & avoid a,a+1
-					l++
-					if a == pv {
-						goto next
-					}
-					l++
-					a = pv
-				}
-			}
-		} else if lsw(pv, l, 0, 0) { // extend ranges in balance
-			for {
-				h--
-				if b >= h { // until b & avoid b-1,b
-					h--
-					if b == pv {
-						goto next
-					}
-					h--
-					b = pv
-				}
-				if lsw(h, pv, h, l) {
-					break
-				}
-			}
-		}
-		l++
-		h--
-		if l >= a {
-			l++
-			if a == pv {
-				break
-			}
-			l++
-			a = pv
-		}
-		if b >= h {
-			h--
-			if b == pv {
-				goto next
-			}
-			h--
-			b = pv
-		}
-	}
-	if b >= h {
-		h--
-		if b != pv {
-			h--
-		}
-	}
-
-next:
-	return part0(lsw, l, pv, h)
-}
-
-// short range sort function, assumes Hmli <= no <= 2*Mlr
+// short range sort function, assumes Hmli <= no < Mlr
 func short(lsw Lesswap, lo, no int) {
 start:
 	n := lo + no
-	l, pv, h := pivot5(lsw, lo, n)
-	l = part1(lsw, l, pv, h) // partitioning
+	l, pv, h := pivot(lsw, lo, n, 2) // median-of-5
+	l = partition1(lsw, l, pv, h)
 	n -= l
 	no -= n + 1
 
@@ -331,19 +231,17 @@ start:
 		l, lo = lo, l
 	}
 
-	// branches below are optimal for fewer total jumps
-	if n < Hmli { // at least one insertion range?
-		insertion(lsw, l, l+n)
-
-		if no >= Hmli { // two insertion ranges?
-			goto start
-		}
-		insertion(lsw, lo, lo+no)
-		return
+	if n >= Hmli {
+		short(lsw, l, n) // recurse on the shorter range
+		goto start
 	}
+	insertion(lsw, l, l+n) // at least one insertion range
 
-	short(lsw, l, n) // start a recursive sort on the shorter range
-	goto start
+	if no >= Hmli {
+		goto start
+	}
+	insertion(lsw, lo, lo+no) // two insertion ranges
+	return
 }
 
 // Sort concurrently sorts underlying collection of length n via lsw().
@@ -378,7 +276,8 @@ func Sort(n int, lsw Lesswap) {
 	long = func(lo, no int) { // assumes no >= Mlr
 	start:
 		n := lo + no
-		l := part1s(lsw, lo, n) // partitioning with pivot9()
+		l, pv, h := pivot(lsw, lo, n, 3) // median-of-7
+		l = partition1(lsw, l, pv, h)
 		n -= l
 		no -= n + 1
 
@@ -404,29 +303,34 @@ func Sort(n int, lsw Lesswap) {
 
 		// max goroutines? not atomic but good enough
 		if ngr >= Mxg {
-			long(l, n) // start a recursive sort on the shorter range
+			long(l, n) // recurse on the shorter range
 			goto start
 		}
 
 		if atomic.AddUint32(&ngr, 1) == 0 { // increase goroutine counter
 			panic("Sort: long: counter overflow")
 		}
-		go glong(lo, no) // start a new-goroutine sort on the longer range
+		// new-goroutine sort on the longer range only when
+		// both ranges are big and max goroutines is not exceeded
+		go glong(lo, no)
 		lo, no = l, n
 		goto start
 	}
 
 	n-- // high indice
 	if n <= 2*Mlr {
-		if n >= Hmli {
-			short(lsw, 0, n) // single goroutine
+		if n >= Mlr {
+			long(0, n) // will not create goroutines or use ngr/done
+		} else if n >= Hmli {
+			short(lsw, 0, n)
 		} else if n > 0 {
 			insertion(lsw, 0, n)
 		}
 		return
 	}
 
-	done = make(chan int, 1)
+	// create channel only when concurrent partitioning & sorting
+	done = make(chan int, 1) // maybe this goroutine will be the last
 	lo, no := 0, n
 	for {
 		// concurrent dual partitioning with done
@@ -445,12 +349,14 @@ func Sort(n int, lsw Lesswap) {
 				panic("Sort: dual: counter overflow")
 			}
 			go glong(l, n)
+
 		} else if n >= Hmli {
 			short(lsw, l, n)
 		} else {
 			insertion(lsw, l, l+n)
 		}
 
+		// longer range big enough? max goroutines?
 		if no <= 2*Mlr || ngr >= Mxg {
 			break
 		}
