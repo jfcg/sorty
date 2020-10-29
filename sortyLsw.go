@@ -29,9 +29,9 @@ func IsSorted(n int, lsw Lesswap) int {
 	return 0
 }
 
-// insertion sort ar[lo..hi], assumes lo < hi
-func insertion(lsw Lesswap, lo, hi int) {
-
+// insertion sort ar[lo..lo+no], assumes no > 0
+func insertion(lsw Lesswap, lo, no int) {
+	hi := lo + no
 	for l, h := mid(lo, hi-1)-1, hi; l >= lo; {
 		lsw(h, l, h, l)
 		l--
@@ -235,12 +235,12 @@ start:
 		short(lsw, l, n) // recurse on the shorter range
 		goto start
 	}
-	insertion(lsw, l, l+n) // at least one insertion range
+	insertion(lsw, l, n) // at least one insertion range
 
 	if no >= Hmli {
 		goto start
 	}
-	insertion(lsw, lo, lo+no) // two insertion ranges
+	insertion(lsw, lo, no) // two insertion ranges
 	return
 }
 
@@ -291,7 +291,7 @@ func Sort(n int, lsw Lesswap) {
 			if n >= Hmli {
 				short(lsw, l, n)
 			} else {
-				insertion(lsw, l, l+n)
+				insertion(lsw, l, n)
 			}
 
 			if no >= Mlr { // two not-long ranges?
@@ -353,7 +353,7 @@ func Sort(n int, lsw Lesswap) {
 		} else if n >= Hmli {
 			short(lsw, l, n)
 		} else {
-			insertion(lsw, l, l+n)
+			insertion(lsw, l, n)
 		}
 
 		// longer range big enough? max goroutines?
