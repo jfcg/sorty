@@ -51,10 +51,10 @@ func insertion(lsw Lesswap, lo, no int) {
 	}
 }
 
-// pivot divides [l..h] range into 2n+1 equal intervals, sorts mid-points of them
+// pivot divides [lo..hi] range into 2n+1 equal intervals, sorts mid-points of them
 // to find median-of-2n+1 pivot. ensures lo/hi ranges have at least n elements by
 // moving 2n of mid-points to n positions at lo/hi ends.
-// assumes n > 0, l+4n+1 < h. returns start,pivot,end for partitioning.
+// assumes n > 0, lo+4n+1 < hi. returns start,pivot,end for partitioning.
 func pivot(lsw Lesswap, lo, hi, n int) (int, int, int) {
 	m := mid(lo, hi)
 	s := int(uint(hi-lo+1) / uint(2*n+1)) // step > 1
