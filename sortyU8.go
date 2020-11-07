@@ -49,43 +49,66 @@ func insertionU8(ar []uint64, hi int) {
 	}
 }
 
-// arrange median-of-5 as ar[l,l+1] <= ar[m] = pivot <= ar[h-1,h]
-// This allows ar[l,l+1] and ar[h-1,h] to assist pivoting of the two sub-ranges in
-// next pivot calls: 3 new values from a sub-range, 2 expectedly good values from
-// parent range. Users of pivotU8() must ensure l+5 < h < len(ar)
-func pivotU8(ar []uint64, l, h int) (int, uint64, int) {
-	m := mid(l, h)
-	vl, va, pv, vb, vh := ar[l], ar[l+1], ar[m], ar[h-1], ar[h]
+// pivotU8 divides [lo..hi] range into 2n+1 equal intervals, sorts mid-points of them
+// to find median-of-2n+1 pivot. ensures lo/hi ranges have at least n elements by
+// moving 2n of mid-points to n positions at lo/hi ends.
+// assumes n > 0, lo+4n+1 < hi. returns start,pivot,end for partitioning.
+func pivotU8(ar []uint64, lo, hi, n int) (int, uint64, int) {
+	m := mid(lo, hi)
+	s := int(uint(hi-lo+1) / uint(2*n+1)) // step > 1
+	l, h := m-n*s, m+n*s
 
-	if vh < vl {
-		vh, vl = vl, vh
+	for q, k := h, m-2*s; k >= l; { // insertion sort ar[m+i*s], i=-n..n
+		if ar[q] < ar[k] {
+			ar[k], ar[q] = ar[q], ar[k]
+		}
+		q -= s
+		k -= s
 	}
-	if vb < va {
-		vb, va = va, vb
-	}
-	if vh < vb {
-		vh, vb = vb, vh
-		vl, va = va, vl
+	for q := l; ; {
+		k := q
+		q += s
+		v := ar[q]
+		if v < ar[k] {
+			for {
+				ar[k+s] = ar[k]
+				k -= s
+				if k < l || v >= ar[k] {
+					break
+				}
+			}
+			ar[k+s] = v
+		}
+		if q >= h {
+			break
+		}
 	}
 
-	if pv < vl {
-		pv, vl = vl, pv
-	}
-	if vb < pv {
-		vb, pv = pv, vb
-		vl, va = va, vl
-	}
-	if pv < va {
-		pv, va = va, pv
+	// move hi mid-points to hi end
+	for {
+		ar[h], ar[hi] = ar[hi], ar[h]
+		h -= s
+		hi--
+		if h <= m {
+			break
+		}
 	}
 
-	ar[l], ar[l+1], ar[m], ar[h-1], ar[h] = vl, va, pv, vb, vh
-	return l + 2, pv, h - 2
+	// move lo mid-points to lo end
+	for {
+		ar[l], ar[lo] = ar[lo], ar[l]
+		l += s
+		lo++
+		if l >= m {
+			break
+		}
+	}
+	return lo, ar[m], hi // lo <= m-s+1, m+s-1 <= hi
 }
 
-// partition ar into >= and <= pivot, assumes l < h
-func partitionU8(ar []uint64, l, h int) int {
-	l, pv, h := pivotU8(ar, l, h)
+// partition ar[l..h] into <= and >= pivot, assumes l < h
+// returns m with ar[:m] <= pivot, ar[m:] >= pivot
+func partition1U8(ar []uint64, l int, pv uint64, h int) int {
 	for {
 		if ar[h] < pv { // avoid unnecessary comparisons
 			for {
@@ -116,32 +139,126 @@ func partitionU8(ar []uint64, l, h int) int {
 			break
 		}
 	}
-
 	if l == h && ar[h] < pv { // classify mid element
 		l++
 	}
 	return l
 }
 
+// rearrange ar[l..a] and ar[b..h] into <= and >= pivot, assumes l <= a < b <= h
+// gap (a..b) expands until one of the intervals is fully consumed
+func partition2U8(ar []uint64, l, a int, pv uint64, b, h int) (int, int) {
+	for {
+		if ar[b] < pv { // avoid unnecessary comparisons
+			for {
+				if pv < ar[a] {
+					ar[a], ar[b] = ar[b], ar[a]
+					break
+				}
+				a--
+				if a < l {
+					return a, b
+				}
+			}
+		} else if pv < ar[a] { // extend ranges in balance
+			for {
+				b++
+				if b > h {
+					return a, b
+				}
+				if ar[b] < pv {
+					ar[a], ar[b] = ar[b], ar[a]
+					break
+				}
+			}
+		}
+		a--
+		b++
+		if a < l || b > h {
+			return a, b
+		}
+	}
+}
+
+// concurrent dual partitioning
+// returns m with ar[:m] <= pivot, ar[m:] >= pivot
+func cdualparU8(par chan int, ar []uint64, lo, hi int) int {
+
+	lo, pv, hi := pivotU8(ar, lo, hi, 4) // median-of-9
+
+	m := mid(lo, hi)
+	a, b := mid(lo, m), mid(m, hi)
+
+	go func(l, h int) {
+		par <- partition1U8(ar, l, pv, h) // mid half range
+	}(a, b)
+
+	a, b = partition2U8(ar, lo, a-1, pv, b+1, hi) // left/right quarter ranges
+	m = <-par
+
+	// only one gap is possible
+	for ; lo <= a; a-- { // gap left in low range?
+		if pv < ar[a] {
+			m--
+			ar[a], ar[m] = ar[m], ar[a]
+		}
+	}
+	for ; b <= hi; b++ { // gap left in high range?
+		if ar[b] < pv {
+			ar[b], ar[m] = ar[m], ar[b]
+			m++
+		}
+	}
+	return m
+}
+
+// short range sort function, assumes Mli <= no < Mlr
+func shortU8(ar []uint64, lo, no int) {
+start:
+	n := lo + no
+	l, pv, h := pivotU8(ar, lo, n, 2) // median-of-5
+	l = partition1U8(ar, l, pv, h)
+	n -= l
+	no -= n + 1
+
+	if no < n {
+		n, no = no, n // [lo,lo+no] is the longer range
+		l, lo = lo, l
+	}
+
+	if n >= Mli {
+		shortU8(ar, l, n) // recurse on the shorter range
+		goto start
+	}
+	insertionU8(ar[l:], n) // at least one insertion range
+
+	if no >= Mli {
+		goto start
+	}
+	insertionU8(ar[lo:], no) // two insertion ranges
+	return
+}
+
 // SortU8 concurrently sorts ar in ascending order.
 func SortU8(ar []uint64) {
 	var (
 		ngr  = uint32(1)    // number of sorting goroutines including this
-		done chan bool      // end signal
-		srt  func(int, int) // recursive sort function
+		done chan int       // end signal
+		long func(int, int) // long range sort function
 	)
 
-	gsrt := func(lo, no int) { // new-goroutine sort function
-		srt(lo, no)
+	glong := func(lo, no int) { // new-goroutine sort function
+		long(lo, no)
 		if atomic.AddUint32(&ngr, ^uint32(0)) == 0 { // decrease goroutine counter
-			done <- false // we are the last, all done
+			done <- 0 // we are the last, all done
 		}
 	}
 
-	srt = func(lo, no int) { // assumes no >= Mli
+	long = func(lo, no int) { // assumes no >= Mlr
 	start:
 		n := lo + no
-		l := partitionU8(ar, lo, n)
+		l, pv, h := pivotU8(ar, lo, n, 3) // median-of-7
+		l = partition1U8(ar, l, pv, h)
 		n -= l
 		no -= n + 1
 
@@ -150,45 +267,83 @@ func SortU8(ar []uint64) {
 			l, lo = lo, l
 		}
 
-		// branches below are optimally laid out for fewer jumps
-		// at least one short range?
-		if n < Mli {
-			insertionU8(ar[l:], n)
+		// branches below are optimal for fewer total jumps
+		if n < Mlr { // at least one not-long range?
+			if n >= Mli {
+				shortU8(ar, l, n)
+			} else {
+				insertionU8(ar[l:], n)
+			}
 
-			if no >= Mli { // two short ranges?
+			if no >= Mlr { // two not-long ranges?
 				goto start
 			}
-			insertionU8(ar[lo:], no)
+			shortU8(ar, lo, no) // we know no >= Mli
 			return
 		}
 
-		// range not long enough for new goroutine? max goroutines?
-		// not atomic but good enough
-		if n < Mlr || ngr >= Mxg {
-			srt(l, n) // start a recursive sort on the shorter range
+		// max goroutines? not atomic but good enough
+		if ngr >= Mxg {
+			long(l, n) // recurse on the shorter range
 			goto start
 		}
 
 		if atomic.AddUint32(&ngr, 1) == 0 { // increase goroutine counter
-			panic("SortU8: counter overflow")
+			panic("SortU8: long: counter overflow")
 		}
-		go gsrt(lo, no) // start a new-goroutine sort on the longer range
+		// new-goroutine sort on the longer range only when
+		// both ranges are big and max goroutines is not exceeded
+		go glong(lo, no)
 		lo, no = l, n
 		goto start
 	}
 
 	n := len(ar) - 1 // high indice
-	if n > 2*Mlr {
-		done = make(chan bool, 1)
-		gsrt(0, n) // start master sort
-		<-done
+	if n <= 2*Mlr {
+		if n >= Mlr {
+			long(0, n) // will not create goroutines or use ngr/done
+		} else if n >= Mli {
+			shortU8(ar, 0, n)
+		} else if n > 0 {
+			insertionU8(ar, n)
+		}
 		return
 	}
-	if n >= Mli {
-		srt(0, n) // single goroutine
-		return
+
+	// create channel only when concurrent partitioning & sorting
+	done = make(chan int, 1) // maybe this goroutine will be the last
+	lo, no := 0, n
+	for {
+		// concurrent dual partitioning with done
+		l := cdualparU8(done, ar, lo, n)
+		n -= l
+		no -= n + 1
+
+		if no < n {
+			n, no = no, n // [lo,lo+no] is the longer range
+			l, lo = lo, l
+		}
+
+		// handle shorter range
+		if n >= Mlr {
+			if atomic.AddUint32(&ngr, 1) == 0 { // increase goroutine counter
+				panic("SortU8: dual: counter overflow")
+			}
+			go glong(l, n)
+
+		} else if n >= Mli {
+			shortU8(ar, l, n)
+		} else {
+			insertionU8(ar[l:], n)
+		}
+
+		// longer range big enough? max goroutines?
+		if no <= 2*Mlr || ngr >= Mxg {
+			break
+		}
+		n = lo + no // dual partition longer range
 	}
-	if n > 0 {
-		insertionU8(ar, n) // length 2+
-	}
+
+	glong(lo, no) // we know no >= Mlr
+	<-done
 }
