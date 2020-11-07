@@ -65,9 +65,7 @@ func pivot(lsw Lesswap, lo, hi, n int) (int, int, int) {
 		q -= s
 		k -= s
 	}
-	r := l + s
-	lsw(r, l, r, l)
-	for {
+	for r := l; ; {
 		k := r
 		r += s
 		q := r
