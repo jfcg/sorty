@@ -19,9 +19,9 @@ func IsSortedF4(ar []float32) int {
 	return 0
 }
 
-// insertion sort, assumes 0 < hi < len(ar)
-func insertionF4(ar []float32, hi int) {
-
+// insertion sort, assumes len(ar) >= 2
+func insertionF4(ar []float32) {
+	hi := len(ar) - 1
 	for l, h := (hi-3)>>1, hi; l >= 0; {
 		if ar[h] < ar[l] {
 			ar[l], ar[h] = ar[h], ar[l]
@@ -49,13 +49,13 @@ func insertionF4(ar []float32, hi int) {
 	}
 }
 
-// pivotF4 divides [lo..hi] range into 2n+1 equal intervals, sorts mid-points of them
+// pivotF4 divides ar into 2n+1 equal intervals, sorts mid-points of them
 // to find median-of-2n+1 pivot. ensures lo/hi ranges have at least n elements by
 // moving 2n of mid-points to n positions at lo/hi ends.
-// assumes n > 0, lo+4n+1 < hi. returns start,pivot,end for partitioning.
-func pivotF4(ar []float32, lo, hi, n int) (int, float32, int) {
-	m := mid(lo, hi)
-	s := int(uint(hi-lo+1) / uint(2*n+1)) // step > 1
+// assumes n > 0, len(ar) > 4n+2. returns remaining slice,pivot for partitioning.
+func pivotF4(ar []float32, n int) ([]float32, float32) {
+	m := len(ar) >> 1
+	s := len(ar) / (2*n + 1) // step > 1
 	l, h := m-n*s, m+n*s
 
 	for q, k := h, m-2*s; k >= l; { // insertion sort ar[m+i*s], i=-n..n
@@ -84,14 +84,16 @@ func pivotF4(ar []float32, lo, hi, n int) (int, float32, int) {
 		}
 	}
 
+	lo, hi := 0, len(ar)-1
+
 	// move hi mid-points to hi end
 	for {
 		ar[h], ar[hi] = ar[hi], ar[h]
 		h -= s
-		hi--
 		if h <= m {
 			break
 		}
+		hi--
 	}
 
 	// move lo mid-points to lo end
@@ -103,12 +105,14 @@ func pivotF4(ar []float32, lo, hi, n int) (int, float32, int) {
 			break
 		}
 	}
-	return lo, ar[m], hi // lo <= m-s+1, m+s-1 <= hi
+
+	return ar[lo:hi:hi], ar[m] // lo <= m-s+1, m+s-1 < hi
 }
 
-// partition ar[l..h] into <= and >= pivot, assumes l < h
-// returns m with ar[:m] <= pivot, ar[m:] >= pivot
-func partition1F4(ar []float32, l int, pv float32, h int) int {
+// partition ar into <= and >= pivot, assumes len(ar) >= 2
+// returns k with ar[:k] <= pivot, ar[k:] >= pivot
+func partition1F4(ar []float32, pv float32) int {
+	l, h := 0, len(ar)-1
 	for {
 		if ar[h] < pv { // avoid unnecessary comparisons
 			for {
@@ -145,9 +149,10 @@ func partition1F4(ar []float32, l int, pv float32, h int) int {
 	return l
 }
 
-// rearrange ar[l..a] and ar[b..h] into <= and >= pivot, assumes l <= a < b <= h
-// gap (a..b) expands until one of the intervals is fully consumed
-func partition2F4(ar []float32, l, a int, pv float32, b, h int) (int, int) {
+// rearrange ar[:a] and ar[b:] into <= and >= pivot, assumes 0 < a < b < len(ar)
+// gap (a,b) expands until one of the intervals is fully consumed
+func partition2F4(ar []float32, a, b int, pv float32) (int, int) {
+	a--
 	for {
 		if ar[b] < pv { // avoid unnecessary comparisons
 			for {
@@ -156,14 +161,14 @@ func partition2F4(ar []float32, l, a int, pv float32, b, h int) (int, int) {
 					break
 				}
 				a--
-				if a < l {
+				if a < 0 {
 					return a, b
 				}
 			}
 		} else if pv < ar[a] { // extend ranges in balance
 			for {
 				b++
-				if b > h {
+				if b >= len(ar) {
 					return a, b
 				}
 				if ar[b] < pv {
@@ -174,117 +179,130 @@ func partition2F4(ar []float32, l, a int, pv float32, b, h int) (int, int) {
 		}
 		a--
 		b++
-		if a < l || b > h {
+		if a < 0 || b >= len(ar) {
 			return a, b
 		}
 	}
 }
 
-// concurrent dual partitioning
-// returns m with ar[:m] <= pivot, ar[m:] >= pivot
-func cdualparF4(par chan int, ar []float32, lo, hi int) int {
+// concurrent dual partitioning of ar
+// returns short & long sub-ranges
+func cdualparF4(ar []float32, ch chan int) (s, l []float32) {
 
-	lo, pv, hi := pivotF4(ar, lo, hi, 4) // median-of-9
+	aq, pv := pivotF4(ar, 4) // median-of-9
+	k := len(aq) >> 1
+	a, b := k>>1, mid(k, len(aq))
 
-	m := mid(lo, hi)
-	a, b := mid(lo, m), mid(m, hi)
+	go func(ap []float32) {
+		ch <- partition1F4(ap, pv) // mid half range
+	}(aq[a:b:b])
 
-	go func(l, h int) {
-		par <- partition1F4(ar, l, pv, h) // mid half range
-	}(a, b)
-
-	a, b = partition2F4(ar, lo, a-1, pv, b+1, hi) // left/right quarter ranges
-	m = <-par
+	t := a
+	a, b = partition2F4(aq, a, b, pv) // left/right quarter ranges
+	k = <-ch
+	k += t // convert k indice to aq
 
 	// only one gap is possible
-	for ; lo <= a; a-- { // gap left in low range?
-		if pv < ar[a] {
-			m--
-			ar[a], ar[m] = ar[m], ar[a]
+	for ; 0 <= a; a-- { // gap left in low range?
+		if pv < aq[a] {
+			k--
+			aq[a], aq[k] = aq[k], aq[a]
 		}
 	}
-	for ; b <= hi; b++ { // gap left in high range?
-		if ar[b] < pv {
-			ar[b], ar[m] = ar[m], ar[b]
-			m++
+	for ; b < len(aq); b++ { // gap left in high range?
+		if aq[b] < pv {
+			aq[b], aq[k] = aq[k], aq[b]
+			k++
 		}
 	}
-	return m
+
+	k += 4 // convert k indice to ar
+
+	if k < len(ar)-k {
+		aq = ar[:k:k]
+		ar = ar[k:] // ar is the longer range
+	} else {
+		aq = ar[k:]
+		ar = ar[:k:k]
+	}
+	return aq, ar
 }
 
-// short range sort function, assumes Mli <= no < Mlr
-func shortF4(ar []float32, lo, no int) {
+// partitions ar with uniform median-of-2n+1 pivot and
+// returns short & long sub-ranges
+func partF4(ar []float32, n int) (s, l []float32) {
+
+	aq, pv := pivotF4(ar, n)
+	k := partition1F4(aq, pv)
+
+	k += n // convert k indice from aq to ar
+
+	if k < len(ar)-k {
+		aq = ar[:k:k]
+		ar = ar[k:] // ar is the longer range
+	} else {
+		aq = ar[k:]
+		ar = ar[:k:k]
+	}
+	return aq, ar
+}
+
+// short range sort function, assumes Mli < len(ar) <= Mlr
+func shortF4(ar []float32) {
 start:
-	n := lo + no
-	l, pv, h := pivotF4(ar, lo, n, 2) // median-of-5
-	l = partition1F4(ar, l, pv, h)
-	n -= l
-	no -= n + 1
+	aq, ar := partF4(ar, 2) // median-of-5 partitioning
 
-	if no < n {
-		n, no = no, n // [lo,lo+no] is the longer range
-		l, lo = lo, l
-	}
-
-	if n >= Mli {
-		shortF4(ar, l, n) // recurse on the shorter range
+	if len(aq) > Mli {
+		shortF4(aq) // recurse on the shorter range
 		goto start
 	}
-	insertionF4(ar[l:], n) // at least one insertion range
+	insertionF4(aq) // at least one insertion range
 
-	if no >= Mli {
+	if len(ar) > Mli {
 		goto start
 	}
-	insertionF4(ar[lo:], no) // two insertion ranges
+	insertionF4(ar) // two insertion ranges
 	return
 }
 
 // SortF4 concurrently sorts ar in ascending order.
 func SortF4(ar []float32) {
 	var (
-		ngr  = uint32(1)    // number of sorting goroutines including this
-		done chan int       // end signal
-		long func(int, int) // long range sort function
+		ngr  = uint32(1)     // number of sorting goroutines including this
+		done chan int        // end signal
+		long func([]float32) // long range sort function
 	)
 
-	glong := func(lo, no int) { // new-goroutine sort function
-		long(lo, no)
+	glong := func(ar []float32) { // new-goroutine sort function
+		long(ar)
 		if atomic.AddUint32(&ngr, ^uint32(0)) == 0 { // decrease goroutine counter
 			done <- 0 // we are the last, all done
 		}
 	}
 
-	long = func(lo, no int) { // assumes no >= Mlr
+	long = func(ar []float32) { // assumes len(ar) > Mlr
 	start:
-		n := lo + no
-		l, pv, h := pivotF4(ar, lo, n, 3) // median-of-7
-		l = partition1F4(ar, l, pv, h)
-		n -= l
-		no -= n + 1
-
-		if no < n {
-			n, no = no, n // [lo,lo+no] is the longer range
-			l, lo = lo, l
-		}
+		aq, ar := partF4(ar, 3) // median-of-7 partitioning
 
 		// branches below are optimal for fewer total jumps
-		if n < Mlr { // at least one not-long range?
-			if n >= Mli {
-				shortF4(ar, l, n)
+		if len(aq) <= Mlr { // at least one not-long range?
+
+			if len(aq) > Mli {
+				shortF4(aq)
 			} else {
-				insertionF4(ar[l:], n)
+				insertionF4(aq)
 			}
 
-			if no >= Mlr { // two not-long ranges?
+			if len(ar) > Mlr { // two not-long ranges?
 				goto start
 			}
-			shortF4(ar, lo, no) // we know no >= Mli
+			shortF4(ar) // we know len(ar) > Mli
 			return
 		}
 
 		// max goroutines? not atomic but good enough
 		if ngr >= Mxg {
-			long(l, n) // recurse on the shorter range
+			long(aq) // recurse on the shorter range
 			goto start
 		}
 
@@ -293,57 +311,50 @@ func SortF4(ar []float32) {
 		}
 		// new-goroutine sort on the longer range only when
 		// both ranges are big and max goroutines is not exceeded
-		go glong(lo, no)
-		lo, no = l, n
+		go glong(ar)
+		ar = aq
 		goto start
 	}
 
-	n := len(ar) - 1 // high indice
-	if n <= 2*Mlr {
-		if n >= Mlr {
-			long(0, n) // will not create goroutines or use ngr/done
-		} else if n >= Mli {
-			shortF4(ar, 0, n)
-		} else if n > 0 {
-			insertionF4(ar, n)
+	if len(ar) < 2*(Mlr+1) {
+		if len(ar) > Mlr {
+			long(ar) // will not create goroutines or use ngr/done
+
+		} else if len(ar) > Mli {
+			shortF4(ar)
+		} else if len(ar) > 1 {
+			insertionF4(ar)
 		}
 		return
 	}
 
 	// create channel only when concurrent partitioning & sorting
 	done = make(chan int, 1) // maybe this goroutine will be the last
-	lo, no := 0, n
 	for {
-		// concurrent dual partitioning with done
-		l := cdualparF4(done, ar, lo, n)
-		n -= l
-		no -= n + 1
-
-		if no < n {
-			n, no = no, n // [lo,lo+no] is the longer range
-			l, lo = lo, l
-		}
+		// median-of-9 concurrent dual partitioning with done
+		var aq []float32
+		aq, ar = cdualparF4(ar, done)
 
 		// handle shorter range
-		if n >= Mlr {
+		if len(aq) > Mlr {
 			if atomic.AddUint32(&ngr, 1) == 0 { // increase goroutine counter
 				panic("SortF4: dual: counter overflow")
 			}
-			go glong(l, n)
+			go glong(aq)
 
-		} else if n >= Mli {
-			shortF4(ar, l, n)
+		} else if len(aq) > Mli {
+			shortF4(aq)
 		} else {
-			insertionF4(ar[l:], n)
+			insertionF4(aq)
 		}
 
 		// longer range big enough? max goroutines?
-		if no <= 2*Mlr || ngr >= Mxg {
+		if len(ar) < 2*(Mlr+1) || ngr >= Mxg {
 			break
 		}
-		n = lo + no // dual partition longer range
+		// dual partition longer range
 	}
 
-	glong(lo, no) // we know no >= Mlr
+	glong(ar) // we know len(ar) > Mlr
 	<-done
 }
