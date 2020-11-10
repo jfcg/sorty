@@ -218,13 +218,14 @@ func cdualpar(lsw Lesswap, lo, hi int, ch chan int) int {
 	return m
 }
 
-// short range sort function, assumes Hmli <= hi-lo < Mlr
-func short(lsw Lesswap, lo, hi int) {
-start:
-	l, pv, h := pivot(lsw, lo, hi, 2) // median-of-5
+// partitions underlying collection with uniform median-of-2k+1
+// pivot and returns short & long sub-ranges
+func part(lsw Lesswap, Lo, Hi, k int) (l, n, h, lo, no, hi int) {
+	lo, hi = Lo, Hi
+	l, pv, h := pivot(lsw, lo, hi, k)
 	l = partition1(lsw, l, pv, h)
 	h = l - 1
-	no, n := h-lo, hi-l
+	no, n = h-lo, hi-l
 
 	if no < n {
 		n, no = no, n // [lo,hi] is the longer range
@@ -232,6 +233,14 @@ start:
 	} else {
 		h, hi = hi, h
 	}
+	return
+}
+
+// short range sort function, assumes Hmli <= hi-lo < Mlr
+func short(lsw Lesswap, lo, hi int) {
+start:
+	// median-of-5 partitioning
+	l, n, h, lo, no, hi := part(lsw, lo, hi, 2)
 
 	if n >= Hmli {
 		short(lsw, l, h) // recurse on the shorter range
@@ -277,17 +286,8 @@ func Sort(n int, lsw Lesswap) {
 
 	long = func(lo, hi int) { // assumes hi-lo >= Mlr
 	start:
-		l, pv, h := pivot(lsw, lo, hi, 3) // median-of-7
-		l = partition1(lsw, l, pv, h)
-		h = l - 1
-		no, n := h-lo, hi-l
-
-		if no < n {
-			n, no = no, n // [lo,hi] is the longer range
-			l, lo = lo, l
-		} else {
-			h, hi = hi, h
-		}
+		// median-of-7 partitioning
+		l, n, h, lo, no, hi := part(lsw, lo, hi, 3)
 
 		// branches below are optimal for fewer total jumps
 		if n < Mlr { // at least one not-long range?
@@ -337,7 +337,7 @@ func Sort(n int, lsw Lesswap) {
 	done = make(chan int, 1) // maybe this goroutine will be the last
 	lo, hi := 0, n
 	for {
-		// concurrent dual partitioning with done
+		// median-of-9 concurrent dual partitioning with done
 		l := cdualpar(lsw, lo, hi, done)
 		h := l - 1
 		no, n := h-lo, hi-l
