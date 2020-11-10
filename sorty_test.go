@@ -199,20 +199,19 @@ func compareS(ar, ap []string) {
 
 // median of four durations
 func medur(a, b, c, d time.Duration) time.Duration {
-	if d < a {
-		d, a = a, d
-	}
-	if b < a {
-		b, a = a, b
-	} else if d < b {
+	if d < b {
 		d, b = b, d
 	}
 	if c < a {
-		c = a
-	} else if d < c {
+		c, a = a, c
+	}
+	if d < c {
 		c = d
 	}
-	return (b + c) / 2
+	if b < a {
+		b = a
+	}
+	return (b + c) >> 1
 }
 
 func printSec(d time.Duration) float64 {
