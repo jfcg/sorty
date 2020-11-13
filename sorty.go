@@ -57,3 +57,9 @@ func Search(n int, fn func(int) bool) int {
 	}
 	return l
 }
+
+// synchronization variables for [g]long*()
+type syncVar struct {
+	ngr  uint32   // number of sorting goroutines
+	done chan int // end signal
+}

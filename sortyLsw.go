@@ -178,6 +178,11 @@ func partition2(lsw Lesswap, l, a, pv, b, h int) (int, int) {
 	}
 }
 
+// partition in new goroutine
+func gpart1(lsw Lesswap, l, pv, h int, ch chan int) {
+	ch <- partition1(lsw, l, pv, h)
+}
+
 // concurrent dual partitioning
 // returns m with ar[:m] <= pivot, ar[m:] >= pivot
 func cdualpar(lsw Lesswap, lo, hi int, ch chan int) int {
@@ -191,9 +196,7 @@ func cdualpar(lsw Lesswap, lo, hi int, ch chan int) int {
 	m := mid(lo, hi) // in pivot() lo/hi changed by possibly unequal amounts
 	a, b := mid(lo, m), mid(m, hi)
 
-	go func(l, h int) {
-		ch <- partition1(lsw, l, pv, h) // mid half range
-	}(a, b)
+	go gpart1(lsw, a, pv, b, ch) // mid half range
 
 	a, b = partition2(lsw, lo, a-1, pv, b+1, hi) // left/right quarter ranges
 	m = <-ch
@@ -255,6 +258,52 @@ start:
 	return
 }
 
+// new-goroutine sort function
+func glong(lsw Lesswap, lo, hi int, sv *syncVar) {
+	long(lsw, lo, hi, sv)
+
+	if atomic.AddUint32(&sv.ngr, ^uint32(0)) == 0 { // decrease goroutine counter
+		sv.done <- 0 // we are the last, all done
+	}
+}
+
+// long range sort function, assumes hi-lo >= Mlr
+func long(lsw Lesswap, lo, hi int, sv *syncVar) {
+start:
+	// median-of-7 partitioning
+	l, n, h, lo, no, hi := part(lsw, lo, hi, 3)
+
+	// branches below are optimal for fewer total jumps
+	if n < Mlr { // at least one not-long range?
+		if n >= Hmli {
+			short(lsw, l, h)
+		} else {
+			insertion(lsw, l, h)
+		}
+
+		if no >= Mlr { // two not-long ranges?
+			goto start
+		}
+		short(lsw, lo, hi) // we know no >= Hmli
+		return
+	}
+
+	// max goroutines? not atomic but good enough
+	if sv.ngr >= Mxg {
+		long(lsw, l, h, sv) // recurse on the shorter range
+		goto start
+	}
+
+	if atomic.AddUint32(&sv.ngr, 1) == 0 { // increase goroutine counter
+		panic("sorty: long: counter overflow")
+	}
+	// new-goroutine sort on the longer range only when
+	// both ranges are big and max goroutines is not exceeded
+	go glong(lsw, lo, hi, sv)
+	lo, hi = l, h
+	goto start
+}
+
 // Sort concurrently sorts underlying collection of length n via lsw().
 // Once for each non-trivial type you want to sort in a certain way, you
 // can implement a custom sorting routine (for a slice for example) as:
@@ -271,59 +320,11 @@ start:
 //  	sorty.Sort(len(c), lsw)
 //  }
 func Sort(n int, lsw Lesswap) {
-	var (
-		ngr  = uint32(1)    // number of sorting goroutines including this
-		done chan int       // end signal
-		long func(int, int) // long range sort function
-	)
-
-	glong := func(lo, hi int) { // new-goroutine sort function
-		long(lo, hi)
-		if atomic.AddUint32(&ngr, ^uint32(0)) == 0 { // decrease goroutine counter
-			done <- 0 // we are the last, all done
-		}
-	}
-
-	long = func(lo, hi int) { // assumes hi-lo >= Mlr
-	start:
-		// median-of-7 partitioning
-		l, n, h, lo, no, hi := part(lsw, lo, hi, 3)
-
-		// branches below are optimal for fewer total jumps
-		if n < Mlr { // at least one not-long range?
-			if n >= Hmli {
-				short(lsw, l, h)
-			} else {
-				insertion(lsw, l, h)
-			}
-
-			if no >= Mlr { // two not-long ranges?
-				goto start
-			}
-			short(lsw, lo, hi) // we know no >= Hmli
-			return
-		}
-
-		// max goroutines? not atomic but good enough
-		if ngr >= Mxg {
-			long(l, h) // recurse on the shorter range
-			goto start
-		}
-
-		if atomic.AddUint32(&ngr, 1) == 0 { // increase goroutine counter
-			panic("Sort: long: counter overflow")
-		}
-		// new-goroutine sort on the longer range only when
-		// both ranges are big and max goroutines is not exceeded
-		go glong(lo, hi)
-		lo, hi = l, h
-		goto start
-	}
 
 	n-- // high indice
 	if n <= 2*Mlr {
 		if n >= Mlr {
-			long(0, n) // will not create goroutines or use ngr/done
+			long(lsw, 0, n, nil) // will not create goroutines or use ngr/done
 
 		} else if n >= Hmli {
 			short(lsw, 0, n)
@@ -334,11 +335,12 @@ func Sort(n int, lsw Lesswap) {
 	}
 
 	// create channel only when concurrent partitioning & sorting
-	done = make(chan int, 1) // maybe this goroutine will be the last
+	sv := syncVar{1, // number of goroutines including this
+		make(chan int, 1)} // maybe this goroutine will be the last
 	lo, hi := 0, n
 	for {
 		// median-of-9 concurrent dual partitioning with done
-		l := cdualpar(lsw, lo, hi, done)
+		l := cdualpar(lsw, lo, hi, sv.done)
 		h := l - 1
 		no, n := h-lo, hi-l
 
@@ -351,10 +353,10 @@ func Sort(n int, lsw Lesswap) {
 
 		// handle shorter range
 		if n >= Mlr {
-			if atomic.AddUint32(&ngr, 1) == 0 { // increase goroutine counter
-				panic("Sort: dual: counter overflow")
+			if atomic.AddUint32(&sv.ngr, 1) == 0 { // increase goroutine counter
+				panic("sorty: Sort: counter overflow")
 			}
-			go glong(l, h)
+			go glong(lsw, l, h, &sv)
 
 		} else if n >= Hmli {
 			short(lsw, l, h)
@@ -363,12 +365,12 @@ func Sort(n int, lsw Lesswap) {
 		}
 
 		// longer range big enough? max goroutines?
-		if no <= 2*Mlr || ngr >= Mxg {
+		if no <= 2*Mlr || sv.ngr >= Mxg {
 			break
 		}
 		// dual partition longer range
 	}
 
-	glong(lo, hi) // we know hi-lo >= Mlr
-	<-done
+	glong(lsw, lo, hi, &sv) // we know hi-lo >= Mlr
+	<-sv.done
 }

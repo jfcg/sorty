@@ -178,6 +178,11 @@ func partition2I4(ar []int32, a, b int, pv int32) (int, int) {
 	}
 }
 
+// partition in new goroutine
+func gpart1I4(ar []int32, pv int32, ch chan int) {
+	ch <- partition1I4(ar, pv)
+}
+
 // concurrent dual partitioning of ar
 // returns short & long sub-ranges
 func cdualparI4(ar []int32, ch chan int) (s, l []int32) {
@@ -186,9 +191,7 @@ func cdualparI4(ar []int32, ch chan int) (s, l []int32) {
 	k := len(aq) >> 1
 	a, b := k>>1, mid(k, len(aq))
 
-	go func(ap []int32) {
-		ch <- partition1I4(ap, pv) // mid half range
-	}(aq[a:b:b])
+	go gpart1I4(aq[a:b:b], pv, ch) // mid half range
 
 	t := a
 	a, b = partition2I4(aq, a, b, pv) // left/right quarter ranges
@@ -258,60 +261,58 @@ start:
 	return
 }
 
-// SortI4 concurrently sorts ar in ascending order.
-func SortI4(ar []int32) {
-	var (
-		ngr  = uint32(1)   // number of sorting goroutines including this
-		done chan int      // end signal
-		long func([]int32) // long range sort function
-	)
+// new-goroutine sort function
+func glongI4(ar []int32, sv *syncVar) {
+	longI4(ar, sv)
 
-	glong := func(ar []int32) { // new-goroutine sort function
-		long(ar)
-		if atomic.AddUint32(&ngr, ^uint32(0)) == 0 { // decrease goroutine counter
-			done <- 0 // we are the last, all done
-		}
+	if atomic.AddUint32(&sv.ngr, ^uint32(0)) == 0 { // decrease goroutine counter
+		sv.done <- 0 // we are the last, all done
 	}
+}
 
-	long = func(ar []int32) { // assumes len(ar) > Mlr
-	start:
-		aq, ar := partI4(ar, 3) // median-of-7 partitioning
+// long range sort function, assumes len(ar) > Mlr
+func longI4(ar []int32, sv *syncVar) {
+start:
+	aq, ar := partI4(ar, 3) // median-of-7 partitioning
 
-		// branches below are optimal for fewer total jumps
-		if len(aq) <= Mlr { // at least one not-long range?
+	// branches below are optimal for fewer total jumps
+	if len(aq) <= Mlr { // at least one not-long range?
 
-			if len(aq) > Mli {
-				shortI4(aq)
-			} else {
-				insertionI4(aq)
-			}
-
-			if len(ar) > Mlr { // two not-long ranges?
-				goto start
-			}
-			shortI4(ar) // we know len(ar) > Mli
-			return
+		if len(aq) > Mli {
+			shortI4(aq)
+		} else {
+			insertionI4(aq)
 		}
 
-		// max goroutines? not atomic but good enough
-		if ngr >= Mxg {
-			long(aq) // recurse on the shorter range
+		if len(ar) > Mlr { // two not-long ranges?
 			goto start
 		}
+		shortI4(ar) // we know len(ar) > Mli
+		return
+	}
 
-		if atomic.AddUint32(&ngr, 1) == 0 { // increase goroutine counter
-			panic("SortI4: long: counter overflow")
-		}
-		// new-goroutine sort on the longer range only when
-		// both ranges are big and max goroutines is not exceeded
-		go glong(ar)
-		ar = aq
+	// max goroutines? not atomic but good enough
+	if sv.ngr >= Mxg {
+		longI4(aq, sv) // recurse on the shorter range
 		goto start
 	}
 
+	if atomic.AddUint32(&sv.ngr, 1) == 0 { // increase goroutine counter
+		panic("sorty: longI4: counter overflow")
+	}
+	// new-goroutine sort on the longer range only when
+	// both ranges are big and max goroutines is not exceeded
+	go glongI4(ar, sv)
+	ar = aq
+	goto start
+}
+
+// SortI4 concurrently sorts ar in ascending order.
+func SortI4(ar []int32) {
+
 	if len(ar) < 2*(Mlr+1) {
 		if len(ar) > Mlr {
-			long(ar) // will not create goroutines or use ngr/done
+			longI4(ar, nil) // will not create goroutines or use ngr/done
 
 		} else if len(ar) > Mli {
 			shortI4(ar)
@@ -322,18 +323,19 @@ func SortI4(ar []int32) {
 	}
 
 	// create channel only when concurrent partitioning & sorting
-	done = make(chan int, 1) // maybe this goroutine will be the last
+	sv := syncVar{1, // number of goroutines including this
+		make(chan int, 1)} // maybe this goroutine will be the last
 	for {
 		// median-of-9 concurrent dual partitioning with done
 		var aq []int32
-		aq, ar = cdualparI4(ar, done)
+		aq, ar = cdualparI4(ar, sv.done)
 
 		// handle shorter range
 		if len(aq) > Mlr {
-			if atomic.AddUint32(&ngr, 1) == 0 { // increase goroutine counter
-				panic("SortI4: dual: counter overflow")
+			if atomic.AddUint32(&sv.ngr, 1) == 0 { // increase goroutine counter
+				panic("sorty: SortI4: counter overflow")
 			}
-			go glong(aq)
+			go glongI4(aq, &sv)
 
 		} else if len(aq) > Mli {
 			shortI4(aq)
@@ -342,12 +344,12 @@ func SortI4(ar []int32) {
 		}
 
 		// longer range big enough? max goroutines?
-		if len(ar) < 2*(Mlr+1) || ngr >= Mxg {
+		if len(ar) < 2*(Mlr+1) || sv.ngr >= Mxg {
 			break
 		}
 		// dual partition longer range
 	}
 
-	glong(ar) // we know len(ar) > Mlr
-	<-done
+	glongI4(ar, &sv) // we know len(ar) > Mlr
+	<-sv.done
 }
