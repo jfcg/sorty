@@ -590,7 +590,7 @@ func TestOpt(t *testing.T) {
 	for i := 0; i < len(fn); i++ {
 		fmt.Printf("\n%s\n%s Mlr:\n", nm[i], s1)
 
-		_, _, _, n := opt.FindMinTri(2, s2, 480, 16, 80,
+		_, _, _, n := opt.FindMinTri(2, s2, 480, 16, 120,
 			func(x, y int) float64 {
 				Mli, Hmli, Mlr = x, x, y
 				return fn[i]()
