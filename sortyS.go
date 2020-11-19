@@ -178,20 +178,17 @@ func partition2S(ar []string, a, b int, pv string) (int, int) {
 	}
 }
 
-// partition in new goroutine
-func gpart1S(ar []string, pv string, ch chan int) {
-	ch <- partition1S(ar, pv)
-}
-
 // concurrent dual partitioning of ar
-// returns short & long sub-ranges
-func cdualparS(ar []string, ch chan int) (s, l []string) {
+// returns k with ar[:k] <= pivot, ar[k:] >= pivot
+func cdualparS(ar []string, ch chan int) int {
 
 	aq, pv := pivotS(ar, 4) // median-of-9
 	k := len(aq) >> 1
 	a, b := k>>1, mid(k, len(aq))
 
-	go gpart1S(aq[a:b:b], pv, ch) // mid half range
+	go func(al []string) {
+		ch <- partition1S(al, pv) // mid half range
+	}(aq[a:b:b])
 
 	t := a
 	a, b = partition2S(aq, a, b, pv) // left/right quarter ranges
@@ -211,42 +208,24 @@ func cdualparS(ar []string, ch chan int) (s, l []string) {
 			k++
 		}
 	}
-
-	k += 4 // convert k indice to ar
-
-	if k < len(ar)-k {
-		aq = ar[:k:k]
-		ar = ar[k:] // ar is the longer range
-	} else {
-		aq = ar[k:]
-		ar = ar[:k:k]
-	}
-	return aq, ar
-}
-
-// partitions ar with uniform median-of-2n+1 pivot and
-// returns short & long sub-ranges
-func partS(ar []string, n int) (s, l []string) {
-
-	aq, pv := pivotS(ar, n)
-	k := partition1S(aq, pv)
-
-	k += n // convert k indice from aq to ar
-
-	if k < len(ar)-k {
-		aq = ar[:k:k]
-		ar = ar[k:] // ar is the longer range
-	} else {
-		aq = ar[k:]
-		ar = ar[:k:k]
-	}
-	return aq, ar
+	return k + 4 // convert k indice to ar
 }
 
 // short range sort function, assumes Hmli < len(ar) <= Mlr
 func shortS(ar []string) {
 start:
-	aq, ar := partS(ar, 2) // median-of-5 partitioning
+	aq, pv := pivotS(ar, 2)
+	k := partition1S(aq, pv) // median-of-5 partitioning
+
+	k += 2 // convert k indice from aq to ar
+
+	if k < len(ar)-k {
+		aq = ar[:k:k]
+		ar = ar[k:] // ar is the longer range
+	} else {
+		aq = ar[k:]
+		ar = ar[:k:k]
+	}
 
 	if len(aq) > Hmli {
 		shortS(aq) // recurse on the shorter range
@@ -273,7 +252,18 @@ func glongS(ar []string, sv *syncVar) {
 // long range sort function, assumes len(ar) > Mlr
 func longS(ar []string, sv *syncVar) {
 start:
-	aq, ar := partS(ar, 3) // median-of-7 partitioning
+	aq, pv := pivotS(ar, 3)
+	k := partition1S(aq, pv) // median-of-7 partitioning
+
+	k += 3 // convert k indice from aq to ar
+
+	if k < len(ar)-k {
+		aq = ar[:k:k]
+		ar = ar[k:] // ar is the longer range
+	} else {
+		aq = ar[k:]
+		ar = ar[:k:k]
+	}
 
 	// branches below are optimal for fewer total jumps
 	if len(aq) <= Mlr { // at least one not-long range?
@@ -327,8 +317,16 @@ func SortS(ar []string) {
 		make(chan int, 1)} // maybe this goroutine will be the last
 	for {
 		// median-of-9 concurrent dual partitioning with done
+		k := cdualparS(ar, sv.done)
 		var aq []string
-		aq, ar = cdualparS(ar, sv.done)
+
+		if k < len(ar)-k {
+			aq = ar[:k:k]
+			ar = ar[k:] // ar is the longer range
+		} else {
+			aq = ar[k:]
+			ar = ar[:k:k]
+		}
 
 		// handle shorter range
 		if len(aq) > Mlr {

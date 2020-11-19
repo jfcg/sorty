@@ -178,20 +178,17 @@ func partition2I8(ar []int64, a, b int, pv int64) (int, int) {
 	}
 }
 
-// partition in new goroutine
-func gpart1I8(ar []int64, pv int64, ch chan int) {
-	ch <- partition1I8(ar, pv)
-}
-
 // concurrent dual partitioning of ar
-// returns short & long sub-ranges
-func cdualparI8(ar []int64, ch chan int) (s, l []int64) {
+// returns k with ar[:k] <= pivot, ar[k:] >= pivot
+func cdualparI8(ar []int64, ch chan int) int {
 
 	aq, pv := pivotI8(ar, 4) // median-of-9
 	k := len(aq) >> 1
 	a, b := k>>1, mid(k, len(aq))
 
-	go gpart1I8(aq[a:b:b], pv, ch) // mid half range
+	go func(al []int64) {
+		ch <- partition1I8(al, pv) // mid half range
+	}(aq[a:b:b])
 
 	t := a
 	a, b = partition2I8(aq, a, b, pv) // left/right quarter ranges
@@ -211,42 +208,24 @@ func cdualparI8(ar []int64, ch chan int) (s, l []int64) {
 			k++
 		}
 	}
-
-	k += 4 // convert k indice to ar
-
-	if k < len(ar)-k {
-		aq = ar[:k:k]
-		ar = ar[k:] // ar is the longer range
-	} else {
-		aq = ar[k:]
-		ar = ar[:k:k]
-	}
-	return aq, ar
-}
-
-// partitions ar with uniform median-of-2n+1 pivot and
-// returns short & long sub-ranges
-func partI8(ar []int64, n int) (s, l []int64) {
-
-	aq, pv := pivotI8(ar, n)
-	k := partition1I8(aq, pv)
-
-	k += n // convert k indice from aq to ar
-
-	if k < len(ar)-k {
-		aq = ar[:k:k]
-		ar = ar[k:] // ar is the longer range
-	} else {
-		aq = ar[k:]
-		ar = ar[:k:k]
-	}
-	return aq, ar
+	return k + 4 // convert k indice to ar
 }
 
 // short range sort function, assumes Mli < len(ar) <= Mlr
 func shortI8(ar []int64) {
 start:
-	aq, ar := partI8(ar, 2) // median-of-5 partitioning
+	aq, pv := pivotI8(ar, 2)
+	k := partition1I8(aq, pv) // median-of-5 partitioning
+
+	k += 2 // convert k indice from aq to ar
+
+	if k < len(ar)-k {
+		aq = ar[:k:k]
+		ar = ar[k:] // ar is the longer range
+	} else {
+		aq = ar[k:]
+		ar = ar[:k:k]
+	}
 
 	if len(aq) > Mli {
 		shortI8(aq) // recurse on the shorter range
@@ -273,7 +252,18 @@ func glongI8(ar []int64, sv *syncVar) {
 // long range sort function, assumes len(ar) > Mlr
 func longI8(ar []int64, sv *syncVar) {
 start:
-	aq, ar := partI8(ar, 3) // median-of-7 partitioning
+	aq, pv := pivotI8(ar, 3)
+	k := partition1I8(aq, pv) // median-of-7 partitioning
+
+	k += 3 // convert k indice from aq to ar
+
+	if k < len(ar)-k {
+		aq = ar[:k:k]
+		ar = ar[k:] // ar is the longer range
+	} else {
+		aq = ar[k:]
+		ar = ar[:k:k]
+	}
 
 	// branches below are optimal for fewer total jumps
 	if len(aq) <= Mlr { // at least one not-long range?
@@ -327,8 +317,16 @@ func SortI8(ar []int64) {
 		make(chan int, 1)} // maybe this goroutine will be the last
 	for {
 		// median-of-9 concurrent dual partitioning with done
+		k := cdualparI8(ar, sv.done)
 		var aq []int64
-		aq, ar = cdualparI8(ar, sv.done)
+
+		if k < len(ar)-k {
+			aq = ar[:k:k]
+			ar = ar[k:] // ar is the longer range
+		} else {
+			aq = ar[k:]
+			ar = ar[:k:k]
+		}
 
 		// handle shorter range
 		if len(aq) > Mlr {

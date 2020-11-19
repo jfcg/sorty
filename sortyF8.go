@@ -178,20 +178,17 @@ func partition2F8(ar []float64, a, b int, pv float64) (int, int) {
 	}
 }
 
-// partition in new goroutine
-func gpart1F8(ar []float64, pv float64, ch chan int) {
-	ch <- partition1F8(ar, pv)
-}
-
 // concurrent dual partitioning of ar
-// returns short & long sub-ranges
-func cdualparF8(ar []float64, ch chan int) (s, l []float64) {
+// returns k with ar[:k] <= pivot, ar[k:] >= pivot
+func cdualparF8(ar []float64, ch chan int) int {
 
 	aq, pv := pivotF8(ar, 4) // median-of-9
 	k := len(aq) >> 1
 	a, b := k>>1, mid(k, len(aq))
 
-	go gpart1F8(aq[a:b:b], pv, ch) // mid half range
+	go func(al []float64) {
+		ch <- partition1F8(al, pv) // mid half range
+	}(aq[a:b:b])
 
 	t := a
 	a, b = partition2F8(aq, a, b, pv) // left/right quarter ranges
@@ -211,42 +208,24 @@ func cdualparF8(ar []float64, ch chan int) (s, l []float64) {
 			k++
 		}
 	}
-
-	k += 4 // convert k indice to ar
-
-	if k < len(ar)-k {
-		aq = ar[:k:k]
-		ar = ar[k:] // ar is the longer range
-	} else {
-		aq = ar[k:]
-		ar = ar[:k:k]
-	}
-	return aq, ar
-}
-
-// partitions ar with uniform median-of-2n+1 pivot and
-// returns short & long sub-ranges
-func partF8(ar []float64, n int) (s, l []float64) {
-
-	aq, pv := pivotF8(ar, n)
-	k := partition1F8(aq, pv)
-
-	k += n // convert k indice from aq to ar
-
-	if k < len(ar)-k {
-		aq = ar[:k:k]
-		ar = ar[k:] // ar is the longer range
-	} else {
-		aq = ar[k:]
-		ar = ar[:k:k]
-	}
-	return aq, ar
+	return k + 4 // convert k indice to ar
 }
 
 // short range sort function, assumes Mli < len(ar) <= Mlr
 func shortF8(ar []float64) {
 start:
-	aq, ar := partF8(ar, 2) // median-of-5 partitioning
+	aq, pv := pivotF8(ar, 2)
+	k := partition1F8(aq, pv) // median-of-5 partitioning
+
+	k += 2 // convert k indice from aq to ar
+
+	if k < len(ar)-k {
+		aq = ar[:k:k]
+		ar = ar[k:] // ar is the longer range
+	} else {
+		aq = ar[k:]
+		ar = ar[:k:k]
+	}
 
 	if len(aq) > Mli {
 		shortF8(aq) // recurse on the shorter range
@@ -273,7 +252,18 @@ func glongF8(ar []float64, sv *syncVar) {
 // long range sort function, assumes len(ar) > Mlr
 func longF8(ar []float64, sv *syncVar) {
 start:
-	aq, ar := partF8(ar, 3) // median-of-7 partitioning
+	aq, pv := pivotF8(ar, 3)
+	k := partition1F8(aq, pv) // median-of-7 partitioning
+
+	k += 3 // convert k indice from aq to ar
+
+	if k < len(ar)-k {
+		aq = ar[:k:k]
+		ar = ar[k:] // ar is the longer range
+	} else {
+		aq = ar[k:]
+		ar = ar[:k:k]
+	}
 
 	// branches below are optimal for fewer total jumps
 	if len(aq) <= Mlr { // at least one not-long range?
@@ -327,8 +317,16 @@ func SortF8(ar []float64) {
 		make(chan int, 1)} // maybe this goroutine will be the last
 	for {
 		// median-of-9 concurrent dual partitioning with done
+		k := cdualparF8(ar, sv.done)
 		var aq []float64
-		aq, ar = cdualparF8(ar, sv.done)
+
+		if k < len(ar)-k {
+			aq = ar[:k:k]
+			ar = ar[k:] // ar is the longer range
+		} else {
+			aq = ar[k:]
+			ar = ar[:k:k]
+		}
 
 		// handle shorter range
 		if len(aq) > Mlr {
