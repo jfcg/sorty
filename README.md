@@ -1,7 +1,7 @@
-## sorty [![go report card](https://goreportcard.com/badge/github.com/jfcg/sorty)](https://goreportcard.com/report/github.com/jfcg/sorty) [![go.dev ref](/.github/godev.svg)](https://pkg.go.dev/github.com/jfcg/sorty)
+## sorty [![go report card](https://goreportcard.com/badge/github.com/jfcg/sorty)](https://goreportcard.com/report/github.com/jfcg/sorty) [![go.dev ref](https://raw.githubusercontent.com/jfcg/.github/main/godev.svg)](https://pkg.go.dev/github.com/jfcg/sorty)
 Type-specific, fast, concurrent/parallel sorting library.
 
-sorty is an in-place [QuickSort](https://en.wikipedia.org/wiki/Quicksort) implementation (with [InsertionSort](https://en.wikipedia.org/wiki/Insertion_sort) as subroutine) and does not require extra memory. Call corresponding Sort\*() to concurrently sort your slice (in ascending order) or collection. For example:
+sorty is an in-place [QuickSort](https://en.wikipedia.org/wiki/Quicksort) implementation (with [InsertionSort](https://en.wikipedia.org/wiki/Insertion_sort) as subroutine) and does not require extra memory. Call corresponding `Sort*()` to concurrently sort your slice (in ascending order) or collection. For example:
 ```
 sorty.SortS(string_slice) // native slice
 sorty.Sort(n, lesswap)    // lesswap() function based
@@ -9,7 +9,7 @@ sorty.Sort(n, lesswap)    // lesswap() function based
 If you have a pair of `Less()` and `Swap()`, then you can trivially write your [lesswap()](https://pkg.go.dev/github.com/jfcg/sorty#Sort) and sort your collection concurrently.
 Also, `lesswap()` operates faster than `sort.Interface` on generic collections.
 
-For each Sort\*() call, sorty uses up to `Mxg` (3 by default, including caller) concurrent goroutines and one channel. They are created **only when necessary**. Its `Mli/Hmli/Mlr` parameters are tuned to get the best performance, see below.
+For each `Sort*()` call, sorty uses up to `Mxg` (3 by default, including caller) concurrent goroutines and one channel. They are created **only when necessary**. `Mli/Hmli/Mlr` parameters are tuned to get the best performance, see below.
 Also, sorty uses [semantic](https://semver.org) versioning.
 
 ### Benchmarks
