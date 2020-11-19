@@ -178,11 +178,6 @@ func partition2(lsw Lesswap, l, a, pv, b, h int) (int, int) {
 	}
 }
 
-// partition in new goroutine
-func gpart1(lsw Lesswap, l, pv, h int, ch chan int) {
-	ch <- partition1(lsw, l, pv, h)
-}
-
 // concurrent dual partitioning
 // returns m with ar[:m] <= pivot, ar[m:] >= pivot
 func cdualpar(lsw Lesswap, lo, hi int, ch chan int) int {
@@ -196,9 +191,11 @@ func cdualpar(lsw Lesswap, lo, hi int, ch chan int) int {
 	m := mid(lo, hi) // in pivot() lo/hi changed by possibly unequal amounts
 	a, b := mid(lo, m), mid(m, hi)
 
-	go gpart1(lsw, a, pv, b, ch) // mid half range
+	go func(l, h int) {
+		ch <- partition1(lsw, l, pv, h) // mid half range
+	}(a+1, b-1)
 
-	a, b = partition2(lsw, lo, a-1, pv, b+1, hi) // left/right quarter ranges
+	a, b = partition2(lsw, lo, a, pv, b, hi) // left/right quarter ranges
 	m = <-ch
 
 	// only one gap is possible
@@ -221,14 +218,13 @@ func cdualpar(lsw Lesswap, lo, hi int, ch chan int) int {
 	return m
 }
 
-// partitions underlying collection with uniform median-of-2k+1
-// pivot and returns short & long sub-ranges
-func part(lsw Lesswap, Lo, Hi, k int) (l, n, h, lo, no, hi int) {
-	lo, hi = Lo, Hi
-	l, pv, h := pivot(lsw, lo, hi, k)
-	l = partition1(lsw, l, pv, h)
+// short range sort function, assumes Hmli <= hi-lo < Mlr
+func short(lsw Lesswap, lo, hi int) {
+start:
+	l, pv, h := pivot(lsw, lo, hi, 2)
+	l = partition1(lsw, l, pv, h) // median-of-5 partitioning
 	h = l - 1
-	no, n = h-lo, hi-l
+	no, n := h-lo, hi-l
 
 	if no < n {
 		n, no = no, n // [lo,hi] is the longer range
@@ -236,14 +232,6 @@ func part(lsw Lesswap, Lo, Hi, k int) (l, n, h, lo, no, hi int) {
 	} else {
 		h, hi = hi, h
 	}
-	return
-}
-
-// short range sort function, assumes Hmli <= hi-lo < Mlr
-func short(lsw Lesswap, lo, hi int) {
-start:
-	// median-of-5 partitioning
-	l, n, h, lo, no, hi := part(lsw, lo, hi, 2)
 
 	if n >= Hmli {
 		short(lsw, l, h) // recurse on the shorter range
@@ -270,8 +258,17 @@ func glong(lsw Lesswap, lo, hi int, sv *syncVar) {
 // long range sort function, assumes hi-lo >= Mlr
 func long(lsw Lesswap, lo, hi int, sv *syncVar) {
 start:
-	// median-of-7 partitioning
-	l, n, h, lo, no, hi := part(lsw, lo, hi, 3)
+	l, pv, h := pivot(lsw, lo, hi, 3)
+	l = partition1(lsw, l, pv, h) // median-of-7 partitioning
+	h = l - 1
+	no, n := h-lo, hi-l
+
+	if no < n {
+		n, no = no, n // [lo,hi] is the longer range
+		l, lo = lo, l
+	} else {
+		h, hi = hi, h
+	}
 
 	// branches below are optimal for fewer total jumps
 	if n < Mlr { // at least one not-long range?
