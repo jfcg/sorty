@@ -178,6 +178,11 @@ func partition2S(ar []string, a, b int, pv string) (int, int) {
 	}
 }
 
+// new-goroutine partition
+func gpart1S(ar []string, pv string, ch chan int) {
+	ch <- partition1S(ar, pv)
+}
+
 // concurrent dual partitioning of ar
 // returns k with ar[:k] <= pivot, ar[k:] >= pivot
 func cdualparS(ar []string, ch chan int) int {
@@ -186,9 +191,7 @@ func cdualparS(ar []string, ch chan int) int {
 	k := len(aq) >> 1
 	a, b := k>>1, mid(k, len(aq))
 
-	go func(al []string) {
-		ch <- partition1S(al, pv) // mid half range
-	}(aq[a:b:b])
+	go gpart1S(aq[a:b:b], pv, ch) // mid half range
 
 	t := a
 	a, b = partition2S(aq, a, b, pv) // left/right quarter ranges

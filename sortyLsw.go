@@ -178,6 +178,11 @@ func partition2(lsw Lesswap, l, a, pv, b, h int) (int, int) {
 	}
 }
 
+// new-goroutine partition
+func gpart1(lsw Lesswap, l, pv, h int, ch chan int) {
+	ch <- partition1(lsw, l, pv, h)
+}
+
 // concurrent dual partitioning
 // returns m with ar[:m] <= pivot, ar[m:] >= pivot
 func cdualpar(lsw Lesswap, lo, hi int, ch chan int) int {
@@ -191,9 +196,7 @@ func cdualpar(lsw Lesswap, lo, hi int, ch chan int) int {
 	m := mid(lo, hi) // in pivot() lo/hi changed by possibly unequal amounts
 	a, b := mid(lo, m), mid(m, hi)
 
-	go func(l, h int) {
-		ch <- partition1(lsw, l, pv, h) // mid half range
-	}(a+1, b-1)
+	go gpart1(lsw, a+1, pv, b-1, ch) // mid half range
 
 	a, b = partition2(lsw, lo, a, pv, b, hi) // left/right quarter ranges
 	m = <-ch

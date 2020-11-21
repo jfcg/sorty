@@ -178,6 +178,11 @@ func partition2F4(ar []float32, a, b int, pv float32) (int, int) {
 	}
 }
 
+// new-goroutine partition
+func gpart1F4(ar []float32, pv float32, ch chan int) {
+	ch <- partition1F4(ar, pv)
+}
+
 // concurrent dual partitioning of ar
 // returns k with ar[:k] <= pivot, ar[k:] >= pivot
 func cdualparF4(ar []float32, ch chan int) int {
@@ -186,9 +191,7 @@ func cdualparF4(ar []float32, ch chan int) int {
 	k := len(aq) >> 1
 	a, b := k>>1, mid(k, len(aq))
 
-	go func(al []float32) {
-		ch <- partition1F4(al, pv) // mid half range
-	}(aq[a:b:b])
+	go gpart1F4(aq[a:b:b], pv, ch) // mid half range
 
 	t := a
 	a, b = partition2F4(aq, a, b, pv) // left/right quarter ranges
