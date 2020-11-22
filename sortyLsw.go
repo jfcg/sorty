@@ -60,7 +60,7 @@ func insertion(lsw Lesswap, lo, hi int) {
 // assumes n > 0, lo+4n+1 < hi. returns start,pivot,end for partitioning.
 func pivot(lsw Lesswap, lo, hi, n int) (int, int, int) {
 	m := mid(lo, hi)
-	s := int(uint(hi-lo+1) / uint(2*n+1)) // step > 1
+	s := (hi - lo + 1) / (2*n + 1) // step > 1
 	l, h := m-n*s, m+n*s
 
 	for q, k := h, m-2*s; k >= l; { // insertion sort ar[m+i*s], i=-n..n
