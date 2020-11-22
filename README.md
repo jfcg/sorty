@@ -6,7 +6,7 @@ sorty is an in-place [QuickSort](https://en.wikipedia.org/wiki/Quicksort) implem
 sorty.SortS(string_slice) // native slice
 sorty.Sort(n, lesswap)    // lesswap() function based
 ```
-If you have a pair of `Less()` and `Swap()`, then you can trivially write your [lesswap()](https://pkg.go.dev/github.com/jfcg/sorty#Sort) and sort your collection concurrently.
+If you have a pair of `Less()` and `Swap()`, then you can trivially write your [`lesswap()`](https://pkg.go.dev/github.com/jfcg/sorty#Sort) and sort your collection concurrently.
 Also, `lesswap()` operates faster than `sort.Interface` on generic collections.
 
 For each `Sort*()` call, sorty uses up to `Mxg` (3 by default, including caller) concurrent goroutines and one channel. They are created **only when necessary**. `Mli/Hmli/Mlr` parameters are tuned to get the best performance, see below.
@@ -16,7 +16,7 @@ Also, sorty uses [semantic](https://semver.org) versioning.
 Comparing against [sort.Slice](https://golang.org/pkg/sort), [sortutil](https://github.com/twotwotwo/sorts), [zermelo](https://github.com/shawnsmithdev/zermelo) and [radix](https://github.com/yourbasic/radix) with Go version `1.15.5` on:
 
 Machine|CPU|OS|Kernel
-:---|:---|:---|:---
+:---:|:---|:---|:---
 R |Ryzen 1600   |Manjaro     |5.4.74
 X |Xeon Haswell |Ubuntu 20.04|5.4.0-1029-gcp
 i5|Core i5 4210M|Manjaro     |5.4.74
