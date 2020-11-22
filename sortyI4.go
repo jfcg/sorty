@@ -351,6 +351,9 @@ func SortI4(ar []int32) {
 		// dual partition longer range
 	}
 
-	glongI4(ar, &sv) // we know len(ar) > Mlr
-	<-sv.done
+	longI4(ar, &sv) // we know len(ar) > Mlr
+
+	if atomic.AddUint32(&sv.ngr, ^uint32(0)) != 0 { // decrease goroutine counter
+		<-sv.done // we are not the last, wait
+	}
 }

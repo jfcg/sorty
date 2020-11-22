@@ -371,6 +371,9 @@ func Sort(n int, lsw Lesswap) {
 		// dual partition longer range
 	}
 
-	glong(lsw, lo, hi, &sv) // we know hi-lo >= Mlr
-	<-sv.done
+	long(lsw, lo, hi, &sv) // we know hi-lo >= Mlr
+
+	if atomic.AddUint32(&sv.ngr, ^uint32(0)) != 0 { // decrease goroutine counter
+		<-sv.done // we are not the last, wait
+	}
 }
