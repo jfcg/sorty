@@ -317,7 +317,7 @@ func SortU8(ar []uint64) {
 
 	// create channel only when concurrent partitioning & sorting
 	sv := syncVar{1, // number of goroutines including this
-		make(chan int, 1)} // maybe this goroutine will be the last
+		make(chan int)} // end signal
 	for {
 		// median-of-9 concurrent dual partitioning with done
 		k := cdualparU8(ar, sv.done)
