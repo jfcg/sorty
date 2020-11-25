@@ -284,8 +284,8 @@ start:
 		return
 	}
 
-	// max goroutines? not atomic but good enough
-	if sv.ngr >= Mxg {
+	// single goroutine? max goroutines? not atomic but good enough
+	if sv == nil || sv.ngr >= Mxg {
 		longI8(aq, sv) // recurse on the shorter range
 		goto start
 	}
@@ -303,7 +303,7 @@ start:
 // SortI8 concurrently sorts ar in ascending order.
 func SortI8(ar []int64) {
 
-	if len(ar) < 2*(Mlr+1) {
+	if len(ar) < 2*(Mlr+1) || Mxg <= 1 {
 		if len(ar) > Mlr {
 			longI8(ar, nil) // will not create goroutines or use ngr/done
 

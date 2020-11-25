@@ -1,16 +1,21 @@
 ## sorty [![go report card](https://goreportcard.com/badge/github.com/jfcg/sorty)](https://goreportcard.com/report/github.com/jfcg/sorty) [![go.dev ref](https://raw.githubusercontent.com/jfcg/.github/main/godev.svg)](https://pkg.go.dev/github.com/jfcg/sorty)
-Type-specific, fast, concurrent/parallel sorting library.
+Type-specific, fast, efficient, concurrent/parallel sorting library.
 
-sorty is an in-place [QuickSort](https://en.wikipedia.org/wiki/Quicksort) implementation (with [InsertionSort](https://en.wikipedia.org/wiki/Insertion_sort) as subroutine) and does not require extra memory. Call corresponding `Sort*()` to concurrently sort your slice (in ascending order) or collection. For example:
+sorty is a concurrent [QuickSort](https://en.wikipedia.org/wiki/Quicksort) implementation (with [InsertionSort](https://en.wikipedia.org/wiki/Insertion_sort) as subroutine). It is in-place and does not require extra memory. You can call corresponding `Sort*()` to rapidly sort your slice (in ascending order) or collection. For example:
 ```
 sorty.SortS(string_slice) // native slice
 sorty.Sort(n, lesswap)    // lesswap() function based
 ```
-If you have a pair of `Less()` and `Swap()`, then you can trivially write your [`lesswap()`](https://pkg.go.dev/github.com/jfcg/sorty#Sort) and sort your collection concurrently.
-Also, `lesswap()` operates faster than `sort.Interface` on generic collections.
+If you have a pair of `Less()` and `Swap()`, then you can trivially write your [`lesswap()`](https://pkg.go.dev/github.com/jfcg/sorty#Sort) and sort your generic collections using multiple cpu cores rapidly.
 
-For each `Sort*()` call, sorty uses up to `Mxg` (3 by default, including caller) concurrent goroutines and one channel. They are created **only when necessary**. `Mli/Hmli/Mlr` parameters are tuned to get the best performance, see below.
-Also, sorty uses [semantic](https://semver.org) versioning.
+sorty is stable, well tested and pretty careful with resources & performance:
+- `lesswap()` operates faster than `sort.Interface` on generic collections.
+- For each `Sort*()` call, sorty uses up to [`Mxg`](https://pkg.go.dev/github.com/jfcg/sorty#pkg-variables) (3 by default, including caller) concurrent goroutines and up to one channel.
+- Goroutines and channel are created/used **only when necessary**.
+- `Mxg=1` (or a short input) yields single-goroutine sorting, no goroutines or channel will be created.
+- `Mxg` can be changed live, even during an ongoing `Sort*()` call.
+- `Mli,Hmli,Mlr` parameters are tuned to get the best performance, see below.
+- sorty API complies to [semantic](https://semver.org) versioning.
 
 ### Benchmarks
 Comparing against [sort.Slice](https://golang.org/pkg/sort), [sortutil](https://github.com/twotwotwo/sorts), [zermelo](https://github.com/shawnsmithdev/zermelo) and [radix](https://github.com/yourbasic/radix) with Go version `1.15.5` on:
@@ -68,11 +73,11 @@ First, make sure everything is fine:
 ```
 go test -short -timeout 1h
 ```
-You can tune `Mli, Mlr` for your platform/cpu with (optimization flags):
+You can tune `Mli,Hmli,Mlr` for your platform/cpu with (optimization flags):
 ```
 go test -timeout 2h -gcflags '-B -wb=0 -smallframes' -ldflags '-s -w'
 ```
-Now update `Mli, Mlr` in sorty.go and compare your tuned sorty with others:
+Now update `Mli,Hmli,Mlr` in sorty.go and compare your tuned sorty with others:
 ```
 go test -short -timeout 1h -gcflags '-B -wb=0 -smallframes' -ldflags '-s -w'
 ```

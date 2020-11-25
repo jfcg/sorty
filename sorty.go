@@ -29,8 +29,8 @@ var (
 )
 
 func init() {
-	if !(4097 > Mxg && Mxg > 1 && Mlr > 2*Mli && 2*Mli > 63) {
-		panic("sorty: check your Mxg/Mli/Mlr values")
+	if !(4097 > Mxg && Mxg > 0 && Mlr > 2*Mli && Mli > Hmli && Hmli > 15) {
+		panic("sorty: check your Mxg/Mli/Hmli/Mlr values")
 	}
 }
 

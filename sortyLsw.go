@@ -54,7 +54,7 @@ func insertion(lsw Lesswap, lo, hi int) {
 	}
 }
 
-// pivot divides [lo..hi] range into 2n+1 equal intervals, sorts mid-points of them
+// pivot divides ar[lo..hi] into 2n+1 equal intervals, sorts mid-points of them
 // to find median-of-2n+1 pivot. ensures lo/hi ranges have at least n elements by
 // moving 2n of mid-points to n positions at lo/hi ends.
 // assumes n > 0, lo+4n+1 < hi. returns start,pivot,end for partitioning.
@@ -275,6 +275,7 @@ start:
 
 	// branches below are optimal for fewer total jumps
 	if n < Mlr { // at least one not-long range?
+
 		if n >= Hmli {
 			short(lsw, l, h)
 		} else {
@@ -288,8 +289,8 @@ start:
 		return
 	}
 
-	// max goroutines? not atomic but good enough
-	if sv.ngr >= Mxg {
+	// single goroutine? max goroutines? not atomic but good enough
+	if sv == nil || sv.ngr >= Mxg {
 		long(lsw, l, h, sv) // recurse on the shorter range
 		goto start
 	}
@@ -322,7 +323,7 @@ start:
 func Sort(n int, lsw Lesswap) {
 
 	n-- // high indice
-	if n <= 2*Mlr {
+	if n <= 2*Mlr || Mxg <= 1 {
 		if n >= Mlr {
 			long(lsw, 0, n, nil) // will not create goroutines or use ngr/done
 
