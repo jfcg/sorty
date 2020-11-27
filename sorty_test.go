@@ -398,6 +398,27 @@ func sumtLswS(ar, ap []uint32) float64 {
 	return s
 }
 
+// sort and signal
+func sasU8(sd int64, al []uint64, ch chan bool) {
+	fstU8(sd, al, SortU8)
+	ch <- false
+}
+
+func sasF8(sd int64, al []float64, ch chan bool) {
+	fstF8(sd, al, SortF8)
+	ch <- false
+}
+
+func sasI4(sd int64, al []int32, ch chan bool) {
+	fstI4(sd, al, SortI4)
+	ch <- false
+}
+
+func sasI8(sd int64, al []int64, ch chan bool) {
+	fstI8(sd, al, SortI8)
+	ch <- false
+}
+
 // main test routine, needs -short flag
 func TestShort(t *testing.T) {
 	if !testing.Short() {
@@ -460,22 +481,14 @@ func TestShort(t *testing.T) {
 	// Is Sort*() multi-goroutine safe?
 	fmt.Println("\nConcurrent calls to Sort*()")
 	name = "multi"
-	K, L, ch := N/2, N/4, make(chan bool, 1)
+	K, L, ch := N/2, N/4, make(chan bool)
 	Mxg = 2
 
 	// two concurrent calls to SortU8() & SortF8() each
 	// up to 8 goroutines total
-	sasU8 := func(sd int64, al []uint64) {
-		fstU8(sd, al, SortU8) // sort and signal
-		ch <- false
-	}
-	sasF8 := func(sd int64, al []float64) {
-		fstF8(sd, al, SortF8)
-		ch <- false
-	}
-	go sasU8(21, bu2[:L])
-	go sasF8(22, af2[:L])
-	go sasU8(21, bu2[L:])
+	go sasU8(21, bu2[:L], ch)
+	go sasF8(22, af2[:L], ch)
+	go sasU8(21, bu2[L:], ch)
 	fstF8(22, af2[L:], SortF8)
 
 	for i := 3; i > 0; i-- {
@@ -486,17 +499,9 @@ func TestShort(t *testing.T) {
 
 	// two concurrent calls to SortI4() & SortI8() each
 	// up to 8 goroutines total
-	sasI4 := func(sd int64, al []int32) {
-		fstI4(sd, al, SortI4) // sort and signal
-		ch <- false
-	}
-	sasI8 := func(sd int64, al []int64) {
-		fstI8(sd, al, SortI8)
-		ch <- false
-	}
-	go sasI4(23, ai[:K])
-	go sasI8(24, bi2[:L])
-	go sasI4(23, ai[K:])
+	go sasI4(23, ai[:K], ch)
+	go sasI8(24, bi2[:L], ch)
+	go sasI4(23, ai[K:], ch)
 	fstI8(24, bi2[L:], SortI8)
 
 	for i := 3; i > 0; i-- {
@@ -506,24 +511,14 @@ func TestShort(t *testing.T) {
 	compareU4(au[:K], au[K:])
 
 	// Sort()ing short arrays
-	name = "shortLsw"
-	lsw := func(i, k, r, s int) bool {
-		if iar[i] < iar[k] {
-			if r != s {
-				iar[r], iar[s] = iar[s], iar[r]
-			}
-			return true
-		}
-		return false
-	}
 	for l := -3; l < 2; l++ {
-		Sort(l, lsw)
+		Sort(l, iarlsw)
 		if iar[0] != 9 || iar[1] != 8 {
 			t.Fatal("Sort()ing short arrays does not work")
 		}
 	}
 	for l := 2; l < 4; l++ {
-		Sort(l, lsw)
+		Sort(l, iarlsw)
 		for k := 2; k >= 0; k-- {
 			if iar[k] != iar[12+k-l] {
 				t.Fatal("Sort()ing short arrays does not work")
@@ -532,14 +527,12 @@ func TestShort(t *testing.T) {
 	}
 
 	// SortI() calls SortI4() (on 32-bit) or SortI8() (on 64-bit).
-	name = "SortI"
 	SortI(iar)
 	if 0 != IsSortedI(iar) {
 		t.Fatal("SortI() does not work")
 	}
 
 	// test Search()
-	name = "Search"
 	n := len(iar)
 	k := Search(n, func(i int) bool { return iar[i] >= 5 })
 	l := Search(n, func(i int) bool { return iar[i] >= 10 })
@@ -553,7 +546,22 @@ var iar = []int{
 	-9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 1, 2, 0, -1,
 	9, 8, 7, 6, 5, 4, 3, 2, 1, 0, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 0, -1,
 	-9, 8, -7, 6, -5, 4, -3, 2, -1, 0, 9, -8, 7, -6, 5, -4, 3, -2, 1, 0, 1, 2, 0, -1,
+	9, 8, 7, 6, 5, 4, 3, 2, 1, 0, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 0, -1,
 	-9, -8, -7, -6, -5, -4, -3, -2, -1, 0, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, -9}
+
+func iarlsw(i, k, r, s int) bool {
+	if iar[i] < iar[k] {
+		if r != s {
+			iar[r], iar[s] = iar[s], iar[r]
+		}
+		return true
+	}
+	return false
+}
+
+func printOpt(x, y int, v float64) {
+	fmt.Printf("%3d %3d %5.2fs\n", x, y, v)
+}
 
 // Optimize max array lengths for insertion sort/recursion (Mli,Mlr)
 // takes a long time, run without -short flag
@@ -563,14 +571,10 @@ func TestOpt(t *testing.T) {
 	}
 	tst = t
 
-	pro := func(x, y int, v float64) { // print optimum
-		fmt.Printf("%3d %3d %5.2fs\n", x, y, v)
-	}
 	as := make([]float32, N)
 	aq := make([]float32, 0, N)
 	ar, ap := F4toU4(&as), F4toU4(&aq)
 
-	name = "opt"
 	nm := [...]string{"SortU4/F4", "SortS", "Lsw-U4/F4", "Lsw-S"}
 	fn := [...]func() float64{
 		// optimize for native arithmetic types
@@ -594,7 +598,7 @@ func TestOpt(t *testing.T) {
 			func(x, y int) float64 {
 				Mli, Hmli, Mlr = x, x, y
 				return fn[i]()
-			}, pro)
+			}, printOpt)
 		fmt.Println(n, "calls")
 
 		s1, s2 = "Hmli", 48
