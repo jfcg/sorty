@@ -293,10 +293,9 @@ start:
 	if atomic.AddUint32(&sv.ngr, 1) == 0 { // increase goroutine counter
 		panic("sorty: longF4: counter overflow")
 	}
-	// new-goroutine sort on the longer range only when
+	// new-goroutine sort on the shorter range only when
 	// both ranges are big and max goroutines is not exceeded
-	go glongF4(ar, sv)
-	ar = aq
+	go glongF4(aq, sv)
 	goto start
 }
 
