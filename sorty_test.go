@@ -282,11 +282,11 @@ func mfcS(tn string, srt func([]string), ar, ap []uint32) float64 {
 
 var srnm = []byte("sorty-0")
 
-// return sum of SortU4() times for 2..4 goroutines
+// return sum of SortU4() times for 1..4 goroutines
 // compare with ap and among themselves
 func sumtU4(ar, ap []uint32) float64 {
 	s := .0
-	for Mxg = 2; Mxg < 5; Mxg++ {
+	for Mxg = 1; Mxg < 5; Mxg++ {
 		srnm[6] = byte(Mxg + '0')
 		s += mfcU4(string(srnm), SortU4, ar, ap)
 		ap, ar = ar, ap[:cap(ap)]
@@ -294,11 +294,11 @@ func sumtU4(ar, ap []uint32) float64 {
 	return s
 }
 
-// return sum of SortF4() times for 2..4 goroutines
+// return sum of SortF4() times for 1..4 goroutines
 // compare with ap and among themselves
 func sumtF4(ar, ap []float32) float64 {
 	s := .0
-	for Mxg = 2; Mxg < 5; Mxg++ {
+	for Mxg = 1; Mxg < 5; Mxg++ {
 		srnm[6] = byte(Mxg + '0')
 		s += mfcF4(string(srnm), SortF4, ar, ap)
 		ap, ar = ar, ap[:cap(ap)]
@@ -306,11 +306,11 @@ func sumtF4(ar, ap []float32) float64 {
 	return s
 }
 
-// return sum of SortS() times for 2..4 goroutines
+// return sum of SortS() times for 1..4 goroutines
 // compare with ap and among themselves
 func sumtS(ar, ap []uint32) float64 {
 	s := .0
-	for Mxg = 2; Mxg < 5; Mxg++ {
+	for Mxg = 1; Mxg < 5; Mxg++ {
 		srnm[6] = byte(Mxg + '0')
 		s += mfcS(string(srnm), SortS, ar, ap)
 		ap, ar = ar, ap[:cap(ap)]
@@ -334,11 +334,11 @@ func sort3i(aq []uint32) {
 
 var lswnm = []byte("sortyLsw-0")
 
-// return sum of sort3i() times for 2..4 goroutines
+// return sum of sort3i() times for 1..4 goroutines
 // compare with ap and among themselves
 func sumtLswU4(ar, ap []uint32) float64 {
 	s := .0
-	for Mxg = 2; Mxg < 5; Mxg++ {
+	for Mxg = 1; Mxg < 5; Mxg++ {
 		lswnm[9] = byte(Mxg + '0')
 		s += mfcU4(string(lswnm), sort3i, ar, ap)
 		ap, ar = ar, ap[:cap(ap)]
@@ -360,11 +360,11 @@ func sort3f(aq []float32) {
 	Sort(len(aq), lsw)
 }
 
-// return sum of sort3f() times for 2..4 goroutines
+// return sum of sort3f() times for 1..4 goroutines
 // compare with ap and among themselves
 func sumtLswF4(ar, ap []float32) float64 {
 	s := .0
-	for Mxg = 2; Mxg < 5; Mxg++ {
+	for Mxg = 1; Mxg < 5; Mxg++ {
 		lswnm[9] = byte(Mxg + '0')
 		s += mfcF4(string(lswnm), sort3f, ar, ap)
 		ap, ar = ar, ap[:cap(ap)]
@@ -386,11 +386,11 @@ func sort3s(aq []string) {
 	Sort(len(aq), lsw)
 }
 
-// return sum of sort3s() times for 2..4 goroutines
+// return sum of sort3s() times for 1..4 goroutines
 // compare with ap and among themselves
 func sumtLswS(ar, ap []uint32) float64 {
 	s := .0
-	for Mxg = 2; Mxg < 5; Mxg++ {
+	for Mxg = 1; Mxg < 5; Mxg++ {
 		lswnm[9] = byte(Mxg + '0')
 		s += mfcS(string(lswnm), sort3s, ar, ap)
 		ap, ar = ar, ap[:cap(ap)]
@@ -572,21 +572,24 @@ func TestOpt(t *testing.T) {
 	tst = t
 
 	as := make([]float32, N)
-	aq := make([]float32, 0, N)
-	ar, ap := F4toU4(&as), F4toU4(&aq)
+	aq := make([]float32, N)
+	ar := F4toU4(&as)
+	ap := make([]uint32, N)
 
-	nm := [...]string{"SortU4/F4", "SortS", "Lsw-U4/F4", "Lsw-S"}
+	nm := [...]string{"SortU4/F4", "Lsw-U4/F4", "SortS", "Lsw-S"}
 	fn := [...]func() float64{
 		// optimize for native arithmetic types
-		func() float64 { return sumtU4(ar, ap) + sumtF4(as, aq) },
-
-		// optimize for native string
-		func() float64 { return sumtS(ar, ap) },
+		func() float64 { return sumtU4(ar, ap[:0]) + sumtF4(as, aq[:0]) },
 
 		// optimize for function-based sort
+		// carry over ap,aq for further comparison
 		func() float64 { return sumtLswU4(ar, ap) + sumtLswF4(as, aq) },
 
+		// optimize for native string
+		func() float64 { return sumtS(ar, ap[:0]) },
+
 		// optimize for function-based sort (string key)
+		// carry over ap for further comparison
 		func() float64 { return sumtLswS(ar, ap) }}
 
 	s1, s2 := "Mli", 96
