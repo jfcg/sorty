@@ -6,7 +6,7 @@ sorty is a concurrent [QuickSort](https://en.wikipedia.org/wiki/Quicksort) imple
 sorty.SortS(string_slice) // native slice
 sorty.Sort(n, lesswap)    // lesswap() function based
 ```
-If you have a pair of `Less()` and `Swap()`, then you can trivially write your [`lesswap()`](https://pkg.go.dev/github.com/jfcg/sorty#Sort) and sort your generic collections using multiple cpu cores rapidly.
+If you have a pair of `Less()` and `Swap()`, then you can trivially write your [`lesswap()`](https://pkg.go.dev/github.com/jfcg/sorty#Sort) and sort your generic collections using multiple cpu cores quickly.
 
 sorty is stable, well tested and pretty careful with resources & performance:
 - `lesswap()` operates faster than `sort.Interface` on generic collections.
@@ -15,58 +15,64 @@ sorty is stable, well tested and pretty careful with resources & performance:
 - `Mxg=1` (or a short input) yields single-goroutine sorting, no goroutines or channel will be created.
 - `Mxg` can be changed live, even during an ongoing `Sort*()` call.
 - `Mli,Hmli,Mlr` parameters are tuned to get the best performance, see below.
-- sorty API complies to [semantic](https://semver.org) versioning.
+- sorty API adheres to [semantic](https://semver.org) versioning.
 
 ### Benchmarks
 Comparing against [sort.Slice](https://golang.org/pkg/sort), [sortutil](https://github.com/twotwotwo/sorts), [zermelo](https://github.com/shawnsmithdev/zermelo) and [radix](https://github.com/yourbasic/radix) with Go version `1.15.5` on:
 
 Machine|CPU|OS|Kernel
 :---:|:---|:---|:---
-R |Ryzen 1600   |Manjaro     |5.4.74
+R |Ryzen 1600   |Manjaro     |5.4.80
 X |Xeon Haswell |Ubuntu 20.04|5.4.0-1029-gcp
-i5|Core i5 4210M|Manjaro     |5.4.74
+i5|Core i5 4210M|Manjaro     |5.4.80
 
 Sorting random uint32 array (in seconds):
 
 Library(-Mxg)|R|X|i5
-:---|:---:|:---:|:---:
-sort.Slice|16.03|17.94|16.10
-sortutil  | 2.33| 2.93| 3.85
-zermelo   | 2.01| 1.76| 1.09
-sorty-2   | 3.32| 3.76| 3.21
-sorty-3   | 2.30| 2.60| 2.66
-sorty-4   | 1.77| 1.95| 2.30
-sortyLsw-2| 7.23| 8.21| 7.66
-sortyLsw-3| 4.92| 5.20| 6.02
-sortyLsw-4| 4.14| 4.48| 5.46
+:---|---:|---:|---:
+sort.Slice|16.11|17.34|16.10
+sortutil  | 2.35| 2.88| 3.87
+zermelo   | 2.00| 1.74| 1.09
+sorty-1   | 6.44| 7.18| 6.14
+sorty-2   | 3.35| 3.63| 3.20
+sorty-3   | 2.41| 2.53| 2.66
+sorty-4   | 1.96| 1.92| 2.31
+sortyLsw-1|13.92|15.45|14.51
+sortyLsw-2| 7.27| 7.88| 7.58
+sortyLsw-3| 5.13| 5.23| 6.07
+sortyLsw-4| 4.05| 4.13| 5.37
 
 Sorting random float32 array (in seconds):
 
 Library(-Mxg)|R|X|i5
-:---|:---:|:---:|:---:
-sort.Slice|17.41|18.95|17.20
-sortutil  | 2.90| 3.15| 4.47
-zermelo   | 4.63| 3.98| 3.17
-sorty-2   | 4.00| 4.19| 3.64
-sorty-3   | 2.79| 2.72| 2.85
-sorty-4   | 2.33| 2.36| 2.54
-sortyLsw-2| 7.95| 8.59| 7.97
-sortyLsw-3| 5.39| 5.84| 6.27
-sortyLsw-4| 4.47| 4.48| 5.62
+:---|---:|---:|---:
+sort.Slice|17.49|18.18|17.21
+sortutil  | 2.89| 3.07| 4.51
+zermelo   | 4.64| 3.82| 3.17
+sorty-1   | 7.78| 7.95| 6.96
+sorty-2   | 4.00| 4.04| 3.64
+sorty-3   | 2.78| 2.61| 2.84
+sorty-4   | 2.39| 2.25| 2.54
+sortyLsw-1|15.37|16.19|15.31
+sortyLsw-2| 7.97| 8.25| 8.00
+sortyLsw-3| 5.65| 5.55| 6.38
+sortyLsw-4| 4.37| 4.34| 5.62
 
 Sorting random string array (in seconds):
 
 Library(-Mxg)|R|X|i5
-:---|:---:|:---:|:---:
-sort.Slice| 8.34| 9.48| 8.44
-sortutil  | 1.65| 2.03| 2.27
-radix     | 4.29| 4.40| 3.50
-sorty-2   | 2.90| 3.55| 3.39
-sorty-3   | 1.99| 2.48| 3.07
-sorty-4   | 1.76| 1.96| 2.83
-sortyLsw-2| 3.76| 4.55| 4.36
-sortyLsw-3| 2.57| 2.94| 3.99
-sortyLsw-4| 2.24| 2.50| 3.75
+:---|---:|---:|---:
+sort.Slice| 8.28| 9.53| 8.46
+sortutil  | 1.64| 2.11| 2.28
+radix     | 4.27| 4.49| 3.50
+sorty-1   | 5.82| 7.05| 6.32
+sorty-2   | 2.89| 3.51| 3.40
+sorty-3   | 2.00| 2.40| 3.07
+sorty-4   | 1.64| 1.85| 2.84
+sortyLsw-1| 7.50| 8.82| 8.10
+sortyLsw-2| 3.75| 4.30| 4.38
+sortyLsw-3| 2.58| 2.91| 3.99
+sortyLsw-4| 2.19| 2.37| 3.75
 
 ### Testing & Parameter Tuning
 First, make sure everything is fine:
@@ -75,7 +81,7 @@ go test -short -timeout 1h
 ```
 You can tune `Mli,Hmli,Mlr` for your platform/cpu with (optimization flags):
 ```
-go test -timeout 2h -gcflags '-B -wb=0 -smallframes' -ldflags '-s -w'
+go test -timeout 3h -gcflags '-B -wb=0 -smallframes' -ldflags '-s -w'
 ```
 Now update `Mli,Hmli,Mlr` in sorty.go and compare your tuned sorty with others:
 ```
