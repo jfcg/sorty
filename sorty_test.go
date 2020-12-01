@@ -138,7 +138,7 @@ func implant(ar []uint32, fill bool) ([]string, []uint32) {
 	n := len(ar) / (t + 1)
 
 	t *= n // total string headers space
-	ss := sixb.I4tSs(ar[:t])
+	ss := sixb.I4tSs(ar[:t:t])
 
 	if fill {
 		for i, k := n-1, len(ar)-1; i >= 0; i, k = i-1, k-1 {
@@ -486,29 +486,29 @@ func TestShort(t *testing.T) {
 
 	// two concurrent calls to SortU8() & SortF8() each
 	// up to 8 goroutines total
-	go sasU8(21, bu2[:L], ch)
-	go sasF8(22, af2[:L], ch)
+	go sasU8(21, bu2[:L:L], ch)
+	go sasF8(22, af2[:L:L], ch)
 	go sasU8(21, bu2[L:], ch)
 	fstF8(22, af2[L:], SortF8)
 
 	for i := 3; i > 0; i-- {
 		<-ch // wait others
 	}
-	compareU4(bu[:K], bu[K:]) // same buffers
-	compareU4(au[:K], au[K:])
+	compareU4(bu[:K:K], bu[K:]) // same buffers
+	compareU4(au[:K:K], au[K:])
 
 	// two concurrent calls to SortI4() & SortI8() each
 	// up to 8 goroutines total
-	go sasI4(23, ai[:K], ch)
-	go sasI8(24, bi2[:L], ch)
+	go sasI4(23, ai[:K:K], ch)
+	go sasI8(24, bi2[:L:L], ch)
 	go sasI4(23, ai[K:], ch)
 	fstI8(24, bi2[L:], SortI8)
 
 	for i := 3; i > 0; i-- {
 		<-ch // wait others
 	}
-	compareU4(bu[:K], bu[K:]) // same buffers
-	compareU4(au[:K], au[K:])
+	compareU4(bu[:K:K], bu[K:]) // same buffers
+	compareU4(au[:K:K], au[K:])
 
 	// Sort()ing short arrays
 	for l := -3; l < 2; l++ {
