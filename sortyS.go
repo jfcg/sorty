@@ -84,10 +84,11 @@ func pivotS(ar []string, n int) ([]string, string) {
 		}
 	}
 
-	lo, hi := 0, len(ar)-1
+	lo, hi := 0, len(ar)
 
 	// move lo/hi mid-points to lo/hi ends
 	for {
+		hi--
 		ar[l], ar[lo] = ar[lo], ar[l]
 		ar[h], ar[hi] = ar[hi], ar[h]
 		l += s
@@ -96,7 +97,6 @@ func pivotS(ar []string, n int) ([]string, string) {
 		if h <= m {
 			break
 		}
-		hi--
 	}
 
 	return ar[lo:hi:hi], ar[m] // lo <= m-s+1, m+s-1 < hi

@@ -84,10 +84,11 @@ func pivotF8(ar []float64, n int) ([]float64, float64) {
 		}
 	}
 
-	lo, hi := 0, len(ar)-1
+	lo, hi := 0, len(ar)
 
 	// move lo/hi mid-points to lo/hi ends
 	for {
+		hi--
 		ar[l], ar[lo] = ar[lo], ar[l]
 		ar[h], ar[hi] = ar[hi], ar[h]
 		l += s
@@ -96,7 +97,6 @@ func pivotF8(ar []float64, n int) ([]float64, float64) {
 		if h <= m {
 			break
 		}
-		hi--
 	}
 
 	return ar[lo:hi:hi], ar[m] // lo <= m-s+1, m+s-1 < hi
