@@ -1,4 +1,4 @@
-// +build amd64 arm64 ppc64 ppc64le mips64 mips64le s390x
+// +build amd64 arm64 ppc64 ppc64le mips64 mips64le riscv64 s390x
 
 /*	Copyright (c) 2019, Serhat Şevki Dinçer.
 	This Source Code Form is subject to the terms of the Mozilla Public
