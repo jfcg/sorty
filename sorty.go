@@ -4,17 +4,16 @@
 	file, You can obtain one at http://mozilla.org/MPL/2.0/.
 */
 
-// Package sorty provides type-specific concurrent / parallel sorting functionality.
-//
-// sorty is an in-place QuickSort implementation and does not require extra memory.
-// Call corresponding Sort*() to concurrently sort your slice (in ascending order)
-// or collection. For example:
+// Package sorty is a type-specific, fast, efficient, concurrent/parallel sorting
+// library. It is a QuickSort implementation, is in-place and does not require
+// extra memory. Call corresponding Sort*() to concurrently sort your slices (in
+// ascending order) or collections of objects. For example:
 //  sorty.SortS(string_slice) // native slice
 //  sorty.Sort(n, lesswap)    // lesswap() function based
 package sorty
 
 var (
-	// Mxg is the maximum number of goroutines used for sorting per Sort*() call.
+	// Mxg is the maximum concurrent goroutines used for sorting per Sort*() call.
 	Mxg uint32 = 3
 
 	// Mli is the maximum array length for insertion sort in
