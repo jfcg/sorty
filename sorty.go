@@ -18,9 +18,9 @@ var (
 
 	// Mli is the maximum array length for insertion sort in
 	// Sort*() except SortS() and Sort().
-	Mli = 108
+	Mli = 100
 	// Hmli is the maximum array length for insertion sort in SortS() and Sort().
-	Hmli = (Mli + 1) / 3
+	Hmli = 40
 
 	// Mlr is the maximum array length for recursion when there is available goroutines.
 	// So Mlr+1 is the minimum array length for new sorting goroutines.
