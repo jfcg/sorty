@@ -249,6 +249,39 @@ start:
 	return
 }
 
+// long range sort function (single goroutine), assumes hi-lo >= Mlr
+func slong(lsw Lesswap, lo, hi int) {
+start:
+	l, pv, h := pivot(lsw, lo, hi, 3)
+	l = partition1(lsw, l, pv, h) // median-of-7 partitioning
+	h = l - 1
+	no, n := h-lo, hi-l
+
+	if no < n {
+		n, no = no, n // [lo,hi] is the longer range
+		l, lo = lo, l
+	} else {
+		h, hi = hi, h
+	}
+
+	if n >= Mlr { // at least one not-long range?
+		slong(lsw, l, h) // recurse on the shorter range
+		goto start
+	}
+
+	if n >= Hmli {
+		short(lsw, l, h)
+	} else {
+		insertion(lsw, l, h)
+	}
+
+	if no >= Mlr { // two not-long ranges?
+		goto start
+	}
+	short(lsw, lo, hi) // we know no >= Hmli
+	return
+}
+
 // new-goroutine sort function
 func glong(lsw Lesswap, lo, hi int, sv *syncVar) {
 	long(lsw, lo, hi, sv)
@@ -289,8 +322,8 @@ start:
 		return
 	}
 
-	// single goroutine? max goroutines? not atomic but good enough
-	if sv == nil || sv.ngr >= Mxg {
+	// max goroutines? not atomic but good enough
+	if sv.ngr >= Mxg {
 		long(lsw, l, h, sv) // recurse on the shorter range
 		goto start
 	}
@@ -324,9 +357,10 @@ func Sort(n int, lsw Lesswap) {
 
 	n-- // high indice
 	if n <= 2*Mlr || Mxg <= 1 {
-		if n >= Mlr {
-			long(lsw, 0, n, nil) // will not create goroutines or use ngr/done
 
+		// single-goroutine sorting
+		if n >= Mlr {
+			slong(lsw, 0, n)
 		} else if n >= Hmli {
 			short(lsw, 0, n)
 		} else if n > 0 {
