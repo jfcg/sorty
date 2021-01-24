@@ -243,6 +243,40 @@ start:
 	return
 }
 
+// long range sort function (single goroutine), assumes len(ar) > Mlr
+func slongS(ar []string) {
+start:
+	aq, pv := pivotS(ar, 3)
+	k := partition1S(aq, pv) // median-of-7 partitioning
+
+	k += 3 // convert k indice from aq to ar
+
+	if k < len(ar)-k {
+		aq = ar[:k:k]
+		ar = ar[k:] // ar is the longer range
+	} else {
+		aq = ar[k:]
+		ar = ar[:k:k]
+	}
+
+	if len(aq) > Mlr { // at least one not-long range?
+		slongS(aq) // recurse on the shorter range
+		goto start
+	}
+
+	if len(aq) > Hmli {
+		shortS(aq)
+	} else {
+		insertionS(aq)
+	}
+
+	if len(ar) > Mlr { // two not-long ranges?
+		goto start
+	}
+	shortS(ar) // we know len(ar) > Hmli
+	return
+}
+
 // new-goroutine sort function
 func glongS(ar []string, sv *syncVar) {
 	longS(ar, sv)
@@ -284,8 +318,8 @@ start:
 		return
 	}
 
-	// single goroutine? max goroutines? not atomic but good enough
-	if sv == nil || sv.ngr >= Mxg {
+	// max goroutines? not atomic but good enough
+	if sv.ngr >= Mxg {
 		longS(aq, sv) // recurse on the shorter range
 		goto start
 	}
@@ -304,9 +338,10 @@ start:
 func SortS(ar []string) {
 
 	if len(ar) < 2*(Mlr+1) || Mxg <= 1 {
-		if len(ar) > Mlr {
-			longS(ar, nil) // will not create goroutines or use ngr/done
 
+		// single-goroutine sorting
+		if len(ar) > Mlr {
+			slongS(ar)
 		} else if len(ar) > Hmli {
 			shortS(ar)
 		} else if len(ar) > 1 {

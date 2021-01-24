@@ -243,6 +243,40 @@ start:
 	return
 }
 
+// long range sort function (single goroutine), assumes len(ar) > Mlr
+func slongI8(ar []int64) {
+start:
+	aq, pv := pivotI8(ar, 3)
+	k := partition1I8(aq, pv) // median-of-7 partitioning
+
+	k += 3 // convert k indice from aq to ar
+
+	if k < len(ar)-k {
+		aq = ar[:k:k]
+		ar = ar[k:] // ar is the longer range
+	} else {
+		aq = ar[k:]
+		ar = ar[:k:k]
+	}
+
+	if len(aq) > Mlr { // at least one not-long range?
+		slongI8(aq) // recurse on the shorter range
+		goto start
+	}
+
+	if len(aq) > Mli {
+		shortI8(aq)
+	} else {
+		insertionI8(aq)
+	}
+
+	if len(ar) > Mlr { // two not-long ranges?
+		goto start
+	}
+	shortI8(ar) // we know len(ar) > Mli
+	return
+}
+
 // new-goroutine sort function
 func glongI8(ar []int64, sv *syncVar) {
 	longI8(ar, sv)
@@ -284,8 +318,8 @@ start:
 		return
 	}
 
-	// single goroutine? max goroutines? not atomic but good enough
-	if sv == nil || sv.ngr >= Mxg {
+	// max goroutines? not atomic but good enough
+	if sv.ngr >= Mxg {
 		longI8(aq, sv) // recurse on the shorter range
 		goto start
 	}
@@ -304,9 +338,10 @@ start:
 func SortI8(ar []int64) {
 
 	if len(ar) < 2*(Mlr+1) || Mxg <= 1 {
-		if len(ar) > Mlr {
-			longI8(ar, nil) // will not create goroutines or use ngr/done
 
+		// single-goroutine sorting
+		if len(ar) > Mlr {
+			slongI8(ar)
 		} else if len(ar) > Mli {
 			shortI8(ar)
 		} else if len(ar) > 1 {
