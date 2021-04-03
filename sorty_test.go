@@ -24,8 +24,8 @@ import (
 
 const N = 1 << 26
 
-var tst *testing.T
-var name string
+var tsPtr *testing.T
+var tsName string
 
 // fill sort test for uint32
 func fstU4(sd int64, ar []uint32, srt func([]uint32)) time.Duration {
@@ -39,7 +39,7 @@ func fstU4(sd int64, ar []uint32, srt func([]uint32)) time.Duration {
 	dur := time.Since(now)
 
 	if 0 != IsSortedU4(ar) {
-		tst.Fatal(name, "not sorted")
+		tsPtr.Fatal(tsName, "not sorted")
 	}
 	return dur
 }
@@ -56,7 +56,7 @@ func fstU8(sd int64, ar []uint64, srt func([]uint64)) time.Duration {
 	dur := time.Since(now)
 
 	if 0 != IsSortedU8(ar) {
-		tst.Fatal(name, "not sorted")
+		tsPtr.Fatal(tsName, "not sorted")
 	}
 	return dur
 }
@@ -73,7 +73,7 @@ func fstI4(sd int64, ar []int32, srt func([]int32)) time.Duration {
 	dur := time.Since(now)
 
 	if 0 != IsSortedI4(ar) {
-		tst.Fatal(name, "not sorted")
+		tsPtr.Fatal(tsName, "not sorted")
 	}
 	return dur
 }
@@ -90,7 +90,7 @@ func fstI8(sd int64, ar []int64, srt func([]int64)) time.Duration {
 	dur := time.Since(now)
 
 	if 0 != IsSortedI8(ar) {
-		tst.Fatal(name, "not sorted")
+		tsPtr.Fatal(tsName, "not sorted")
 	}
 	return dur
 }
@@ -107,7 +107,7 @@ func fstF4(sd int64, ar []float32, srt func([]float32)) time.Duration {
 	dur := time.Since(now)
 
 	if 0 != IsSortedF4(ar) {
-		tst.Fatal(name, "not sorted")
+		tsPtr.Fatal(tsName, "not sorted")
 	}
 	return dur
 }
@@ -124,7 +124,7 @@ func fstF8(sd int64, ar []float64, srt func([]float64)) time.Duration {
 	dur := time.Since(now)
 
 	if 0 != IsSortedF8(ar) {
-		tst.Fatal(name, "not sorted")
+		tsPtr.Fatal(tsName, "not sorted")
 	}
 	return dur
 }
@@ -163,7 +163,7 @@ func fstS(sd int64, ar []uint32, srt func([]string)) time.Duration {
 	dur := time.Since(now)
 
 	if 0 != IsSortedS(as) {
-		tst.Fatal(name, "not sorted")
+		tsPtr.Fatal(tsName, "not sorted")
 	}
 	return dur
 }
@@ -174,12 +174,12 @@ func compareU4(ar, ap []uint32) {
 		return
 	}
 	if len(ar) != l {
-		tst.Fatal(name, "length mismatch:", len(ar), l)
+		tsPtr.Fatal(tsName, "length mismatch:", len(ar), l)
 	}
 
 	for i := l - 1; i >= 0; i-- {
 		if ar[i] != ap[i] {
-			tst.Fatal(name, "values mismatch:", i, ar[i], ap[i])
+			tsPtr.Fatal(tsName, "values mismatch:", i, ar[i], ap[i])
 		}
 	}
 }
@@ -187,12 +187,12 @@ func compareU4(ar, ap []uint32) {
 func compareS(ar, ap []string) {
 	l := len(ap)
 	if len(ar) != l {
-		tst.Fatal(name, "length mismatch:", len(ar), l)
+		tsPtr.Fatal(tsName, "length mismatch:", len(ar), l)
 	}
 
 	for i := l - 1; i >= 0; i-- {
 		if ar[i] != ap[i] {
-			tst.Fatal(name, "values mismatch:", i, ar[i], ap[i])
+			tsPtr.Fatal(tsName, "values mismatch:", i, ar[i], ap[i])
 		}
 	}
 }
@@ -217,14 +217,14 @@ func medur(a, b, c, d time.Duration) time.Duration {
 func printSec(d time.Duration) float64 {
 	sec := d.Seconds()
 	if testing.Short() {
-		fmt.Printf("%10s %5.2fs\n", name, sec)
+		fmt.Printf("%10s %5.2fs\n", tsName, sec)
 	}
 	return sec
 }
 
 // median fst & compare for uint32
 func mfcU4(tn string, srt func([]uint32), ar, ap []uint32) float64 {
-	name = tn
+	tsName = tn
 	d1 := fstU4(1, ar, srt) // median of four different sorts
 	d2 := fstU4(2, ar, srt)
 	d3 := fstU4(3, ar, srt)
@@ -253,7 +253,7 @@ func U8toI8(p *[]uint64) []int64 {
 
 // median fst & compare for float32
 func mfcF4(tn string, srt func([]float32), ar, ap []float32) float64 {
-	name = tn
+	tsName = tn
 	d1 := fstF4(5, ar, srt) // median of four different sorts
 	d2 := fstF4(6, ar, srt)
 	d3 := fstF4(7, ar, srt)
@@ -265,7 +265,7 @@ func mfcF4(tn string, srt func([]float32), ar, ap []float32) float64 {
 
 // median fst & compare for string
 func mfcS(tn string, srt func([]string), ar, ap []uint32) float64 {
-	name = tn
+	tsName = tn
 	d1 := fstS(9, ar, srt) // median of four different sorts
 	d2 := fstS(10, ar, srt)
 	d3 := fstS(11, ar, srt)
@@ -280,15 +280,15 @@ func mfcS(tn string, srt func([]string), ar, ap []uint32) float64 {
 	return printSec(d1)
 }
 
-var srnm = []byte("sorty-0")
+var srtName = []byte("sorty-0")
 
 // return sum of SortU4() times for 1..4 goroutines
 // compare with ap and among themselves
 func sumtU4(ar, ap []uint32) float64 {
 	s := .0
 	for Mxg = 1; Mxg < 5; Mxg++ {
-		srnm[6] = byte(Mxg + '0')
-		s += mfcU4(string(srnm), SortU4, ar, ap)
+		srtName[6] = byte(Mxg + '0')
+		s += mfcU4(string(srtName), SortU4, ar, ap)
 		ap, ar = ar, ap[:cap(ap)]
 	}
 	return s
@@ -299,8 +299,8 @@ func sumtU4(ar, ap []uint32) float64 {
 func sumtF4(ar, ap []float32) float64 {
 	s := .0
 	for Mxg = 1; Mxg < 5; Mxg++ {
-		srnm[6] = byte(Mxg + '0')
-		s += mfcF4(string(srnm), SortF4, ar, ap)
+		srtName[6] = byte(Mxg + '0')
+		s += mfcF4(string(srtName), SortF4, ar, ap)
 		ap, ar = ar, ap[:cap(ap)]
 	}
 	return s
@@ -311,8 +311,8 @@ func sumtF4(ar, ap []float32) float64 {
 func sumtS(ar, ap []uint32) float64 {
 	s := .0
 	for Mxg = 1; Mxg < 5; Mxg++ {
-		srnm[6] = byte(Mxg + '0')
-		s += mfcS(string(srnm), SortS, ar, ap)
+		srtName[6] = byte(Mxg + '0')
+		s += mfcS(string(srtName), SortS, ar, ap)
 		ap, ar = ar, ap[:cap(ap)]
 	}
 	return s
@@ -332,15 +332,15 @@ func sort3i(aq []uint32) {
 	Sort(len(aq), lsw)
 }
 
-var lswnm = []byte("sortyLsw-0")
+var lswName = []byte("sortyLsw-0")
 
 // return sum of sort3i() times for 1..4 goroutines
 // compare with ap and among themselves
 func sumtLswU4(ar, ap []uint32) float64 {
 	s := .0
 	for Mxg = 1; Mxg < 5; Mxg++ {
-		lswnm[9] = byte(Mxg + '0')
-		s += mfcU4(string(lswnm), sort3i, ar, ap)
+		lswName[9] = byte(Mxg + '0')
+		s += mfcU4(string(lswName), sort3i, ar, ap)
 		ap, ar = ar, ap[:cap(ap)]
 	}
 	return s
@@ -365,8 +365,8 @@ func sort3f(aq []float32) {
 func sumtLswF4(ar, ap []float32) float64 {
 	s := .0
 	for Mxg = 1; Mxg < 5; Mxg++ {
-		lswnm[9] = byte(Mxg + '0')
-		s += mfcF4(string(lswnm), sort3f, ar, ap)
+		lswName[9] = byte(Mxg + '0')
+		s += mfcF4(string(lswName), sort3f, ar, ap)
 		ap, ar = ar, ap[:cap(ap)]
 	}
 	return s
@@ -391,8 +391,8 @@ func sort3s(aq []string) {
 func sumtLswS(ar, ap []uint32) float64 {
 	s := .0
 	for Mxg = 1; Mxg < 5; Mxg++ {
-		lswnm[9] = byte(Mxg + '0')
-		s += mfcS(string(lswnm), sort3s, ar, ap)
+		lswName[9] = byte(Mxg + '0')
+		s += mfcS(string(lswName), sort3s, ar, ap)
 		ap, ar = ar, ap[:cap(ap)]
 	}
 	return s
@@ -424,7 +424,7 @@ func TestShort(t *testing.T) {
 	if !testing.Short() {
 		t.SkipNow()
 	}
-	tst = t
+	tsPtr = t
 
 	// a & b buffers will hold all arrays to sort
 	af := make([]float32, N)
@@ -480,7 +480,7 @@ func TestShort(t *testing.T) {
 
 	// Is Sort*() multi-goroutine safe?
 	fmt.Println("\nConcurrent calls to Sort*()")
-	name = "multi"
+	tsName = "multi"
 	K, L, ch := N/2, N/4, make(chan bool)
 	Mxg = 2
 
@@ -513,35 +513,35 @@ func TestShort(t *testing.T) {
 	// Sort()ing short arrays
 	for l := -3; l < 2; l++ {
 		Sort(l, iarlsw)
-		if iar[0] != 9 || iar[1] != 8 {
+		if iArr[0] != 9 || iArr[1] != 8 {
 			t.Fatal("Sort()ing short arrays does not work")
 		}
 	}
 	for l := 2; l < 4; l++ {
 		Sort(l, iarlsw)
 		for k := 2; k >= 0; k-- {
-			if iar[k] != iar[12+k-l] {
+			if iArr[k] != iArr[12+k-l] {
 				t.Fatal("Sort()ing short arrays does not work")
 			}
 		}
 	}
 
 	// SortI() calls SortI4() (on 32-bit) or SortI8() (on 64-bit).
-	SortI(iar)
-	if 0 != IsSortedI(iar) {
+	SortI(iArr)
+	if 0 != IsSortedI(iArr) {
 		t.Fatal("SortI() does not work")
 	}
 
 	// test Search()
-	n := len(iar)
-	k := Search(n, func(i int) bool { return iar[i] >= 5 })
-	l := Search(n, func(i int) bool { return iar[i] >= 10 })
-	if k <= 0 || k >= n || iar[k] != 5 || iar[k-1] != 4 || l != n {
+	n := len(iArr)
+	k := Search(n, func(i int) bool { return iArr[i] >= 5 })
+	l := Search(n, func(i int) bool { return iArr[i] >= 10 })
+	if k <= 0 || k >= n || iArr[k] != 5 || iArr[k-1] != 4 || l != n {
 		t.Fatal("Search() does not work")
 	}
 }
 
-var iar = []int{
+var iArr = []int{
 	9, 8, 7, 6, 5, 4, 3, 2, 1, 7, 8, 9, 7, 6, 5, 4, 3, 2, 1, 0, 1, 2, 0, -1, 1, 2, 0,
 	-9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 1, 2, 0, -1,
 	9, 8, 7, 6, 5, 4, 3, 2, 1, 0, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 0, -1,
@@ -550,9 +550,9 @@ var iar = []int{
 	-9, -8, -7, -6, -5, -4, -3, -2, -1, 0, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, -9}
 
 func iarlsw(i, k, r, s int) bool {
-	if iar[i] < iar[k] {
+	if iArr[i] < iArr[k] {
 		if r != s {
-			iar[r], iar[s] = iar[s], iar[r]
+			iArr[r], iArr[s] = iArr[s], iArr[r]
 		}
 		return true
 	}
@@ -569,7 +569,7 @@ func TestOpt(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	tst = t
+	tsPtr = t
 
 	as := make([]float32, N)
 	aq := make([]float32, N)
