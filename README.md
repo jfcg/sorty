@@ -75,17 +75,20 @@ sortyLsw-3| 2.60| 3.02| 3.99
 sortyLsw-4| 2.18| 2.45| 3.75
 
 ### Testing & Parameter Tuning
-First, make sure everything is fine:
+First, make sure everything is fine. Both [gc](https://golang.org) and [tinygo](https://tinygo.org) commands are provided:
 ```
-go test -short -timeout 1h
+tinygo test
+go test -timeout 1h
 ```
 You can tune `Mli,Hmli,Mlr` for your platform/cpu with (optimization flags):
 ```
-go test -timeout 3h -gcflags '-B -wb=0' -ldflags '-s -w'
+tinygo test -opt 2 -no-debug -tags tuneparam
+go test -timeout 3h -gcflags '-dwarf=0 -B -wb=0' -ldflags '-s -w' -tags tuneparam
 ```
 Now update `Mli,Hmli,Mlr` in sorty.go and compare your tuned sorty with others:
 ```
-go test -short -timeout 1h -gcflags '-B -wb=0' -ldflags '-s -w'
+tinygo test -opt 2 -no-debug
+go test -timeout 1h -gcflags '-dwarf=0 -B -wb=0' -ldflags '-s -w'
 ```
 Remember to build sorty (and your functions like `SortObjAsc()`) with the same
 optimization flags you used for tuning.
