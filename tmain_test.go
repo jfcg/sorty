@@ -15,10 +15,10 @@ import (
 	"time"
 
 	"github.com/jfcg/sixb"
-	"github.com/shawnsmithdev/zermelo/zfloat32"
-	"github.com/shawnsmithdev/zermelo/zuint32"
-	"github.com/twotwotwo/sorts/sortutil"
-	"github.com/yourbasic/radix"
+	//"github.com/shawnsmithdev/zermelo/zfloat32"
+	//"github.com/shawnsmithdev/zermelo/zuint32"
+	//"github.com/twotwotwo/sorts/sortutil"
+	//"github.com/yourbasic/radix"
 )
 
 func printSec(d time.Duration) float64 {
@@ -69,8 +69,8 @@ func TestMain(t *testing.T) {
 	mfcU4("sort.Slice", func(al []uint32) {
 		sort.Slice(al, func(i, k int) bool { return al[i] < al[k] })
 	}, bu, nil)
-	mfcU4("sortutil", sortutil.Uint32s, au, bu)
-	mfcU4("zermelo", zuint32.Sort, au, bu)
+	//mfcU4("sortutil", sortutil.Uint32s, au, bu)
+	//mfcU4("zermelo", zuint32.Sort, au, bu)
 	sumtU4(au, bu) // sorty
 	sumtLswU4(au, bu)
 
@@ -84,8 +84,8 @@ func TestMain(t *testing.T) {
 	mfcF4("sort.Slice", func(al []float32) {
 		sort.Slice(al, func(i, k int) bool { return al[i] < al[k] })
 	}, bf, nil)
-	mfcF4("sortutil", sortutil.Float32s, af, bf)
-	mfcF4("zermelo", zfloat32.Sort, af, bf)
+	//mfcF4("sortutil", sortutil.Float32s, af, bf)
+	//mfcF4("zermelo", zfloat32.Sort, af, bf)
 	sumtF4(af, bf) // sorty
 	sumtLswF4(af, bf)
 
@@ -99,8 +99,8 @@ func TestMain(t *testing.T) {
 	mfcS("sort.Slice", func(al []string) {
 		sort.Slice(al, func(i, k int) bool { return al[i] < al[k] })
 	}, bu, nil)
-	mfcS("sortutil", sortutil.Strings, au, bu)
-	mfcS("radix", radix.Sort, au, bu)
+	//mfcS("sortutil", sortutil.Strings, au, bu)
+	//mfcS("radix", radix.Sort, au, bu)
 	sumtS(au, bu) // sorty
 	sumtLswS(au, bu)
 
