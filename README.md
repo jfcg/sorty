@@ -1,24 +1,32 @@
 ## sorty [![go report card](https://goreportcard.com/badge/github.com/jfcg/sorty)](https://goreportcard.com/report/github.com/jfcg/sorty) [![go.dev ref](https://raw.githubusercontent.com/jfcg/.github/main/godev.svg)](https://pkg.go.dev/github.com/jfcg/sorty)
-Type-specific, fast, efficient, concurrent/parallel sorting library.
 
-sorty is a concurrent [QuickSort](https://en.wikipedia.org/wiki/Quicksort) implementation (with an improved [InsertionSort](https://en.wikipedia.org/wiki/Insertion_sort) as subroutine). It is in-place and does not require extra memory. You can call corresponding `Sort*()` to rapidly sort your slices (in ascending order) or collections of objects. For example:
+sorty is a type-specific, fast, efficient, concurrent/parallel [QuickSort](https://en.wikipedia.org/wiki/Quicksort)
+implementation (with an improved [InsertionSort](https://en.wikipedia.org/wiki/Insertion_sort) as subroutine).
+It is in-place and does not require extra memory (other than efficient recursive calls and goroutines). You can call
+corresponding `Sort*()` to rapidly sort your slices (in ascending order) or collections of objects. For example:
 ```
 sorty.SortS(string_slice) // native slice
 sorty.Sort(n, lesswap)    // lesswap() function based
 ```
-If you have a pair of `Less()` and `Swap()`, then you can trivially write your [`lesswap()`](https://pkg.go.dev/github.com/jfcg/sorty#Sort) and sort your generic collections using multiple cpu cores quickly.
+If you have a pair of `Less()` and `Swap()`, then you can trivially write your
+[`lesswap()`](https://pkg.go.dev/github.com/jfcg/sorty#Sort) and sort your generic
+collections using multiple cpu cores quickly.
 
-sorty is stable, well tested and pretty careful with resources & performance:
-- `lesswap()` operates [faster](https://github.com/lynxkite/lynxkite/pull/141#issuecomment-779673635) than `sort.Interface` on generic collections.
-- For each `Sort*()` call, sorty uses up to [`Mxg`](https://pkg.go.dev/github.com/jfcg/sorty#pkg-variables) (3 by default, including caller) concurrent goroutines and up to one channel.
+sorty is stable (as in version), well-tested and pretty careful with resources & performance:
+- `lesswap()` operates [**faster**](https://github.com/lynxkite/lynxkite/pull/141#issuecomment-779673635)
+than `sort.Interface` on generic collections.
+- For each `Sort*()` call, sorty uses up to [`Mxg`](https://pkg.go.dev/github.com/jfcg/sorty#pkg-variables)
+(3 by default, including caller) concurrent goroutines and up to one channel.
 - Goroutines and channel are created/used **only when necessary**.
-- `Mxg=1` (or a short input) yields single-goroutine sorting, no goroutines or channel will be created.
+- `Mxg=1` (or a short input) yields single-goroutine sorting: No goroutines or channel will be created.
 - `Mxg` can be changed live, even during an ongoing `Sort*()` call.
 - `Mli,Hmli,Mlr` parameters are tuned to get the best performance, see below.
 - sorty API adheres to [semantic](https://semver.org) versioning.
 
 ### Benchmarks
-Comparing against [sort.Slice](https://golang.org/pkg/sort), [sortutil](https://github.com/twotwotwo/sorts), [zermelo](https://github.com/shawnsmithdev/zermelo) and [radix](https://github.com/yourbasic/radix) with Go version `1.16.3` on:
+Comparing against [sort.Slice](https://golang.org/pkg/sort), [sortutil](https://github.com/twotwotwo/sorts),
+[zermelo](https://github.com/shawnsmithdev/zermelo) and [radix](https://github.com/yourbasic/radix) with Go
+version `1.16.3` on:
 
 Machine|CPU|OS|Kernel
 :---:|:---|:---|:---
@@ -83,12 +91,13 @@ You can tune `Mli,Hmli,Mlr` for your platform/cpu with (optimization flags):
 ```
 go test -timeout 4h -gcflags '-dwarf=0 -B -wb=0' -ldflags '-s -w' -tags tuneparam
 ```
-Now update `Mli,Hmli,Mlr` in sorty.go and compare your tuned sorty with others:
+Now update `Mli,Hmli,Mlr` in `sorty.go`, uncomment imports & respective `mfc*()`
+calls in `tmain_test.go` and compare your tuned sorty with other libraries:
 ```
 go test -timeout 1h -gcflags '-dwarf=0 -B -wb=0' -ldflags '-s -w'
 ```
-Remember to build sorty (and your functions like `SortObjAsc()`) with the same
-optimization flags you used for tuning. `-B` flag is especially helpful.
+Remember to build sorty (and your functions like [`SortObjAsc()`](https://pkg.go.dev/github.com/jfcg/sorty#Sort))
+with the same optimization flags you used for tuning. `-B` flag is especially helpful.
 
 ### Support
 If you use sorty and like it, please support via ETH:`0x464B840ee70bBe7962b90bD727Aac172Fa8B9C15`
