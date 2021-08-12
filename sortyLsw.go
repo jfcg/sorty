@@ -22,7 +22,7 @@ type Lesswap func(i, k, r, s int) bool
 // otherwise it returns i > 0 with less(i,i-1) = true.
 func IsSorted(n int, lsw Lesswap) int {
 	for i := n - 1; i > 0; i-- {
-		if lsw(i, i-1, 0, 0) {
+		if lsw(i, i-1, i, i) { // 3rd=4th disables swap
 			return i
 		}
 	}
@@ -111,8 +111,9 @@ func pivot(lsw Lesswap, lo, hi, n int) (int, int, int) {
 // partition ar[l..h] into <= and >= pivot, assumes l < h
 // returns m with ar[:m] <= pivot, ar[m:] >= pivot
 func partition1(lsw Lesswap, l, pv, h int) int {
+	// avoid unnecessary comparisons, extend ranges in balance
 	for {
-		if lsw(h, pv, 0, 0) { // avoid unnecessary comparisons
+		if lsw(h, pv, h, h) { // 3rd=4th disables swap
 			for {
 				if lsw(pv, l, h, l) {
 					break
@@ -122,7 +123,7 @@ func partition1(lsw Lesswap, l, pv, h int) int {
 					return l + 1
 				}
 			}
-		} else if lsw(pv, l, 0, 0) { // extend ranges in balance
+		} else if lsw(pv, l, l, l) { // 3rd=4th disables swap
 			for {
 				h--
 				if l >= h {
@@ -139,7 +140,8 @@ func partition1(lsw Lesswap, l, pv, h int) int {
 			break
 		}
 	}
-	if l == h && (h == pv || lsw(h, pv, 0, 0)) { // classify mid element
+	// classify mid element
+	if l == h && (h == pv || lsw(h, pv, h, h)) { // 3rd=4th disables swap
 		l++
 	}
 	return l
@@ -148,8 +150,9 @@ func partition1(lsw Lesswap, l, pv, h int) int {
 // rearrange ar[l..a] and ar[b..h] into <= and >= pivot, assumes l <= a < pv < b <= h
 // gap (a..b) expands until one of the intervals is fully consumed
 func partition2(lsw Lesswap, l, a, pv, b, h int) (int, int) {
+	// avoid unnecessary comparisons, extend ranges in balance
 	for {
-		if lsw(b, pv, 0, 0) { // avoid unnecessary comparisons
+		if lsw(b, pv, b, b) { // 3rd=4th disables swap
 			for {
 				if lsw(pv, a, b, a) {
 					break
@@ -159,7 +162,7 @@ func partition2(lsw Lesswap, l, a, pv, b, h int) (int, int) {
 					return a, b
 				}
 			}
-		} else if lsw(pv, a, 0, 0) { // extend ranges in balance
+		} else if lsw(pv, a, a, a) { // 3rd=4th disables swap
 			for {
 				b++
 				if b > h {
@@ -341,7 +344,7 @@ start:
 // can implement a custom sorting routine (for a slice for example) as:
 //  func SortObjAsc(c []Obj) {
 //  	lsw := func(i, k, r, s int) bool {
-//  		if c[i].Key < c[k].Key { // your custom strict comparator (like < or >)
+//  		if c[i].Key < c[k].Key { // strict comparator like < or >
 //  			if r != s {
 //  				c[r], c[s] = c[s], c[r]
 //  			}
@@ -351,6 +354,8 @@ start:
 //  	}
 //  	sorty.Sort(len(c), lsw)
 //  }
+// Lesswap is a 'contract' between users and sorty library. Strict
+// comparator, r!=s check, swap and returns are all strictly necessary.
 func Sort(n int, lsw Lesswap) {
 
 	n-- // high indice
