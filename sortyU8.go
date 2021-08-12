@@ -240,7 +240,6 @@ start:
 		goto start
 	}
 	insertionU8(ar) // two insertion ranges
-	return
 }
 
 // long range sort function (single goroutine), assumes len(ar) > Mlr
@@ -274,7 +273,6 @@ start:
 		goto start
 	}
 	shortU8(ar) // we know len(ar) > Mli
-	return
 }
 
 // new-goroutine sort function

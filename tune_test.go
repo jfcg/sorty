@@ -24,6 +24,8 @@ func printOpt(x, y int, v float64) {
 	fmt.Printf("%3d %3d %5.2fs\n", x, y, v)
 }
 
+var optName = [...]string{"SortU4/F4", "Lsw-U4/F4", "SortS", "Lsw-S"}
+
 // Optimize max array lengths for insertion sort/recursion (Mli,Mlr)
 // Takes a long time, run with -tags tuneparam
 func TestOpt(t *testing.T) {
@@ -34,7 +36,6 @@ func TestOpt(t *testing.T) {
 	ar := F4toU4(&as)
 	ap := make([]uint32, N)
 
-	nm := [...]string{"SortU4/F4", "Lsw-U4/F4", "SortS", "Lsw-S"}
 	fn := [...]func() float64{
 		// optimize for native arithmetic types
 		func() float64 { return sumtU4(ar, ap[:0]) + sumtF4(as, aq[:0]) },
@@ -53,7 +54,7 @@ func TestOpt(t *testing.T) {
 	s1, s2 := "Mli", 96
 
 	for i := 0; i < len(fn); i++ {
-		fmt.Printf("\n%s\n%s Mlr:\n", nm[i], s1)
+		fmt.Printf("\n%s\n%s Mlr:\n", optName[i], s1)
 
 		_, _, _, n := opt.FindMinTri(2, s2, 480, 16, 120,
 			func(x, y int) float64 {

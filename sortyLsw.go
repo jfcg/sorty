@@ -246,7 +246,6 @@ start:
 		goto start
 	}
 	insertion(lsw, lo, hi) // two insertion ranges
-	return
 }
 
 // long range sort function (single goroutine), assumes hi-lo >= Mlr
@@ -279,7 +278,6 @@ start:
 		goto start
 	}
 	short(lsw, lo, hi) // we know no >= Hmli
-	return
 }
 
 // new-goroutine sort function
