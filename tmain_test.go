@@ -57,11 +57,11 @@ func TestMain(t *testing.T) {
 	bf := make([]float32, N)
 
 	// different type views of the same buffers
-	au, bu := F4toU4(&af), F4toU4(&bf)         // uint32
-	ai, _ := F4toI4(&af), F4toI4(&bf)          // int32
-	au2, bu2 := sixb.I4tI8(au), sixb.I4tI8(bu) // uint64
-	af2, _ := U8toF8(&au2), U8toF8(&bu2)       // float64
-	_, bi2 := U8toI8(&au2), U8toI8(&bu2)       // int64
+	au, bu := F4toU4(&af), F4toU4(&bf)           // uint32
+	ai, _ := F4toI4(&af), F4toI4(&bf)            // int32
+	au2, bu2 := sixb.U4toU8(au), sixb.U4toU8(bu) // uint64
+	af2, _ := U8toF8(&au2), U8toF8(&bu2)         // float64
+	_, bi2 := U8toI8(&au2), U8toI8(&bu2)         // int64
 
 	// test & time sorting uint32 arrays for different libraries
 	// compare their results

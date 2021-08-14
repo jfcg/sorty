@@ -125,13 +125,13 @@ func fstF8(sd int64, ar []float64, srt func([]float64)) time.Duration {
 // implant strings into ar
 func implant(ar []uint32, fill bool) ([]string, []uint32) {
 	// string size is 4*t bytes
-	t := int(unsafe.Sizeof("") >> 2)
+	t := sixb.StrSize >> 2
 
 	// ar will hold n strings (headers followed by 4-byte bodies)
 	n := len(ar) / (t + 1)
 
 	t *= n // total string headers space
-	ss := sixb.I4tSs(ar[:t:t])
+	ss := sixb.U4toSs(ar[:t:t])
 
 	if fill {
 		for i, k := n-1, len(ar)-1; i >= 0; i, k = i-1, k-1 {
