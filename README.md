@@ -10,7 +10,7 @@ sorty.Sort(n, lesswap)    // lesswap() function based
 ```
 If you have a pair of `Less()` and `Swap()`, then you can trivially write your
 [`lesswap()`](https://pkg.go.dev/github.com/jfcg/sorty#Sort) and sort your generic
-collections using multiple cpu cores quickly.
+collections using multiple CPU cores quickly.
 
 sorty is stable (as in version), well-tested and pretty careful with resources & performance:
 - `lesswap()` operates [**faster**](https://github.com/lynxkite/lynxkite/pull/141#issuecomment-779673635)
@@ -87,11 +87,11 @@ First, make sure everything is fine:
 ```
 go test -timeout 1h
 ```
-You can tune `Mli,Hmli,Mlr` for your platform/cpu with (optimization flags):
+You can tune `Mli,Hmli,Mlr` for your platform/CPU with (optimization flags):
 ```
 go test -timeout 4h -gcflags '-dwarf=0 -B -wb=0' -ldflags '-s -w' -tags tuneparam
 ```
-Now update `Mli,Hmli,Mlr` in `sorty.go`, uncomment imports & respective `mfc*()`
+Now update `Mli,Hmli,Mlr` in `maxc.go`, uncomment imports & respective `mfc*()`
 calls in `tmain_test.go` and compare your tuned sorty with other libraries:
 ```
 go test -timeout 1h -gcflags '-dwarf=0 -B -wb=0' -ldflags '-s -w'
