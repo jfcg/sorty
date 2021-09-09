@@ -63,7 +63,7 @@ func TestMain(t *testing.T) {
 	af2, _ := U8toF8(&au2), U8toF8(&bu2)         // float64
 	_, bi2 := U8toI8(&au2), U8toI8(&bu2)         // int64
 
-	// test & time sorting uint32 arrays for different libraries
+	// test & time sorting uint32 slices for different libraries
 	// compare their results
 	fmt.Println("Sorting []uint32")
 	mfcU4("sort.Slice", func(al []uint32) {
@@ -78,7 +78,7 @@ func TestMain(t *testing.T) {
 		t.Fatal("IsSorted() does not work")
 	}
 
-	// test & time sorting float32 arrays for different libraries
+	// test & time sorting float32 slices for different libraries
 	// compare their results
 	fmt.Println("\nSorting []float32")
 	mfcF4("sort.Slice", func(al []float32) {
@@ -93,7 +93,7 @@ func TestMain(t *testing.T) {
 		t.Fatal("IsSorted() does not work")
 	}
 
-	// test & time sorting string arrays for different libraries
+	// test & time sorting string slices for different libraries
 	// compare their results
 	fmt.Println("\nSorting []string")
 	mfcS("sort.Slice", func(al []string) {
@@ -103,6 +103,14 @@ func TestMain(t *testing.T) {
 	//mfcS("radix", radix.Sort, au, bu)
 	sumtS(au, bu) // sorty
 	sumtLswS(au, bu)
+
+	// test & time sorting []byte slices for different libraries
+	// compare their results
+	fmt.Println("\nSorting [][]byte")
+	mfcB("sort.Slice", func(al [][]byte) {
+		sort.Slice(al, func(i, k int) bool { return sixb.BtoS(al[i]) < sixb.BtoS(al[k]) })
+	}, bu, nil)
+	sumtB(au, bu) // sorty
 
 	// Is Sort*() multi-goroutine safe?
 	fmt.Println("\nConcurrent calls to Sort*()")

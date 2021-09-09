@@ -134,9 +134,11 @@ func implantS(ar []uint32, fill bool) ([]string, []uint32) {
 	ss := sixb.U4toStrs(ar[:t:t])
 
 	if fill {
-		for i, k := n-1, len(ar)-1; i >= 0; i, k = i-1, k-1 {
-			ss[i].Data = unsafe.Pointer(&ar[k])
-			ss[i].Len = 4
+		k := len(ar) - 1
+		for n--; n >= 0; n-- {
+			ss[n].Data = unsafe.Pointer(&ar[k])
+			ss[n].Len = 4
+			k--
 		}
 	}
 	return *(*[]string)(unsafe.Pointer(&ss)), ar[t:]
@@ -156,6 +158,48 @@ func fstS(sd int64, ar []uint32, srt func([]string)) time.Duration {
 	dur := time.Since(now)
 
 	if IsSortedS(as) != 0 {
+		tsPtr.Fatal(tsName, "not sorted")
+	}
+	return dur
+}
+
+// implant []byte's into ar
+func implantB(ar []uint32, fill bool) ([][]byte, []uint32) {
+	// []byte size is 4*t bytes
+	t := sixb.SliceSize >> 2
+
+	// ar will hold n []byte's (headers followed by 4-byte bodies)
+	n := len(ar) / (t + 1)
+
+	t *= n // total []byte headers space
+	bs := sixb.U4toSlcs(ar[:t:t])
+
+	if fill {
+		k := len(ar) - 1
+		for n--; n >= 0; n-- {
+			bs[n].Data = unsafe.Pointer(&ar[k])
+			bs[n].Len = 4
+			bs[n].Cap = 4
+			k--
+		}
+	}
+	return *(*[][]byte)(unsafe.Pointer(&bs)), ar[t:]
+}
+
+// fill sort test for []byte
+func fstB(sd int64, ar []uint32, srt func([][]byte)) time.Duration {
+	ab, ar := implantB(ar, true)
+
+	rn := rand.New(rand.NewSource(sd))
+	for i := len(ar) - 1; i >= 0; i-- {
+		ar[i] = rn.Uint32()
+	}
+
+	now := time.Now()
+	srt(ab)
+	dur := time.Since(now)
+
+	if IsSortedB(ab) != 0 {
 		tsPtr.Fatal(tsName, "not sorted")
 	}
 	return dur
@@ -185,6 +229,19 @@ func compareS(ar, ap []string) {
 
 	for i := l - 1; i >= 0; i-- {
 		if ar[i] != ap[i] {
+			tsPtr.Fatal(tsName, "values mismatch:", i, ar[i], ap[i])
+		}
+	}
+}
+
+func compareB(ar, ap [][]byte) {
+	l := len(ap)
+	if len(ar) != l {
+		tsPtr.Fatal(tsName, "length mismatch:", len(ar), l)
+	}
+
+	for i := l - 1; i >= 0; i-- {
+		if sixb.BtoS(ar[i]) != sixb.BtoS(ap[i]) {
 			tsPtr.Fatal(tsName, "values mismatch:", i, ar[i], ap[i])
 		}
 	}
@@ -265,6 +322,23 @@ func mfcS(tn string, srt func([]string), ar, ap []uint32) float64 {
 	return printSec(d1)
 }
 
+// median fst & compare for []byte
+func mfcB(tn string, srt func([][]byte), ar, ap []uint32) float64 {
+	tsName = tn
+	d1 := fstB(13, ar, srt) // median of four different sorts
+	d2 := fstB(14, ar, srt)
+	d3 := fstB(15, ar, srt)
+	d1 = medur(fstB(16, ar, srt), d1, d2, d3)
+
+	if len(ap) > 0 {
+		as, ar := implantB(ar, false)
+		aq, ap := implantB(ap, false)
+		compareB(as, aq)
+		compareU4(ar, ap)
+	}
+	return printSec(d1)
+}
+
 var srtName = []byte("sorty-0")
 
 // return sum of SortU4() times for 1..4 goroutines
@@ -298,6 +372,18 @@ func sumtS(ar, ap []uint32) float64 {
 	for Mxg = 1; Mxg < 5; Mxg++ {
 		srtName[6] = byte(Mxg + '0')
 		s += mfcS(string(srtName), SortS, ar, ap)
+		ap, ar = ar, ap[:cap(ap)]
+	}
+	return s
+}
+
+// return sum of SortB() times for 1..4 goroutines
+// compare with ap and among themselves
+func sumtB(ar, ap []uint32) float64 {
+	s := .0
+	for Mxg = 1; Mxg < 5; Mxg++ {
+		srtName[6] = byte(Mxg + '0')
+		s += mfcB(string(srtName), SortB, ar, ap)
 		ap, ar = ar, ap[:cap(ap)]
 	}
 	return s
