@@ -10,7 +10,9 @@ sorty.Sort(n, lesswap)    // lesswap() function based
 ```
 If you have a pair of `Less()` and `Swap()`, then you can trivially write your
 [`lesswap()`](https://pkg.go.dev/github.com/jfcg/sorty#Sort) and sort your generic
-collections using multiple CPU cores quickly.
+collections using multiple CPU cores quickly. Also, sorty natively sorts
+`[][]byte`,`[]float32`,`[]float64`,`[]int`,`[]int32`,`[]int64`,
+`[]uintptr`,`[]string`,`[]uint`,`[]uint32`,`[]uint64`.
 
 sorty is stable (as in version), well-tested and pretty careful with resources & performance:
 - `lesswap()` operates [**faster**](https://github.com/lynxkite/lynxkite/pull/141#issuecomment-779673635)
@@ -20,7 +22,7 @@ than [`sort.Interface`](https://pkg.go.dev/sort#Interface) on generic collection
 - Goroutines and channel are created/used **only when necessary**.
 - `Mxg=1` (or a short input) yields single-goroutine sorting: No goroutines or channel will be created.
 - `Mxg` can be changed live, even during an ongoing `Sort*()` call.
-- `Mli,Hmli,Mlr` parameters are tuned to get the best performance, see below.
+- [`Mli,Hmli,Mlr`](https://pkg.go.dev/github.com/jfcg/sorty#pkg-constants) parameters are tuned to get the best performance, see below.
 - sorty API adheres to [semantic](https://semver.org) versioning.
 
 ### Benchmarks
