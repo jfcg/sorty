@@ -123,7 +123,7 @@ func fstF8(sd int64, ar []float64, srt func([]float64)) time.Duration {
 }
 
 // implant strings into ar
-func implant(ar []uint32, fill bool) ([]string, []uint32) {
+func implantS(ar []uint32, fill bool) ([]string, []uint32) {
 	// string size is 4*t bytes
 	t := sixb.StrSize >> 2
 
@@ -131,7 +131,7 @@ func implant(ar []uint32, fill bool) ([]string, []uint32) {
 	n := len(ar) / (t + 1)
 
 	t *= n // total string headers space
-	ss := sixb.U4toSs(ar[:t:t])
+	ss := sixb.U4toStrs(ar[:t:t])
 
 	if fill {
 		for i, k := n-1, len(ar)-1; i >= 0; i, k = i-1, k-1 {
@@ -144,7 +144,7 @@ func implant(ar []uint32, fill bool) ([]string, []uint32) {
 
 // fill sort test for string
 func fstS(sd int64, ar []uint32, srt func([]string)) time.Duration {
-	as, ar := implant(ar, true)
+	as, ar := implantS(ar, true)
 
 	rn := rand.New(rand.NewSource(sd))
 	for i := len(ar) - 1; i >= 0; i-- {
@@ -257,8 +257,8 @@ func mfcS(tn string, srt func([]string), ar, ap []uint32) float64 {
 	d1 = medur(fstS(12, ar, srt), d1, d2, d3)
 
 	if len(ap) > 0 {
-		as, ar := implant(ar, false)
-		aq, ap := implant(ap, false)
+		as, ar := implantS(ar, false)
+		aq, ap := implantS(ap, false)
 		compareS(as, aq)
 		compareU4(ar, ap)
 	}

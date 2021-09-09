@@ -14,7 +14,7 @@ collections using multiple CPU cores quickly.
 
 sorty is stable (as in version), well-tested and pretty careful with resources & performance:
 - `lesswap()` operates [**faster**](https://github.com/lynxkite/lynxkite/pull/141#issuecomment-779673635)
-than `sort.Interface` on generic collections.
+than [`sort.Interface`](https://pkg.go.dev/sort#Interface) on generic collections.
 - For each `Sort*()` call, sorty uses up to [`Mxg`](https://pkg.go.dev/github.com/jfcg/sorty#pkg-variables)
 (3 by default, including caller) concurrent goroutines and up to one channel.
 - Goroutines and channel are created/used **only when necessary**.
@@ -34,7 +34,7 @@ R |Ryzen 1600   |Manjaro     |5.4.108
 X |Xeon Haswell |Ubuntu 20.04|5.4.0-1040-gcp
 i5|Core i5 4210M|Manjaro     |5.4.108
 
-Sorting random uint32 array (in seconds):
+Sorting uniformly distributed random uint32 array (in seconds):
 
 Library(-Mxg)|R|X|i5
 :---|---:|---:|---:
@@ -50,7 +50,7 @@ sortyLsw-2| 7.33| 8.56| 7.49
 sortyLsw-3| 5.03| 5.78| 5.97
 sortyLsw-4| 3.74| 4.44| 5.32
 
-Sorting random float32 array (in seconds):
+Sorting normally distributed random float32 array (in seconds):
 
 Library(-Mxg)|R|X|i5
 :---|---:|---:|---:
@@ -66,7 +66,7 @@ sortyLsw-2| 7.91| 8.96| 7.94
 sortyLsw-3| 5.63| 6.00| 6.42
 sortyLsw-4| 4.52| 4.71| 5.55
 
-Sorting random string array (in seconds):
+Sorting uniformly distributed random string array (in seconds):
 
 Library(-Mxg)|R|X|i5
 :---|---:|---:|---:

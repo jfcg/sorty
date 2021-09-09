@@ -65,7 +65,7 @@ func TestMain(t *testing.T) {
 
 	// test & time sorting uint32 arrays for different libraries
 	// compare their results
-	fmt.Println("Sorting uint32")
+	fmt.Println("Sorting []uint32")
 	mfcU4("sort.Slice", func(al []uint32) {
 		sort.Slice(al, func(i, k int) bool { return al[i] < al[k] })
 	}, bu, nil)
@@ -80,7 +80,7 @@ func TestMain(t *testing.T) {
 
 	// test & time sorting float32 arrays for different libraries
 	// compare their results
-	fmt.Println("\nSorting float32")
+	fmt.Println("\nSorting []float32")
 	mfcF4("sort.Slice", func(al []float32) {
 		sort.Slice(al, func(i, k int) bool { return al[i] < al[k] })
 	}, bf, nil)
@@ -95,7 +95,7 @@ func TestMain(t *testing.T) {
 
 	// test & time sorting string arrays for different libraries
 	// compare their results
-	fmt.Println("\nSorting string")
+	fmt.Println("\nSorting []string")
 	mfcS("sort.Slice", func(al []string) {
 		sort.Slice(al, func(i, k int) bool { return al[i] < al[k] })
 	}, bu, nil)
