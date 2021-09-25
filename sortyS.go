@@ -8,7 +8,7 @@ package sorty
 
 import "sync/atomic"
 
-// IsSortedS returns 0 if ar is sorted in ascending order,
+// IsSortedS returns 0 if ar is sorted in ascending lexicographical order,
 // otherwise it returns i > 0 with ar[i] < ar[i-1]
 func IsSortedS(ar []string) int {
 	for i := len(ar) - 1; i > 0; i-- {
@@ -332,7 +332,7 @@ start:
 	goto start
 }
 
-// SortS concurrently sorts ar in ascending order.
+// SortS concurrently sorts ar in ascending lexicographical order.
 func SortS(ar []string) {
 
 	if len(ar) < 2*(Mlr+1) || Mxg <= 1 {

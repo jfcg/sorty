@@ -9,13 +9,15 @@
 package sorty
 
 const (
-	// Mli is the maximum array length for insertion sort in
-	// Sort*() except SortS() and Sort().
+	// Mli is the maximum slice length for insertion sort in
+	// Sort*() except SortS(), SortB() and Sort().
 	Mli = 100
-	// Hmli is the maximum array length for insertion sort in SortS() and Sort().
+
+	// Hmli is the maximum slice length for insertion sort in
+	// SortS(), SortB() and Sort().
 	Hmli = 40
 
-	// Mlr is the maximum array length for recursion when there is available goroutines.
-	// So Mlr+1 is the minimum array length for new sorting goroutines.
+	// Mlr is the maximum slice length for recursion when there are available
+	// goroutines. So Mlr+1 is the minimum slice length for new sorting goroutines.
 	Mlr = 496
 )

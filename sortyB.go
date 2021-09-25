@@ -12,7 +12,7 @@ import (
 	"github.com/jfcg/sixb"
 )
 
-// IsSortedB returns 0 if ar is sorted in ascending order,
+// IsSortedB returns 0 if ar is sorted in ascending lexicographical order,
 // otherwise it returns i > 0 with ar[i] < ar[i-1]
 func IsSortedB(ar [][]byte) int {
 	for i := len(ar) - 1; i > 0; i-- {
@@ -338,7 +338,7 @@ start:
 	goto start
 }
 
-// SortB concurrently sorts ar in ascending order.
+// SortB concurrently sorts ar in ascending lexicographical order.
 func SortB(ar [][]byte) {
 
 	if len(ar) < 2*(Mlr+1) || Mxg <= 1 {

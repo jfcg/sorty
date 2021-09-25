@@ -4,15 +4,18 @@
 	file, You can obtain one at http://mozilla.org/MPL/2.0/.
 */
 
-// Package sorty is a type-specific, fast, efficient, concurrent/parallel sorting
-// library. It is a QuickSort implementation, is in-place and does not require
-// extra memory. Call corresponding Sort*() to concurrently sort your slices (in
-// ascending order) or collections of objects. For example:
+// Package sorty is a type-specific, fast, efficient, concurrent/parallel QuickSort
+// implementation. It is in-place and does not require extra memory. You can call
+// corresponding Sort*() to rapidly sort your slices (in ascending order) or
+// collections of objects. For example:
 //  sorty.SortS(string_slice) // native slice
 //  sorty.Sort(n, lesswap)    // lesswap() function based
 package sorty
 
-// Mxg is the maximum concurrent goroutines used for sorting per Sort*() call.
+// Mxg is the maximum concurrent goroutines (including caller) used for sorting
+// per Sort*() call. Mxg can be changed live, even during an ongoing Sort*() call.
+// Mxg=1 (or a short input) yields single-goroutine sorting: No goroutines or
+// channel will be created by sorty.
 var Mxg uint32 = 3
 
 func init() {
@@ -29,7 +32,7 @@ func mid(l, h int) int {
 // Search returns lowest integer k in [0,n) where fn(k) is true, assuming:
 //  fn(k) => fn(k+1)
 // If there is no such k, it returns n. It can be used to locate an element
-// in a sorted array or collection.
+// in a sorted collection.
 func Search(n int, fn func(int) bool) int {
 	l, h := 0, n
 
