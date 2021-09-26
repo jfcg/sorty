@@ -21,9 +21,9 @@ import (
 	//"github.com/yourbasic/radix"
 )
 
-func printSec(d time.Duration) float64 {
+func printSec(tn string, d time.Duration) float64 {
 	sec := d.Seconds()
-	fmt.Printf("%10s %5.2fs\n", tsName, sec)
+	fmt.Printf("%10s %5.2fs\n", tn, sec)
 	return sec
 }
 
@@ -48,103 +48,102 @@ func sasI8(sd int64, al []int64, ch chan bool) {
 	ch <- false
 }
 
-// main test & comparison
-func TestMain(t *testing.T) {
+// test & time sorting uint32 slices for different libraries, compare their results
+func TestUint(t *testing.T) {
 	tsPtr = t
 
-	// a & b buffers will hold all arrays to sort
-	af := make([]float32, N)
-	bf := make([]float32, N)
-
-	// different type views of the same buffers
-	au, bu := F4toU4(&af), F4toU4(&bf)           // uint32
-	ai, _ := F4toI4(&af), F4toI4(&bf)            // int32
-	au2, bu2 := sixb.U4toU8(au), sixb.U4toU8(bu) // uint64
-	af2, _ := U8toF8(&au2), U8toF8(&bu2)         // float64
-	_, bi2 := U8toI8(&au2), U8toI8(&bu2)         // int64
-
-	// test & time sorting uint32 slices for different libraries
-	// compare their results
-	fmt.Println("Sorting []uint32")
+	fmt.Println("\nSorting []uint32")
 	mfcU4("sort.Slice", func(al []uint32) {
 		sort.Slice(al, func(i, k int) bool { return al[i] < al[k] })
-	}, bu, nil)
+	}, bufbu, nil)
 	//mfcU4("sortutil", sortutil.Uint32s, au, bu)
 	//mfcU4("zermelo", zuint32.Sort, au, bu)
-	sumtU4(au, bu) // sorty
-	sumtLswU4(au, bu)
+	sumtU4(bufau, bufbu) // sorty
+	sumtLswU4(bufau, bufbu)
 
-	if IsSorted(len(au), func(i, k, r, s int) bool { return au[i] < au[k] }) != 0 {
+	if IsSorted(len(bufau), func(i, k, r, s int) bool { return bufau[i] < bufau[k] }) != 0 {
 		t.Fatal("IsSorted() does not work")
 	}
+}
 
-	// test & time sorting float32 slices for different libraries
-	// compare their results
+// test & time sorting float32 slices for different libraries, compare their results
+func TestFloat(t *testing.T) {
+	tsPtr = t
+
 	fmt.Println("\nSorting []float32")
 	mfcF4("sort.Slice", func(al []float32) {
 		sort.Slice(al, func(i, k int) bool { return al[i] < al[k] })
-	}, bf, nil)
+	}, bufbf, nil)
 	//mfcF4("sortutil", sortutil.Float32s, af, bf)
 	//mfcF4("zermelo", zfloat32.Sort, af, bf)
-	sumtF4(af, bf) // sorty
-	sumtLswF4(af, bf)
+	sumtF4(bufaf, bufbf) // sorty
+	sumtLswF4(bufaf, bufbf)
 
-	if IsSorted(len(af), func(i, k, r, s int) bool { return af[i] < af[k] }) != 0 {
+	if IsSorted(len(bufaf), func(i, k, r, s int) bool { return bufaf[i] < bufaf[k] }) != 0 {
 		t.Fatal("IsSorted() does not work")
 	}
+}
 
-	// test & time sorting string slices for different libraries
-	// compare their results
+// test & time sorting string slices for different libraries, compare their results
+func TestString(t *testing.T) {
+	tsPtr = t
+
 	fmt.Println("\nSorting []string")
 	mfcS("sort.Slice", func(al []string) {
 		sort.Slice(al, func(i, k int) bool { return al[i] < al[k] })
-	}, bu, nil)
+	}, bufbu, nil)
 	//mfcS("sortutil", sortutil.Strings, au, bu)
 	//mfcS("radix", radix.Sort, au, bu)
-	sumtS(au, bu) // sorty
-	sumtLswS(au, bu)
+	sumtS(bufau, bufbu) // sorty
+	sumtLswS(bufau, bufbu)
 
-	// test & time sorting []byte slices for different libraries
-	// compare their results
+	// test & time sorting []byte slices
 	fmt.Println("\nSorting [][]byte")
 	mfcB("sort.Slice", func(al [][]byte) {
 		sort.Slice(al, func(i, k int) bool { return sixb.BtoS(al[i]) < sixb.BtoS(al[k]) })
-	}, bu, nil)
-	sumtB(au, bu) // sorty
+	}, bufbu, nil)
+	sumtB(bufau, bufbu) // sorty
+}
 
-	// Is Sort*() multi-goroutine safe?
+// Is Sort*() multi-goroutine safe?
+func TestConcurrent(t *testing.T) {
+	tsPtr = t
+
 	fmt.Println("\nConcurrent calls to Sort*()")
-	tsName = "multi"
 	K, L, ch := N/2, N/4, make(chan bool)
 	Mxg = 2
 
 	// two concurrent calls to SortU8() & SortF8() each
 	// up to 8 goroutines total
-	go sasU8(21, bu2[:L:L], ch)
-	go sasF8(22, af2[:L:L], ch)
-	go sasU8(21, bu2[L:], ch)
-	fstF8(22, af2[L:], SortF8)
+	go sasU8(21, bufbu2[:L:L], ch)
+	go sasF8(22, bufaf2[:L:L], ch)
+	go sasU8(21, bufbu2[L:], ch)
+	fstF8(22, bufaf2[L:], SortF8)
 
 	for i := 3; i > 0; i-- {
 		<-ch // wait others
 	}
-	compareU4(bu[:K:K], bu[K:]) // same buffers
-	compareU4(au[:K:K], au[K:])
+	compareU4(bufbu[:K:K], bufbu[K:]) // same buffers
+	compareU4(bufau[:K:K], bufau[K:])
 
 	// two concurrent calls to SortI4() & SortI8() each
 	// up to 8 goroutines total
-	go sasI4(23, ai[:K:K], ch)
-	go sasI8(24, bi2[:L:L], ch)
-	go sasI4(23, ai[K:], ch)
-	fstI8(24, bi2[L:], SortI8)
+	go sasI4(23, bufai[:K:K], ch)
+	go sasI8(24, bufbi2[:L:L], ch)
+	go sasI4(23, bufai[K:], ch)
+	fstI8(24, bufbi2[L:], SortI8)
 
 	for i := 3; i > 0; i-- {
 		<-ch // wait others
 	}
-	compareU4(bu[:K:K], bu[K:]) // same buffers
-	compareU4(au[:K:K], au[K:])
+	compareU4(bufbu[:K:K], bufbu[K:]) // same buffers
+	compareU4(bufau[:K:K], bufau[K:])
+}
 
-	// Sort()ing short arrays
+// Sort()ing short arrays
+func TestShort(t *testing.T) {
+	tsPtr = t
+
 	for l := -3; l < 2; l++ {
 		Sort(l, iarlsw)
 		if iArr[0] != 9 || iArr[1] != 8 {

@@ -17,8 +17,22 @@ import (
 
 const N = 1 << 26
 
-var tsPtr *testing.T
-var tsName string
+var (
+	// a & b buffers will hold all arrays to sort
+	bufaf = make([]float32, N)
+	bufbf = make([]float32, N)
+
+	// different type views of the same buffers
+	bufau  = F4toU4(&bufaf) // uint32
+	bufbu  = F4toU4(&bufbf)
+	bufai  = F4toI4(&bufaf)     // int32
+	bufau2 = sixb.U4toU8(bufau) // uint64
+	bufbu2 = sixb.U4toU8(bufbu)
+	bufaf2 = U8toF8(&bufau2) // float64
+	bufbi2 = U8toI8(&bufbu2) // int64
+
+	tsPtr *testing.T
+)
 
 // fill sort test for uint32
 func fstU4(sd int64, ar []uint32, srt func([]uint32)) time.Duration {
@@ -32,7 +46,7 @@ func fstU4(sd int64, ar []uint32, srt func([]uint32)) time.Duration {
 	dur := time.Since(now)
 
 	if IsSortedU4(ar) != 0 {
-		tsPtr.Fatal(tsName, "not sorted")
+		tsPtr.Fatal("not sorted")
 	}
 	return dur
 }
@@ -49,7 +63,7 @@ func fstU8(sd int64, ar []uint64, srt func([]uint64)) time.Duration {
 	dur := time.Since(now)
 
 	if IsSortedU8(ar) != 0 {
-		tsPtr.Fatal(tsName, "not sorted")
+		tsPtr.Fatal("not sorted")
 	}
 	return dur
 }
@@ -66,7 +80,7 @@ func fstI4(sd int64, ar []int32, srt func([]int32)) time.Duration {
 	dur := time.Since(now)
 
 	if IsSortedI4(ar) != 0 {
-		tsPtr.Fatal(tsName, "not sorted")
+		tsPtr.Fatal("not sorted")
 	}
 	return dur
 }
@@ -83,7 +97,7 @@ func fstI8(sd int64, ar []int64, srt func([]int64)) time.Duration {
 	dur := time.Since(now)
 
 	if IsSortedI8(ar) != 0 {
-		tsPtr.Fatal(tsName, "not sorted")
+		tsPtr.Fatal("not sorted")
 	}
 	return dur
 }
@@ -100,7 +114,7 @@ func fstF4(sd int64, ar []float32, srt func([]float32)) time.Duration {
 	dur := time.Since(now)
 
 	if IsSortedF4(ar) != 0 {
-		tsPtr.Fatal(tsName, "not sorted")
+		tsPtr.Fatal("not sorted")
 	}
 	return dur
 }
@@ -117,7 +131,7 @@ func fstF8(sd int64, ar []float64, srt func([]float64)) time.Duration {
 	dur := time.Since(now)
 
 	if IsSortedF8(ar) != 0 {
-		tsPtr.Fatal(tsName, "not sorted")
+		tsPtr.Fatal("not sorted")
 	}
 	return dur
 }
@@ -158,7 +172,7 @@ func fstS(sd int64, ar []uint32, srt func([]string)) time.Duration {
 	dur := time.Since(now)
 
 	if IsSortedS(as) != 0 {
-		tsPtr.Fatal(tsName, "not sorted")
+		tsPtr.Fatal("not sorted")
 	}
 	return dur
 }
@@ -200,7 +214,7 @@ func fstB(sd int64, ar []uint32, srt func([][]byte)) time.Duration {
 	dur := time.Since(now)
 
 	if IsSortedB(ab) != 0 {
-		tsPtr.Fatal(tsName, "not sorted")
+		tsPtr.Fatal("not sorted")
 	}
 	return dur
 }
@@ -211,12 +225,12 @@ func compareU4(ar, ap []uint32) {
 		return
 	}
 	if len(ar) != l {
-		tsPtr.Fatal(tsName, "length mismatch:", len(ar), l)
+		tsPtr.Fatal("length mismatch:", len(ar), l)
 	}
 
 	for i := l - 1; i >= 0; i-- {
 		if ar[i] != ap[i] {
-			tsPtr.Fatal(tsName, "values mismatch:", i, ar[i], ap[i])
+			tsPtr.Fatal("values mismatch:", i, ar[i], ap[i])
 		}
 	}
 }
@@ -224,12 +238,12 @@ func compareU4(ar, ap []uint32) {
 func compareS(ar, ap []string) {
 	l := len(ap)
 	if len(ar) != l {
-		tsPtr.Fatal(tsName, "length mismatch:", len(ar), l)
+		tsPtr.Fatal("length mismatch:", len(ar), l)
 	}
 
 	for i := l - 1; i >= 0; i-- {
 		if ar[i] != ap[i] {
-			tsPtr.Fatal(tsName, "values mismatch:", i, ar[i], ap[i])
+			tsPtr.Fatal("values mismatch:", i, ar[i], ap[i])
 		}
 	}
 }
@@ -237,12 +251,12 @@ func compareS(ar, ap []string) {
 func compareB(ar, ap [][]byte) {
 	l := len(ap)
 	if len(ar) != l {
-		tsPtr.Fatal(tsName, "length mismatch:", len(ar), l)
+		tsPtr.Fatal("length mismatch:", len(ar), l)
 	}
 
 	for i := l - 1; i >= 0; i-- {
 		if sixb.BtoS(ar[i]) != sixb.BtoS(ap[i]) {
-			tsPtr.Fatal(tsName, "values mismatch:", i, ar[i], ap[i])
+			tsPtr.Fatal("values mismatch:", i, ar[i], ap[i])
 		}
 	}
 }
@@ -266,14 +280,13 @@ func medur(a, b, c, d time.Duration) time.Duration {
 
 // median fst & compare for uint32
 func mfcU4(tn string, srt func([]uint32), ar, ap []uint32) float64 {
-	tsName = tn
 	d1 := fstU4(1, ar, srt) // median of four different sorts
 	d2 := fstU4(2, ar, srt)
 	d3 := fstU4(3, ar, srt)
 	d1 = medur(fstU4(4, ar, srt), d1, d2, d3)
 
 	compareU4(ar, ap)
-	return printSec(d1)
+	return printSec(tn, d1)
 }
 
 // slice conversions
@@ -295,19 +308,17 @@ func U8toI8(p *[]uint64) []int64 {
 
 // median fst & compare for float32
 func mfcF4(tn string, srt func([]float32), ar, ap []float32) float64 {
-	tsName = tn
 	d1 := fstF4(5, ar, srt) // median of four different sorts
 	d2 := fstF4(6, ar, srt)
 	d3 := fstF4(7, ar, srt)
 	d1 = medur(fstF4(8, ar, srt), d1, d2, d3)
 
 	compareU4(F4toU4(&ar), F4toU4(&ap))
-	return printSec(d1)
+	return printSec(tn, d1)
 }
 
 // median fst & compare for string
 func mfcS(tn string, srt func([]string), ar, ap []uint32) float64 {
-	tsName = tn
 	d1 := fstS(9, ar, srt) // median of four different sorts
 	d2 := fstS(10, ar, srt)
 	d3 := fstS(11, ar, srt)
@@ -319,12 +330,11 @@ func mfcS(tn string, srt func([]string), ar, ap []uint32) float64 {
 		compareS(as, aq)
 		compareU4(ar, ap)
 	}
-	return printSec(d1)
+	return printSec(tn, d1)
 }
 
 // median fst & compare for []byte
 func mfcB(tn string, srt func([][]byte), ar, ap []uint32) float64 {
-	tsName = tn
 	d1 := fstB(13, ar, srt) // median of four different sorts
 	d2 := fstB(14, ar, srt)
 	d3 := fstB(15, ar, srt)
@@ -336,7 +346,7 @@ func mfcB(tn string, srt func([][]byte), ar, ap []uint32) float64 {
 		compareB(as, aq)
 		compareU4(ar, ap)
 	}
-	return printSec(d1)
+	return printSec(tn, d1)
 }
 
 var srtName = []byte("sorty-0")
