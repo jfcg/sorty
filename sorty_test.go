@@ -134,11 +134,11 @@ func implantS(ar []uint32, fill bool) ([]string, []uint32) {
 	ss := sixb.U4toStrs(ar[:t:t])
 
 	if fill {
-		k := len(ar) - 1
-		for n--; n >= 0; n-- {
+		for k := len(ar); n > 0; {
+			n--
+			k--
 			ss[n].Data = unsafe.Pointer(&ar[k])
 			ss[n].Len = 4
-			k--
 		}
 	}
 	return *(*[]string)(unsafe.Pointer(&ss)), ar[t:]
@@ -175,12 +175,12 @@ func implantB(ar []uint32, fill bool) ([][]byte, []uint32) {
 	bs := sixb.U4toSlcs(ar[:t:t])
 
 	if fill {
-		k := len(ar) - 1
-		for n--; n >= 0; n-- {
+		for k := len(ar); n > 0; {
+			n--
+			k--
 			bs[n].Data = unsafe.Pointer(&ar[k])
 			bs[n].Len = 4
 			bs[n].Cap = 4
-			k--
 		}
 	}
 	return *(*[][]byte)(unsafe.Pointer(&bs)), ar[t:]
