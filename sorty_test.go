@@ -7,6 +7,7 @@
 package sorty
 
 import (
+	"fmt"
 	"math/rand"
 	"testing"
 	"time"
@@ -18,7 +19,7 @@ import (
 const N = 1 << 26
 
 var (
-	// a & b buffers will hold all arrays to sort
+	// a & b buffers will hold all slices to sort
 	bufaf = make([]float32, N)
 	bufbf = make([]float32, N)
 
@@ -219,6 +220,44 @@ func fstB(sd int64, ar []uint32, srt func([][]byte)) time.Duration {
 	return dur
 }
 
+// implant strings into ar (SortLen)
+func implantLenS(sd int64, ar []uint32, fill bool) []string {
+	// string size is 4*t bytes
+	t := sixb.StrSize >> 2
+
+	// ar will hold n string headers
+	n := len(ar) / t
+
+	t *= n // total string headers space
+	ss := sixb.U4toStrs(ar[:t:t])
+
+	if fill {
+		rn := rand.New(rand.NewSource(sd))
+
+		for L := 4*len(ar) + 1; n > 0; {
+			n--
+			// string bodies start at &ar[0] with random lengths up to 4*len(ar) bytes
+			ss[n].Data = unsafe.Pointer(&ar[0])
+			ss[n].Len = rn.Intn(L)
+		}
+	}
+	return *(*[]string)(unsafe.Pointer(&ss))
+}
+
+// fill sort test for string (SortLen)
+func fstLenS(sd int64, ar []uint32, srt func([]string)) time.Duration {
+	as := implantLenS(sd, ar, true)
+
+	now := time.Now()
+	srt(as)
+	dur := time.Since(now)
+
+	if IsSortedLen(as) != 0 {
+		tsPtr.Fatal("not sorted")
+	}
+	return dur
+}
+
 func compareU4(ar, ap []uint32) {
 	l := len(ap)
 	if l <= 0 {
@@ -257,6 +296,19 @@ func compareB(ar, ap [][]byte) {
 	for i := l - 1; i >= 0; i-- {
 		if sixb.BtoS(ar[i]) != sixb.BtoS(ap[i]) {
 			tsPtr.Fatal("values mismatch:", i, ar[i], ap[i])
+		}
+	}
+}
+
+func compareLenS(ar, ap []string) {
+	l := len(ap)
+	if len(ar) != l {
+		tsPtr.Fatal("length mismatch:", len(ar), l)
+	}
+
+	for i := l - 1; i >= 0; i-- {
+		if len(ar[i]) != len(ap[i]) {
+			tsPtr.Fatal("lengths mismatch:", i, len(ar[i]), len(ap[i]))
 		}
 	}
 }
@@ -349,15 +401,27 @@ func mfcB(tn string, srt func([][]byte), ar, ap []uint32) float64 {
 	return printSec(tn, d1)
 }
 
-var srtName = []byte("sorty-0")
+// median fst & compare for string (SortLen)
+func mfcLenS(tn string, srt func([]string), ar, ap []uint32) float64 {
+	d1 := fstLenS(17, ar, srt) // median of four different sorts
+	d2 := fstLenS(18, ar, srt)
+	d3 := fstLenS(19, ar, srt)
+	d1 = medur(fstLenS(20, ar, srt), d1, d2, d3)
+
+	if len(ap) > 0 {
+		as := implantLenS(0, ar, false)
+		aq := implantLenS(0, ap, false)
+		compareLenS(as, aq)
+	}
+	return printSec(tn, d1)
+}
 
 // return sum of SortU4() times for 1..4 goroutines
 // compare with ap and among themselves
 func sumtU4(ar, ap []uint32) float64 {
 	s := .0
 	for Mxg = 1; Mxg < 5; Mxg++ {
-		srtName[6] = byte(Mxg + '0')
-		s += mfcU4(string(srtName), SortU4, ar, ap)
+		s += mfcU4(fmt.Sprintf("sorty-%d", Mxg), SortU4, ar, ap)
 		ap, ar = ar, ap[:cap(ap)]
 	}
 	return s
@@ -368,8 +432,7 @@ func sumtU4(ar, ap []uint32) float64 {
 func sumtF4(ar, ap []float32) float64 {
 	s := .0
 	for Mxg = 1; Mxg < 5; Mxg++ {
-		srtName[6] = byte(Mxg + '0')
-		s += mfcF4(string(srtName), SortF4, ar, ap)
+		s += mfcF4(fmt.Sprintf("sorty-%d", Mxg), SortF4, ar, ap)
 		ap, ar = ar, ap[:cap(ap)]
 	}
 	return s
@@ -380,8 +443,7 @@ func sumtF4(ar, ap []float32) float64 {
 func sumtS(ar, ap []uint32) float64 {
 	s := .0
 	for Mxg = 1; Mxg < 5; Mxg++ {
-		srtName[6] = byte(Mxg + '0')
-		s += mfcS(string(srtName), SortS, ar, ap)
+		s += mfcS(fmt.Sprintf("sorty-%d", Mxg), SortS, ar, ap)
 		ap, ar = ar, ap[:cap(ap)]
 	}
 	return s
@@ -392,14 +454,24 @@ func sumtS(ar, ap []uint32) float64 {
 func sumtB(ar, ap []uint32) float64 {
 	s := .0
 	for Mxg = 1; Mxg < 5; Mxg++ {
-		srtName[6] = byte(Mxg + '0')
-		s += mfcB(string(srtName), SortB, ar, ap)
+		s += mfcB(fmt.Sprintf("sorty-%d", Mxg), SortB, ar, ap)
 		ap, ar = ar, ap[:cap(ap)]
 	}
 	return s
 }
 
-// sort uint32 array with Sort()
+// return sum of SortLen() times for 1..4 goroutines
+// compare with ap and among themselves
+func sumtLenS(ar, ap []uint32) float64 {
+	s := .0
+	for Mxg = 1; Mxg < 5; Mxg++ {
+		s += mfcLenS(fmt.Sprintf("sorty-%d", Mxg), func(al []string) { SortLen(al) }, ar, ap)
+		ap, ar = ar, ap[:cap(ap)]
+	}
+	return s
+}
+
+// sort uint32 slice with Sort()
 func sort3i(aq []uint32) {
 	lsw := func(i, k, r, s int) bool {
 		if aq[i] < aq[k] {
@@ -413,21 +485,18 @@ func sort3i(aq []uint32) {
 	Sort(len(aq), lsw)
 }
 
-var lswName = []byte("sortyLsw-0")
-
 // return sum of sort3i() times for 1..4 goroutines
 // compare with ap and among themselves
 func sumtLswU4(ar, ap []uint32) float64 {
 	s := .0
 	for Mxg = 1; Mxg < 5; Mxg++ {
-		lswName[9] = byte(Mxg + '0')
-		s += mfcU4(string(lswName), sort3i, ar, ap)
+		s += mfcU4(fmt.Sprintf("sortyLsw-%d", Mxg), sort3i, ar, ap)
 		ap, ar = ar, ap[:cap(ap)]
 	}
 	return s
 }
 
-// sort float32 array with Sort()
+// sort float32 slice with Sort()
 func sort3f(aq []float32) {
 	lsw := func(i, k, r, s int) bool {
 		if aq[i] < aq[k] {
@@ -446,14 +515,13 @@ func sort3f(aq []float32) {
 func sumtLswF4(ar, ap []float32) float64 {
 	s := .0
 	for Mxg = 1; Mxg < 5; Mxg++ {
-		lswName[9] = byte(Mxg + '0')
-		s += mfcF4(string(lswName), sort3f, ar, ap)
+		s += mfcF4(fmt.Sprintf("sortyLsw-%d", Mxg), sort3f, ar, ap)
 		ap, ar = ar, ap[:cap(ap)]
 	}
 	return s
 }
 
-// sort string array with Sort()
+// sort string slice with Sort()
 func sort3s(aq []string) {
 	lsw := func(i, k, r, s int) bool {
 		if aq[i] < aq[k] {
@@ -472,8 +540,7 @@ func sort3s(aq []string) {
 func sumtLswS(ar, ap []uint32) float64 {
 	s := .0
 	for Mxg = 1; Mxg < 5; Mxg++ {
-		lswName[9] = byte(Mxg + '0')
-		s += mfcS(string(lswName), sort3s, ar, ap)
+		s += mfcS(fmt.Sprintf("sortyLsw-%d", Mxg), sort3s, ar, ap)
 		ap, ar = ar, ap[:cap(ap)]
 	}
 	return s

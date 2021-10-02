@@ -45,7 +45,7 @@ var (
 		func() float64 { return sumtLswS(bufau, bufap) }}
 )
 
-// Optimize max array lengths for insertion sort/recursion (Mli,Mlr)
+// Optimize max slice lengths for insertion sort/recursion (Mli,Mlr)
 // Takes a long time, run with -tags tuneparam
 func TestOptimize(t *testing.T) {
 	tsPtr = t

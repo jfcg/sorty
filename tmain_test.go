@@ -84,7 +84,8 @@ func TestFloat(t *testing.T) {
 	}
 }
 
-// test & time sorting string slices for different libraries, compare their results
+// test & time sorting string/[]byte slices for
+// different libraries, compare their results
 func TestString(t *testing.T) {
 	tsPtr = t
 
@@ -97,12 +98,23 @@ func TestString(t *testing.T) {
 	sumtS(bufau, bufbu) // sorty
 	sumtLswS(bufau, bufbu)
 
-	// test & time sorting []byte slices
 	fmt.Println("\nSorting [][]byte")
 	mfcB("sort.Slice", func(al [][]byte) {
 		sort.Slice(al, func(i, k int) bool { return sixb.BtoS(al[i]) < sixb.BtoS(al[k]) })
 	}, bufbu, nil)
 	sumtB(bufau, bufbu) // sorty
+}
+
+// test & time sorting string/[]byte slices 'by length'
+// for different libraries, compare their results
+func TestLength(t *testing.T) {
+	tsPtr = t
+
+	fmt.Println("\nSorting []string by length")
+	mfcLenS("sort.Slice", func(al []string) {
+		sort.Slice(al, func(i, k int) bool { return len(al[i]) < len(al[k]) })
+	}, bufbu, nil)
+	sumtLenS(bufau, bufbu) // sorty
 }
 
 // Is Sort*() multi-goroutine safe?
@@ -140,21 +152,21 @@ func TestConcurrent(t *testing.T) {
 	compareU4(bufau[:K:K], bufau[K:])
 }
 
-// Sort()ing short arrays
+// Sort()ing short slices
 func TestShort(t *testing.T) {
 	tsPtr = t
 
 	for l := -3; l < 2; l++ {
 		Sort(l, iarlsw)
 		if iArr[0] != 9 || iArr[1] != 8 {
-			t.Fatal("Sort()ing short arrays does not work")
+			t.Fatal("Sort()ing short slices does not work")
 		}
 	}
 	for l := 2; l < 4; l++ {
 		Sort(l, iarlsw)
 		for k := 2; k >= 0; k-- {
 			if iArr[k] != iArr[12+k-l] {
-				t.Fatal("Sort()ing short arrays does not work")
+				t.Fatal("Sort()ing short slices does not work")
 			}
 		}
 	}
