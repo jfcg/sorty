@@ -115,6 +115,12 @@ func TestLength(t *testing.T) {
 		sort.Slice(al, func(i, k int) bool { return len(al[i]) < len(al[k]) })
 	}, bufbu, nil)
 	sumtLenS(bufau, bufbu) // sorty
+
+	fmt.Println("\nSorting [][]byte by length")
+	mfcLenB("sort.Slice", func(al [][]byte) {
+		sort.Slice(al, func(i, k int) bool { return len(al[i]) < len(al[k]) })
+	}, bufbu, nil)
+	sumtLenB(bufau, bufbu) // sorty
 }
 
 // Is Sort*() multi-goroutine safe?
@@ -127,10 +133,10 @@ func TestConcurrent(t *testing.T) {
 
 	// two concurrent calls to SortU8() & SortF8() each
 	// up to 8 goroutines total
-	go sasU8(21, bufbu2[:L:L], ch)
-	go sasF8(22, bufaf2[:L:L], ch)
-	go sasU8(21, bufbu2[L:], ch)
-	fstF8(22, bufaf2[L:], SortF8)
+	go sasU8(96, bufbu2[:L:L], ch)
+	go sasF8(97, bufaf2[:L:L], ch)
+	go sasU8(96, bufbu2[L:], ch)
+	fstF8(97, bufaf2[L:], SortF8)
 
 	for i := 3; i > 0; i-- {
 		<-ch // wait others
@@ -140,10 +146,10 @@ func TestConcurrent(t *testing.T) {
 
 	// two concurrent calls to SortI4() & SortI8() each
 	// up to 8 goroutines total
-	go sasI4(23, bufai[:K:K], ch)
-	go sasI8(24, bufbi2[:L:L], ch)
-	go sasI4(23, bufai[K:], ch)
-	fstI8(24, bufbi2[L:], SortI8)
+	go sasI4(98, bufai[:K:K], ch)
+	go sasI8(99, bufbi2[:L:L], ch)
+	go sasI4(98, bufai[K:], ch)
+	fstI8(99, bufbi2[L:], SortI8)
 
 	for i := 3; i > 0; i-- {
 		<-ch // wait others

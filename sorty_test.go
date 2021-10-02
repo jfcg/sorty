@@ -258,6 +258,45 @@ func fstLenS(sd int64, ar []uint32, srt func([]string)) time.Duration {
 	return dur
 }
 
+// implant []byte's into ar (SortLen)
+func implantLenB(sd int64, ar []uint32, fill bool) [][]byte {
+	// []byte size is 4*t bytes
+	t := sixb.SliceSize >> 2
+
+	// ar will hold n []byte headers
+	n := len(ar) / t
+
+	t *= n // total []byte headers space
+	bs := sixb.U4toSlcs(ar[:t:t])
+
+	if fill {
+		rn := rand.New(rand.NewSource(sd))
+
+		for L := 4*len(ar) + 1; n > 0; {
+			n--
+			// []byte bodies start at &ar[0] with random lengths up to 4*len(ar) bytes
+			bs[n].Data = unsafe.Pointer(&ar[0])
+			bs[n].Len = rn.Intn(L)
+			bs[n].Cap = bs[n].Len
+		}
+	}
+	return *(*[][]byte)(unsafe.Pointer(&bs))
+}
+
+// fill sort test for []byte (SortLen)
+func fstLenB(sd int64, ar []uint32, srt func([][]byte)) time.Duration {
+	ab := implantLenB(sd, ar, true)
+
+	now := time.Now()
+	srt(ab)
+	dur := time.Since(now)
+
+	if IsSortedLen(ab) != 0 {
+		tsPtr.Fatal("not sorted")
+	}
+	return dur
+}
+
 func compareU4(ar, ap []uint32) {
 	l := len(ap)
 	if l <= 0 {
@@ -301,6 +340,19 @@ func compareB(ar, ap [][]byte) {
 }
 
 func compareLenS(ar, ap []string) {
+	l := len(ap)
+	if len(ar) != l {
+		tsPtr.Fatal("length mismatch:", len(ar), l)
+	}
+
+	for i := l - 1; i >= 0; i-- {
+		if len(ar[i]) != len(ap[i]) {
+			tsPtr.Fatal("lengths mismatch:", i, len(ar[i]), len(ap[i]))
+		}
+	}
+}
+
+func compareLenB(ar, ap [][]byte) {
 	l := len(ap)
 	if len(ar) != l {
 		tsPtr.Fatal("length mismatch:", len(ar), l)
@@ -416,6 +468,21 @@ func mfcLenS(tn string, srt func([]string), ar, ap []uint32) float64 {
 	return printSec(tn, d1)
 }
 
+// median fst & compare for []byte (SortLen)
+func mfcLenB(tn string, srt func([][]byte), ar, ap []uint32) float64 {
+	d1 := fstLenB(21, ar, srt) // median of four different sorts
+	d2 := fstLenB(22, ar, srt)
+	d3 := fstLenB(23, ar, srt)
+	d1 = medur(fstLenB(24, ar, srt), d1, d2, d3)
+
+	if len(ap) > 0 {
+		as := implantLenB(0, ar, false)
+		aq := implantLenB(0, ap, false)
+		compareLenB(as, aq)
+	}
+	return printSec(tn, d1)
+}
+
 // return sum of SortU4() times for 1..4 goroutines
 // compare with ap and among themselves
 func sumtU4(ar, ap []uint32) float64 {
@@ -460,12 +527,23 @@ func sumtB(ar, ap []uint32) float64 {
 	return s
 }
 
-// return sum of SortLen() times for 1..4 goroutines
+// return sum of SortLen([]string) times for 1..4 goroutines
 // compare with ap and among themselves
 func sumtLenS(ar, ap []uint32) float64 {
 	s := .0
 	for Mxg = 1; Mxg < 5; Mxg++ {
 		s += mfcLenS(fmt.Sprintf("sorty-%d", Mxg), func(al []string) { SortLen(al) }, ar, ap)
+		ap, ar = ar, ap[:cap(ap)]
+	}
+	return s
+}
+
+// return sum of SortLen([][]byte) times for 1..4 goroutines
+// compare with ap and among themselves
+func sumtLenB(ar, ap []uint32) float64 {
+	s := .0
+	for Mxg = 1; Mxg < 5; Mxg++ {
+		s += mfcLenB(fmt.Sprintf("sorty-%d", Mxg), func(al [][]byte) { SortLen(al) }, ar, ap)
 		ap, ar = ar, ap[:cap(ap)]
 	}
 	return s
