@@ -45,7 +45,7 @@ var (
 		func() float64 { return sumtLswS(bufau, bufap) }}
 )
 
-// Optimize max slice lengths for insertion sort/recursion (Mli,Mlr)
+// Optimize max slice lengths for insertion sort/recursion (Mli,Hmli,Mlr)
 // Takes a long time, run with -tags tuneparam
 func TestOptimize(t *testing.T) {
 	tsPtr = t
@@ -57,6 +57,9 @@ func TestOptimize(t *testing.T) {
 
 		_, _, _, n := opt.FindMinTri(2, s2, 480, 16, 120,
 			func(x, y int) float64 {
+				if x < 10 || y <= 2*x {
+					return 9e9 // keep parameters feasible
+				}
 				Mli, Hmli, Mlr = x, x, y
 				return optFn[i]()
 			}, printOpt)
