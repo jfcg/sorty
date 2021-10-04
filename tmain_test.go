@@ -56,8 +56,8 @@ func TestUint(t *testing.T) {
 	mfcU4("sort.Slice", func(al []uint32) {
 		sort.Slice(al, func(i, k int) bool { return al[i] < al[k] })
 	}, bufbu, nil)
-	//mfcU4("sortutil", sortutil.Uint32s, au, bu)
-	//mfcU4("zermelo", zuint32.Sort, au, bu)
+	//mfcU4("sortutil", sortutil.Uint32s, bufau, bufbu)
+	//mfcU4("zermelo", zuint32.Sort, bufau, bufbu)
 	sumtU4(bufau, bufbu) // sorty
 	sumtLswU4(bufau, bufbu)
 
@@ -74,8 +74,8 @@ func TestFloat(t *testing.T) {
 	mfcF4("sort.Slice", func(al []float32) {
 		sort.Slice(al, func(i, k int) bool { return al[i] < al[k] })
 	}, bufbf, nil)
-	//mfcF4("sortutil", sortutil.Float32s, af, bf)
-	//mfcF4("zermelo", zfloat32.Sort, af, bf)
+	//mfcF4("sortutil", sortutil.Float32s, bufaf, bufbf)
+	//mfcF4("zermelo", zfloat32.Sort, bufaf, bufbf)
 	sumtF4(bufaf, bufbf) // sorty
 	sumtLswF4(bufaf, bufbf)
 
@@ -93,8 +93,8 @@ func TestString(t *testing.T) {
 	mfcS("sort.Slice", func(al []string) {
 		sort.Slice(al, func(i, k int) bool { return al[i] < al[k] })
 	}, bufbu, nil)
-	//mfcS("sortutil", sortutil.Strings, au, bu)
-	//mfcS("radix", radix.Sort, au, bu)
+	//mfcS("sortutil", sortutil.Strings, bufau, bufbu)
+	//mfcS("radix", radix.Sort, bufau, bufbu)
 	sumtS(bufau, bufbu) // sorty
 	sumtLswS(bufau, bufbu)
 
