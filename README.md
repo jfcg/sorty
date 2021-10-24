@@ -1,30 +1,35 @@
 ## sorty [![go report card](https://goreportcard.com/badge/github.com/jfcg/sorty)](https://goreportcard.com/report/github.com/jfcg/sorty) [![go.dev ref](https://raw.githubusercontent.com/jfcg/.github/main/godev.svg)](https://pkg.go.dev/github.com/jfcg/sorty)
 
-sorty is a type-specific, fast, efficient, concurrent/parallel [QuickSort](https://en.wikipedia.org/wiki/Quicksort)
-implementation (with an improved [InsertionSort](https://en.wikipedia.org/wiki/Insertion_sort) as subroutine).
-It is in-place and does not require extra memory (other than efficient recursive calls and goroutines). You can call
-corresponding `Sort*()` to rapidly sort your slices (in ascending order) or collections of objects. For example:
+sorty is a type-specific, fast, efficient, concurrent / parallel
+[QuickSort](https://en.wikipedia.org/wiki/Quicksort) implementation (with an enhanced
+[InsertionSort](https://en.wikipedia.org/wiki/Insertion_sort) as subroutine).
+It is in-place and does not require extra memory. You can call:
 ```
-sorty.SortS(string_slice) // native slice
-sorty.Sort(n, lesswap)    // lesswap() function based
+sorty.SortSlice(native_slice) // []int32, []float64 etc. in ascending order
+sorty.SortLen(len_slice)      // []string or [][]T 'by length' in ascending order
+sorty.Sort(n, lesswap)        // lesswap() based
 ```
 If you have a pair of `Less()` and `Swap()`, then you can trivially write your
 [`lesswap()`](https://pkg.go.dev/github.com/jfcg/sorty#Sort) and sort your generic
-collections using multiple CPU cores quickly. sorty natively sorts
-`[][]byte`,`[]float32`,`[]float64`,`[]int`,`[]int32`,`[]int64`,
-`[]uintptr`,`[]string`,`[]uint`,`[]uint32`,`[]uint64`.
+collections using multiple CPU cores quickly.
+sorty natively [sorts](https://pkg.go.dev/github.com/jfcg/sorty#SortSlice)
+```
+[]int, []int32, []int64, []uint, []uint32, []uint64,
+[]uintptr, []float32, []float64, []string, [][]byte
+```
 sorty also natively sorts `[]string` and `[][]T` (for any type `T`)
 [by length](https://pkg.go.dev/github.com/jfcg/sorty#SortLen).
 
 sorty is stable (as in version), well-tested and pretty careful with resources & performance:
 - `lesswap()` operates [**faster**](https://github.com/lynxkite/lynxkite/pull/141#issuecomment-779673635)
 than [`sort.Interface`](https://pkg.go.dev/sort#Interface) on generic collections.
-- For each `Sort*()` call, sorty uses up to [`Mxg`](https://pkg.go.dev/github.com/jfcg/sorty#pkg-variables)
+- For each `Sort*()` call, sorty uses up to [`MaxGor`](https://pkg.go.dev/github.com/jfcg/sorty#pkg-variables)
 (3 by default, including caller) concurrent goroutines and up to one channel.
 - Goroutines and channel are created/used **only when necessary**.
-- `Mxg=1` (or a short input) yields single-goroutine sorting: No goroutines or channel will be created.
-- `Mxg` can be changed live, even during an ongoing `Sort*()` call.
-- [`Mli,Hmli,Mlr`](https://pkg.go.dev/github.com/jfcg/sorty#pkg-constants) parameters are tuned to get the best performance, see below.
+- `MaxGor=1` (or a short input) yields single-goroutine sorting: no goroutines or channel will be created.
+- `MaxGor` can be changed live, even during an ongoing `Sort*()` call.
+- [`MaxLen*`](https://pkg.go.dev/github.com/jfcg/sorty#pkg-constants) parameters are
+tuned to get the best performance, see below.
 - sorty API adheres to [semantic](https://semver.org) versioning.
 
 ### Benchmarks
@@ -40,7 +45,7 @@ i5|Core i5 4210M |Manjaro     |5.10.68
 
 Sorting uniformly distributed random uint32 slice (in seconds):
 
-Library(-Mxg)|R|X|i5
+Library(-MaxGor)|R|X|i5
 :---|---:|---:|---:
 sort.Slice|12.18|16.78|13.98
   sortutil| 1.48| 3.42| 3.10
@@ -56,7 +61,7 @@ sortyLsw-4| 3.48| 5.18| 4.58
 
 Sorting normally distributed random float32 slice (in seconds):
 
-Library(-Mxg)|R|X|i5
+Library(-MaxGor)|R|X|i5
 :---|---:|---:|---:
 sort.Slice|13.28|17.37|14.43
   sortutil| 1.97| 3.95| 3.50
@@ -72,7 +77,7 @@ sortyLsw-4| 3.59| 5.50| 4.78
 
 Sorting uniformly distributed random string slice (in seconds):
 
-Library(-Mxg)|R|X|i5
+Library(-MaxGor)|R|X|i5
 :---|---:|---:|---:
 sort.Slice| 6.77| 8.96| 6.94
   sortutil| 1.31| 2.39| 1.99
@@ -88,7 +93,7 @@ sortyLsw-4| 1.95| 3.44| 3.12
 
 Sorting uniformly distributed random []byte slice (in seconds):
 
-Library(-Mxg)|R|X|i5
+Library(-MaxGor)|R|X|i5
 :---|---:|---:|---:
 sort.Slice| 6.87| 8.82| 7.04
    sorty-1| 4.07| 5.31| 4.28
@@ -98,7 +103,7 @@ sort.Slice| 6.87| 8.82| 7.04
 
 Sorting uniformly distributed random string slice by length (in seconds):
 
-Library(-Mxg)|R|X|i5
+Library(-MaxGor)|R|X|i5
 :---|---:|---:|---:
 sort.Slice| 3.37| 4.08| 3.45
    sorty-1| 1.61| 2.11| 1.67
@@ -108,7 +113,7 @@ sort.Slice| 3.37| 4.08| 3.45
 
 Sorting uniformly distributed random []byte slice by length (in seconds):
 
-Library(-Mxg)|R|X|i5
+Library(-MaxGor)|R|X|i5
 :---|---:|---:|---:
 sort.Slice| 3.55| 4.14| 3.51
    sorty-1| 1.18| 1.39| 1.12
@@ -121,11 +126,11 @@ First, make sure everything is fine:
 ```
 go test -timeout 1h
 ```
-You can tune `Mli,Hmli,Mlr` for your platform/CPU with (optimization flags):
+You can tune `MaxLen*` for your platform/CPU with (optimization flags):
 ```
 go test -timeout 4h -gcflags '-dwarf=0 -B -wb=0' -ldflags '-s -w' -tags tuneparam
 ```
-Now update `Mli,Hmli,Mlr` in `maxc.go`, uncomment imports & respective `mfc*()`
+Now update `MaxLen*` in `maxc.go`, uncomment imports & respective `mfc*()`
 calls in `tmain_test.go` and compare your tuned sorty with other libraries:
 ```
 go test -timeout 1h -gcflags '-dwarf=0 -B -wb=0' -ldflags '-s -w'

@@ -1,3 +1,4 @@
+//go:build !tuneparam
 // +build !tuneparam
 
 /*	Copyright (c) 2019, Serhat Şevki Dinçer.
@@ -9,15 +10,14 @@
 package sorty
 
 const (
-	// Mli is the maximum slice length for insertion sort in
-	// Sort*() except SortS(), SortB() and Sort().
-	Mli = 100
+	// MaxLenIns is the default maximum slice length for insertion sort.
+	MaxLenIns = 100
 
-	// Hmli is the maximum slice length for insertion sort in
-	// SortS(), SortB() and Sort().
-	Hmli = 40
+	// MaxLenInsFC is the maximum slice length for insertion sort when
+	// sorting strings or calling Sort().
+	MaxLenInsFC = 40
 
-	// Mlr is the maximum slice length for recursion when there are available
-	// goroutines. So Mlr+1 is the minimum slice length for new sorting goroutines.
-	Mlr = 496
+	// MaxLenRec is the maximum slice length for recursion when there is goroutine
+	// quota. So MaxLenRec+1 is the minimum slice length for new sorting goroutines.
+	MaxLenRec = 496
 )

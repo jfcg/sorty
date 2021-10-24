@@ -1,4 +1,4 @@
-module github.com/jfcg/sorty
+module github.com/jfcg/sorty/v2
 
 go 1.16
 

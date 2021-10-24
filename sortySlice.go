@@ -51,28 +51,28 @@ func IsSortedSlice(ar interface{}) int {
 	switch k {
 	case reflect.Int32:
 		i := *(*[]int32)(unsafe.Pointer(&slc))
-		return IsSortedI4(i)
+		return isSortedI4(i)
 	case reflect.Int64:
 		i := *(*[]int64)(unsafe.Pointer(&slc))
-		return IsSortedI8(i)
+		return isSortedI8(i)
 	case reflect.Uint32:
 		u := *(*[]uint32)(unsafe.Pointer(&slc))
-		return IsSortedU4(u)
+		return isSortedU4(u)
 	case reflect.Uint64:
 		u := *(*[]uint64)(unsafe.Pointer(&slc))
-		return IsSortedU8(u)
+		return isSortedU8(u)
 	case reflect.Float32:
 		f := *(*[]float32)(unsafe.Pointer(&slc))
-		return IsSortedF4(f)
+		return isSortedF4(f)
 	case reflect.Float64:
 		f := *(*[]float64)(unsafe.Pointer(&slc))
-		return IsSortedF8(f)
+		return isSortedF8(f)
 	case reflect.Slice:
 		b := *(*[][]byte)(unsafe.Pointer(&slc))
-		return IsSortedB(b)
+		return isSortedB(b)
 	case reflect.String:
 		s := *(*[]string)(unsafe.Pointer(&slc))
-		return IsSortedS(s)
+		return isSortedS(s)
 	}
 	panic("sorty: IsSortedSlice: invalid input type")
 }
@@ -85,28 +85,28 @@ func SortSlice(ar interface{}) {
 	switch k {
 	case reflect.Int32:
 		i := *(*[]int32)(unsafe.Pointer(&slc))
-		SortI4(i)
+		sortI4(i)
 	case reflect.Int64:
 		i := *(*[]int64)(unsafe.Pointer(&slc))
-		SortI8(i)
+		sortI8(i)
 	case reflect.Uint32:
 		u := *(*[]uint32)(unsafe.Pointer(&slc))
-		SortU4(u)
+		sortU4(u)
 	case reflect.Uint64:
 		u := *(*[]uint64)(unsafe.Pointer(&slc))
-		SortU8(u)
+		sortU8(u)
 	case reflect.Float32:
 		f := *(*[]float32)(unsafe.Pointer(&slc))
-		SortF4(f)
+		sortF4(f)
 	case reflect.Float64:
 		f := *(*[]float64)(unsafe.Pointer(&slc))
-		SortF8(f)
+		sortF8(f)
 	case reflect.Slice:
 		b := *(*[][]byte)(unsafe.Pointer(&slc))
-		SortB(b)
+		sortB(b)
 	case reflect.String:
 		s := *(*[]string)(unsafe.Pointer(&slc))
-		SortS(s)
+		sortS(s)
 	default:
 		panic("sorty: SortSlice: invalid input type")
 	}

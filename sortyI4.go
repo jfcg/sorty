@@ -10,7 +10,7 @@ import "sync/atomic"
 
 // IsSortedI4 returns 0 if ar is sorted in ascending order,
 // otherwise it returns i > 0 with ar[i] < ar[i-1]
-func IsSortedI4(ar []int32) int {
+func isSortedI4(ar []int32) int {
 	for i := len(ar) - 1; i > 0; i-- {
 		if ar[i] < ar[i-1] {
 			return i
@@ -214,7 +214,7 @@ func cdualparI4(ar []int32, ch chan int) int {
 	return k + 4 // convert k indice to ar
 }
 
-// short range sort function, assumes Mli < len(ar) <= Mlr
+// short range sort function, assumes MaxLenIns < len(ar) <= MaxLenRec
 func shortI4(ar []int32) {
 start:
 	aq, pv := pivotI4(ar, 2)
@@ -230,19 +230,19 @@ start:
 		ar = ar[:k:k]
 	}
 
-	if len(aq) > Mli {
+	if len(aq) > MaxLenIns {
 		shortI4(aq) // recurse on the shorter range
 		goto start
 	}
 	insertionI4(aq) // at least one insertion range
 
-	if len(ar) > Mli {
+	if len(ar) > MaxLenIns {
 		goto start
 	}
 	insertionI4(ar) // two insertion ranges
 }
 
-// long range sort function (single goroutine), assumes len(ar) > Mlr
+// long range sort function (single goroutine), assumes len(ar) > MaxLenRec
 func slongI4(ar []int32) {
 start:
 	aq, pv := pivotI4(ar, 3)
@@ -258,21 +258,21 @@ start:
 		ar = ar[:k:k]
 	}
 
-	if len(aq) > Mlr { // at least one not-long range?
+	if len(aq) > MaxLenRec { // at least one not-long range?
 		slongI4(aq) // recurse on the shorter range
 		goto start
 	}
 
-	if len(aq) > Mli {
+	if len(aq) > MaxLenIns {
 		shortI4(aq)
 	} else {
 		insertionI4(aq)
 	}
 
-	if len(ar) > Mlr { // two not-long ranges?
+	if len(ar) > MaxLenRec { // two not-long ranges?
 		goto start
 	}
-	shortI4(ar) // we know len(ar) > Mli
+	shortI4(ar) // we know len(ar) > MaxLenIns
 }
 
 // new-goroutine sort function
@@ -284,7 +284,7 @@ func glongI4(ar []int32, sv *syncVar) {
 	}
 }
 
-// long range sort function, assumes len(ar) > Mlr
+// long range sort function, assumes len(ar) > MaxLenRec
 func longI4(ar []int32, sv *syncVar) {
 start:
 	aq, pv := pivotI4(ar, 3)
@@ -301,23 +301,23 @@ start:
 	}
 
 	// branches below are optimal for fewer total jumps
-	if len(aq) <= Mlr { // at least one not-long range?
+	if len(aq) <= MaxLenRec { // at least one not-long range?
 
-		if len(aq) > Mli {
+		if len(aq) > MaxLenIns {
 			shortI4(aq)
 		} else {
 			insertionI4(aq)
 		}
 
-		if len(ar) > Mlr { // two not-long ranges?
+		if len(ar) > MaxLenRec { // two not-long ranges?
 			goto start
 		}
-		shortI4(ar) // we know len(ar) > Mli
+		shortI4(ar) // we know len(ar) > MaxLenIns
 		return
 	}
 
 	// max goroutines? not atomic but good enough
-	if sv.ngr >= Mxg {
+	if sv.ngr >= MaxGor {
 		longI4(aq, sv) // recurse on the shorter range
 		goto start
 	}
@@ -333,14 +333,14 @@ start:
 }
 
 // SortI4 concurrently sorts ar in ascending order.
-func SortI4(ar []int32) {
+func sortI4(ar []int32) {
 
-	if len(ar) < 2*(Mlr+1) || Mxg <= 1 {
+	if len(ar) < 2*(MaxLenRec+1) || MaxGor <= 1 {
 
 		// single-goroutine sorting
-		if len(ar) > Mlr {
+		if len(ar) > MaxLenRec {
 			slongI4(ar)
-		} else if len(ar) > Mli {
+		} else if len(ar) > MaxLenIns {
 			shortI4(ar)
 		} else if len(ar) > 1 {
 			insertionI4(ar)
@@ -365,26 +365,26 @@ func SortI4(ar []int32) {
 		}
 
 		// handle shorter range
-		if len(aq) > Mlr {
+		if len(aq) > MaxLenRec {
 			if atomic.AddUint32(&sv.ngr, 1) == 0 { // increase goroutine counter
-				panic("sorty: SortI4: counter overflow")
+				panic("sorty: sortI4: counter overflow")
 			}
 			go glongI4(aq, &sv)
 
-		} else if len(aq) > Mli {
+		} else if len(aq) > MaxLenIns {
 			shortI4(aq)
 		} else {
 			insertionI4(aq)
 		}
 
 		// longer range big enough? max goroutines?
-		if len(ar) < 2*(Mlr+1) || sv.ngr >= Mxg {
+		if len(ar) < 2*(MaxLenRec+1) || sv.ngr >= MaxGor {
 			break
 		}
 		// dual partition longer range
 	}
 
-	longI4(ar, &sv) // we know len(ar) > Mlr
+	longI4(ar, &sv) // we know len(ar) > MaxLenRec
 
 	if atomic.AddUint32(&sv.ngr, ^uint32(0)) != 0 { // decrease goroutine counter
 		<-sv.done // we are not the last, wait

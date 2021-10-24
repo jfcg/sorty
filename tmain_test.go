@@ -1,3 +1,4 @@
+//go:build !tuneparam
 // +build !tuneparam
 
 /*	Copyright (c) 2021, Serhat Şevki Dinçer.
@@ -29,22 +30,22 @@ func printSec(tn string, d time.Duration) float64 {
 
 // sort and signal
 func sasU8(sd int64, al []uint64, ch chan bool) {
-	fstU8(sd, al, SortU8)
+	fstU8(sd, al, sortU8)
 	ch <- false
 }
 
 func sasF8(sd int64, al []float64, ch chan bool) {
-	fstF8(sd, al, SortF8)
+	fstF8(sd, al, sortF8)
 	ch <- false
 }
 
 func sasI4(sd int64, al []int32, ch chan bool) {
-	fstI4(sd, al, SortI4)
+	fstI4(sd, al, sortI4)
 	ch <- false
 }
 
 func sasI8(sd int64, al []int64, ch chan bool) {
-	fstI8(sd, al, SortI8)
+	fstI8(sd, al, sortI8)
 	ch <- false
 }
 
@@ -129,14 +130,14 @@ func TestConcurrent(t *testing.T) {
 
 	fmt.Println("\nConcurrent calls to Sort*()")
 	K, L, ch := N/2, N/4, make(chan bool)
-	Mxg = 2
+	MaxGor = 2
 
-	// two concurrent calls to SortU8() & SortF8() each
+	// two concurrent calls to sortU8() & sortF8() each
 	// up to 8 goroutines total
 	go sasU8(96, bufbu2[:L:L], ch)
 	go sasF8(97, bufaf2[:L:L], ch)
 	go sasU8(96, bufbu2[L:], ch)
-	fstF8(97, bufaf2[L:], SortF8)
+	fstF8(97, bufaf2[L:], sortF8)
 
 	for i := 3; i > 0; i-- {
 		<-ch // wait others
@@ -144,12 +145,12 @@ func TestConcurrent(t *testing.T) {
 	compareU4(bufbu[:K:K], bufbu[K:]) // same buffers
 	compareU4(bufau[:K:K], bufau[K:])
 
-	// two concurrent calls to SortI4() & SortI8() each
+	// two concurrent calls to sortI4() & sortI8() each
 	// up to 8 goroutines total
 	go sasI4(98, bufai[:K:K], ch)
 	go sasI8(99, bufbi2[:L:L], ch)
 	go sasI4(98, bufai[K:], ch)
-	fstI8(99, bufbi2[L:], SortI8)
+	fstI8(99, bufbi2[L:], sortI8)
 
 	for i := 3; i > 0; i-- {
 		<-ch // wait others
@@ -177,10 +178,10 @@ func TestShort(t *testing.T) {
 		}
 	}
 
-	// SortI() calls SortI4() (on 32-bit) or SortI8() (on 64-bit).
-	SortI(iArr)
-	if IsSortedI(iArr) != 0 {
-		t.Fatal("SortI() does not work")
+	// SortSlice() calls sortI4() on 32-bit, sortI8() on 64-bit
+	SortSlice(iArr)
+	if IsSortedSlice(iArr) != 0 {
+		t.Fatal("SortSlice/IsSortedSlice does not work")
 	}
 
 	// test Search()

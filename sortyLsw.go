@@ -192,7 +192,7 @@ func cdualpar(lsw Lesswap, lo, hi int, ch chan int) int {
 
 	lo, pv, hi := pivot(lsw, lo, hi, 4) // median-of-9
 
-	if hi-lo <= 2*Mlr { // guard against short remaining range
+	if hi-lo <= 2*MaxLenRec { // guard against short remaining range
 		return partition1(lsw, lo, pv, hi)
 	}
 
@@ -224,7 +224,7 @@ func cdualpar(lsw Lesswap, lo, hi int, ch chan int) int {
 	return m
 }
 
-// short range sort function, assumes Hmli <= hi-lo < Mlr
+// short range sort function, assumes MaxLenInsFC <= hi-lo < MaxLenRec
 func short(lsw Lesswap, lo, hi int) {
 start:
 	l, pv, h := pivot(lsw, lo, hi, 2)
@@ -239,19 +239,19 @@ start:
 		h, hi = hi, h
 	}
 
-	if n >= Hmli {
+	if n >= MaxLenInsFC {
 		short(lsw, l, h) // recurse on the shorter range
 		goto start
 	}
 	insertion(lsw, l, h) // at least one insertion range
 
-	if no >= Hmli {
+	if no >= MaxLenInsFC {
 		goto start
 	}
 	insertion(lsw, lo, hi) // two insertion ranges
 }
 
-// long range sort function (single goroutine), assumes hi-lo >= Mlr
+// long range sort function (single goroutine), assumes hi-lo >= MaxLenRec
 func slong(lsw Lesswap, lo, hi int) {
 start:
 	l, pv, h := pivot(lsw, lo, hi, 3)
@@ -266,21 +266,21 @@ start:
 		h, hi = hi, h
 	}
 
-	if n >= Mlr { // at least one not-long range?
+	if n >= MaxLenRec { // at least one not-long range?
 		slong(lsw, l, h) // recurse on the shorter range
 		goto start
 	}
 
-	if n >= Hmli {
+	if n >= MaxLenInsFC {
 		short(lsw, l, h)
 	} else {
 		insertion(lsw, l, h)
 	}
 
-	if no >= Mlr { // two not-long ranges?
+	if no >= MaxLenRec { // two not-long ranges?
 		goto start
 	}
-	short(lsw, lo, hi) // we know no >= Hmli
+	short(lsw, lo, hi) // we know no >= MaxLenInsFC
 }
 
 // new-goroutine sort function
@@ -292,7 +292,7 @@ func glong(lsw Lesswap, lo, hi int, sv *syncVar) {
 	}
 }
 
-// long range sort function, assumes hi-lo >= Mlr
+// long range sort function, assumes hi-lo >= MaxLenRec
 func long(lsw Lesswap, lo, hi int, sv *syncVar) {
 start:
 	l, pv, h := pivot(lsw, lo, hi, 3)
@@ -308,23 +308,23 @@ start:
 	}
 
 	// branches below are optimal for fewer total jumps
-	if n < Mlr { // at least one not-long range?
+	if n < MaxLenRec { // at least one not-long range?
 
-		if n >= Hmli {
+		if n >= MaxLenInsFC {
 			short(lsw, l, h)
 		} else {
 			insertion(lsw, l, h)
 		}
 
-		if no >= Mlr { // two not-long ranges?
+		if no >= MaxLenRec { // two not-long ranges?
 			goto start
 		}
-		short(lsw, lo, hi) // we know no >= Hmli
+		short(lsw, lo, hi) // we know no >= MaxLenInsFC
 		return
 	}
 
 	// max goroutines? not atomic but good enough
-	if sv.ngr >= Mxg {
+	if sv.ngr >= MaxGor {
 		long(lsw, l, h, sv) // recurse on the shorter range
 		goto start
 	}
@@ -359,12 +359,12 @@ start:
 func Sort(n int, lsw Lesswap) {
 
 	n-- // high indice
-	if n <= 2*Mlr || Mxg <= 1 {
+	if n <= 2*MaxLenRec || MaxGor <= 1 {
 
 		// single-goroutine sorting
-		if n >= Mlr {
+		if n >= MaxLenRec {
 			slong(lsw, 0, n)
-		} else if n >= Hmli {
+		} else if n >= MaxLenInsFC {
 			short(lsw, 0, n)
 		} else if n > 0 {
 			insertion(lsw, 0, n)
@@ -390,26 +390,26 @@ func Sort(n int, lsw Lesswap) {
 		}
 
 		// handle shorter range
-		if n >= Mlr {
+		if n >= MaxLenRec {
 			if atomic.AddUint32(&sv.ngr, 1) == 0 { // increase goroutine counter
 				panic("sorty: Sort: counter overflow")
 			}
 			go glong(lsw, l, h, &sv)
 
-		} else if n >= Hmli {
+		} else if n >= MaxLenInsFC {
 			short(lsw, l, h)
 		} else {
 			insertion(lsw, l, h)
 		}
 
 		// longer range big enough? max goroutines?
-		if no <= 2*Mlr || sv.ngr >= Mxg {
+		if no <= 2*MaxLenRec || sv.ngr >= MaxGor {
 			break
 		}
 		// dual partition longer range
 	}
 
-	long(lsw, lo, hi, &sv) // we know hi-lo >= Mlr
+	long(lsw, lo, hi, &sv) // we know hi-lo >= MaxLenRec
 
 	if atomic.AddUint32(&sv.ngr, ^uint32(0)) != 0 { // decrease goroutine counter
 		<-sv.done // we are not the last, wait

@@ -4,23 +4,23 @@
 	file, You can obtain one at http://mozilla.org/MPL/2.0/.
 */
 
-// Package sorty is a type-specific, fast, efficient, concurrent/parallel QuickSort
-// implementation. It is in-place and does not require extra memory. You can call
-// corresponding Sort*() to rapidly sort your slices (in ascending order) or
-// collections of objects. For example:
-//  sorty.SortS(string_slice) // native slice
-//  sorty.Sort(n, lesswap)    // lesswap() function based
+// Package sorty is a type-specific, fast, efficient, concurrent / parallel QuickSort
+// implementation. It is in-place and does not require extra memory. You can call:
+//  sorty.SortSlice(native_slice) // []int32, []float64 etc. in ascending order
+//  sorty.SortLen(len_slice)      // []string or [][]T 'by length' in ascending order
+//  sorty.Sort(n, lesswap)        // lesswap() based
 package sorty
 
-// Mxg is the maximum concurrent goroutines (including caller) used for sorting
-// per Sort*() call. Mxg can be changed live, even during an ongoing Sort*() call.
-// Mxg=1 (or a short input) yields single-goroutine sorting: No goroutines or
+// MaxGor is the maximum concurrent goroutines (including caller) used for sorting
+// per Sort*() call. MaxGor can be changed live, even during an ongoing Sort*() call.
+// MaxGor=1 (or a short input) yields single-goroutine sorting: no goroutines or
 // channel will be created by sorty.
-var Mxg uint32 = 3
+var MaxGor uint32 = 3
 
 func init() {
-	if !(4097 > Mxg && Mxg > 0 && Mlr > 2*Mli && Mli > Hmli && Hmli > 15) {
-		panic("sorty: check your Mxg/Mli/Hmli/Mlr values")
+	if !(4097 > MaxGor && MaxGor > 0 && MaxLenRec > 2*MaxLenIns &&
+		MaxLenIns > MaxLenInsFC && MaxLenInsFC > 9) {
+		panic("sorty: check your MaxGor/MaxLen* values")
 	}
 }
 

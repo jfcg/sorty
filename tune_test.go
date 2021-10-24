@@ -1,3 +1,4 @@
+//go:build tuneparam
 // +build tuneparam
 
 /*	Copyright (c) 2021, Serhat Şevki Dinçer.
@@ -45,26 +46,26 @@ var (
 		func() float64 { return sumtLswS(bufau, bufap) }}
 )
 
-// Optimize max slice lengths for insertion sort/recursion (Mli,Hmli,Mlr)
+// Optimize max slice lengths for insertion sort/recursion
 // Takes a long time, run with -tags tuneparam
 func TestOptimize(t *testing.T) {
 	tsPtr = t
 
-	s1, s2 := "Mli", 96
+	s1, s2 := "MaxLenIns", 96
 
 	for i := 0; i < len(optFn); i++ {
-		fmt.Printf("\n%s\n%s Mlr:\n", optName[i], s1)
+		fmt.Printf("\n%s\n%s MaxLenRec:\n", optName[i], s1)
 
 		_, _, _, n := opt.FindMinTri(2, s2, 480, 16, 120,
 			func(x, y int) float64 {
 				if x < 10 || y <= 2*x {
 					return 9e9 // keep parameters feasible
 				}
-				Mli, Hmli, Mlr = x, x, y
+				MaxLenIns, MaxLenInsFC, MaxLenRec = x, x, y
 				return optFn[i]()
 			}, printOpt)
 		fmt.Println(n, "calls")
 
-		s1, s2 = "Hmli", 48
+		s1, s2 = "MaxLenInsFC", 48
 	}
 }

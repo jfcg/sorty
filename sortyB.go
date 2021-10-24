@@ -14,7 +14,7 @@ import (
 
 // IsSortedB returns 0 if ar is sorted in ascending lexicographical order,
 // otherwise it returns i > 0 with ar[i] < ar[i-1]
-func IsSortedB(ar [][]byte) int {
+func isSortedB(ar [][]byte) int {
 	for i := len(ar) - 1; i > 0; i-- {
 		if sixb.BtoS(ar[i]) < sixb.BtoS(ar[i-1]) {
 			return i
@@ -220,7 +220,7 @@ func cdualparB(ar [][]byte, ch chan int) int {
 	return k + 4 // convert k indice to ar
 }
 
-// short range sort function, assumes Hmli < len(ar) <= Mlr
+// short range sort function, assumes MaxLenInsFC < len(ar) <= MaxLenRec
 func shortB(ar [][]byte) {
 start:
 	aq, pv := pivotB(ar, 2)
@@ -236,19 +236,19 @@ start:
 		ar = ar[:k:k]
 	}
 
-	if len(aq) > Hmli {
+	if len(aq) > MaxLenInsFC {
 		shortB(aq) // recurse on the shorter range
 		goto start
 	}
 	insertionB(aq) // at least one insertion range
 
-	if len(ar) > Hmli {
+	if len(ar) > MaxLenInsFC {
 		goto start
 	}
 	insertionB(ar) // two insertion ranges
 }
 
-// long range sort function (single goroutine), assumes len(ar) > Mlr
+// long range sort function (single goroutine), assumes len(ar) > MaxLenRec
 func slongB(ar [][]byte) {
 start:
 	aq, pv := pivotB(ar, 3)
@@ -264,21 +264,21 @@ start:
 		ar = ar[:k:k]
 	}
 
-	if len(aq) > Mlr { // at least one not-long range?
+	if len(aq) > MaxLenRec { // at least one not-long range?
 		slongB(aq) // recurse on the shorter range
 		goto start
 	}
 
-	if len(aq) > Hmli {
+	if len(aq) > MaxLenInsFC {
 		shortB(aq)
 	} else {
 		insertionB(aq)
 	}
 
-	if len(ar) > Mlr { // two not-long ranges?
+	if len(ar) > MaxLenRec { // two not-long ranges?
 		goto start
 	}
-	shortB(ar) // we know len(ar) > Hmli
+	shortB(ar) // we know len(ar) > MaxLenInsFC
 }
 
 // new-goroutine sort function
@@ -290,7 +290,7 @@ func glongB(ar [][]byte, sv *syncVar) {
 	}
 }
 
-// long range sort function, assumes len(ar) > Mlr
+// long range sort function, assumes len(ar) > MaxLenRec
 func longB(ar [][]byte, sv *syncVar) {
 start:
 	aq, pv := pivotB(ar, 3)
@@ -307,23 +307,23 @@ start:
 	}
 
 	// branches below are optimal for fewer total jumps
-	if len(aq) <= Mlr { // at least one not-long range?
+	if len(aq) <= MaxLenRec { // at least one not-long range?
 
-		if len(aq) > Hmli {
+		if len(aq) > MaxLenInsFC {
 			shortB(aq)
 		} else {
 			insertionB(aq)
 		}
 
-		if len(ar) > Mlr { // two not-long ranges?
+		if len(ar) > MaxLenRec { // two not-long ranges?
 			goto start
 		}
-		shortB(ar) // we know len(ar) > Hmli
+		shortB(ar) // we know len(ar) > MaxLenInsFC
 		return
 	}
 
 	// max goroutines? not atomic but good enough
-	if sv.ngr >= Mxg {
+	if sv.ngr >= MaxGor {
 		longB(aq, sv) // recurse on the shorter range
 		goto start
 	}
@@ -339,14 +339,14 @@ start:
 }
 
 // SortB concurrently sorts ar in ascending lexicographical order.
-func SortB(ar [][]byte) {
+func sortB(ar [][]byte) {
 
-	if len(ar) < 2*(Mlr+1) || Mxg <= 1 {
+	if len(ar) < 2*(MaxLenRec+1) || MaxGor <= 1 {
 
 		// single-goroutine sorting
-		if len(ar) > Mlr {
+		if len(ar) > MaxLenRec {
 			slongB(ar)
-		} else if len(ar) > Hmli {
+		} else if len(ar) > MaxLenInsFC {
 			shortB(ar)
 		} else if len(ar) > 1 {
 			insertionB(ar)
@@ -371,26 +371,26 @@ func SortB(ar [][]byte) {
 		}
 
 		// handle shorter range
-		if len(aq) > Mlr {
+		if len(aq) > MaxLenRec {
 			if atomic.AddUint32(&sv.ngr, 1) == 0 { // increase goroutine counter
-				panic("sorty: SortB: counter overflow")
+				panic("sorty: sortB: counter overflow")
 			}
 			go glongB(aq, &sv)
 
-		} else if len(aq) > Hmli {
+		} else if len(aq) > MaxLenInsFC {
 			shortB(aq)
 		} else {
 			insertionB(aq)
 		}
 
 		// longer range big enough? max goroutines?
-		if len(ar) < 2*(Mlr+1) || sv.ngr >= Mxg {
+		if len(ar) < 2*(MaxLenRec+1) || sv.ngr >= MaxGor {
 			break
 		}
 		// dual partition longer range
 	}
 
-	longB(ar, &sv) // we know len(ar) > Mlr
+	longB(ar, &sv) // we know len(ar) > MaxLenRec
 
 	if atomic.AddUint32(&sv.ngr, ^uint32(0)) != 0 { // decrease goroutine counter
 		<-sv.done // we are not the last, wait

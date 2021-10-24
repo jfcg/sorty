@@ -46,7 +46,7 @@ func fstU4(sd int64, ar []uint32, srt func([]uint32)) time.Duration {
 	srt(ar)
 	dur := time.Since(now)
 
-	if IsSortedU4(ar) != 0 {
+	if isSortedU4(ar) != 0 {
 		tsPtr.Fatal("not sorted")
 	}
 	return dur
@@ -63,7 +63,7 @@ func fstU8(sd int64, ar []uint64, srt func([]uint64)) time.Duration {
 	srt(ar)
 	dur := time.Since(now)
 
-	if IsSortedU8(ar) != 0 {
+	if isSortedU8(ar) != 0 {
 		tsPtr.Fatal("not sorted")
 	}
 	return dur
@@ -80,7 +80,7 @@ func fstI4(sd int64, ar []int32, srt func([]int32)) time.Duration {
 	srt(ar)
 	dur := time.Since(now)
 
-	if IsSortedI4(ar) != 0 {
+	if isSortedI4(ar) != 0 {
 		tsPtr.Fatal("not sorted")
 	}
 	return dur
@@ -97,7 +97,7 @@ func fstI8(sd int64, ar []int64, srt func([]int64)) time.Duration {
 	srt(ar)
 	dur := time.Since(now)
 
-	if IsSortedI8(ar) != 0 {
+	if isSortedI8(ar) != 0 {
 		tsPtr.Fatal("not sorted")
 	}
 	return dur
@@ -114,7 +114,7 @@ func fstF4(sd int64, ar []float32, srt func([]float32)) time.Duration {
 	srt(ar)
 	dur := time.Since(now)
 
-	if IsSortedF4(ar) != 0 {
+	if isSortedF4(ar) != 0 {
 		tsPtr.Fatal("not sorted")
 	}
 	return dur
@@ -131,7 +131,7 @@ func fstF8(sd int64, ar []float64, srt func([]float64)) time.Duration {
 	srt(ar)
 	dur := time.Since(now)
 
-	if IsSortedF8(ar) != 0 {
+	if isSortedF8(ar) != 0 {
 		tsPtr.Fatal("not sorted")
 	}
 	return dur
@@ -172,7 +172,7 @@ func fstS(sd int64, ar []uint32, srt func([]string)) time.Duration {
 	srt(as)
 	dur := time.Since(now)
 
-	if IsSortedS(as) != 0 {
+	if isSortedS(as) != 0 {
 		tsPtr.Fatal("not sorted")
 	}
 	return dur
@@ -214,7 +214,7 @@ func fstB(sd int64, ar []uint32, srt func([][]byte)) time.Duration {
 	srt(ab)
 	dur := time.Since(now)
 
-	if IsSortedB(ab) != 0 {
+	if isSortedB(ab) != 0 {
 		tsPtr.Fatal("not sorted")
 	}
 	return dur
@@ -483,45 +483,45 @@ func mfcLenB(tn string, srt func([][]byte), ar, ap []uint32) float64 {
 	return printSec(tn, d1)
 }
 
-// return sum of SortU4() times for 1..4 goroutines
+// return sum of sortU4() times for 1..4 goroutines
 // compare with ap and among themselves
 func sumtU4(ar, ap []uint32) float64 {
 	s := .0
-	for Mxg = 1; Mxg < 5; Mxg++ {
-		s += mfcU4(fmt.Sprintf("sorty-%d", Mxg), SortU4, ar, ap)
+	for MaxGor = 1; MaxGor < 5; MaxGor++ {
+		s += mfcU4(fmt.Sprintf("sorty-%d", MaxGor), sortU4, ar, ap)
 		ap, ar = ar, ap[:cap(ap)]
 	}
 	return s
 }
 
-// return sum of SortF4() times for 1..4 goroutines
+// return sum of sortF4() times for 1..4 goroutines
 // compare with ap and among themselves
 func sumtF4(ar, ap []float32) float64 {
 	s := .0
-	for Mxg = 1; Mxg < 5; Mxg++ {
-		s += mfcF4(fmt.Sprintf("sorty-%d", Mxg), SortF4, ar, ap)
+	for MaxGor = 1; MaxGor < 5; MaxGor++ {
+		s += mfcF4(fmt.Sprintf("sorty-%d", MaxGor), sortF4, ar, ap)
 		ap, ar = ar, ap[:cap(ap)]
 	}
 	return s
 }
 
-// return sum of SortS() times for 1..4 goroutines
+// return sum of sortS() times for 1..4 goroutines
 // compare with ap and among themselves
 func sumtS(ar, ap []uint32) float64 {
 	s := .0
-	for Mxg = 1; Mxg < 5; Mxg++ {
-		s += mfcS(fmt.Sprintf("sorty-%d", Mxg), SortS, ar, ap)
+	for MaxGor = 1; MaxGor < 5; MaxGor++ {
+		s += mfcS(fmt.Sprintf("sorty-%d", MaxGor), sortS, ar, ap)
 		ap, ar = ar, ap[:cap(ap)]
 	}
 	return s
 }
 
-// return sum of SortB() times for 1..4 goroutines
+// return sum of sortB() times for 1..4 goroutines
 // compare with ap and among themselves
 func sumtB(ar, ap []uint32) float64 {
 	s := .0
-	for Mxg = 1; Mxg < 5; Mxg++ {
-		s += mfcB(fmt.Sprintf("sorty-%d", Mxg), SortB, ar, ap)
+	for MaxGor = 1; MaxGor < 5; MaxGor++ {
+		s += mfcB(fmt.Sprintf("sorty-%d", MaxGor), sortB, ar, ap)
 		ap, ar = ar, ap[:cap(ap)]
 	}
 	return s
@@ -531,8 +531,8 @@ func sumtB(ar, ap []uint32) float64 {
 // compare with ap and among themselves
 func sumtLenS(ar, ap []uint32) float64 {
 	s := .0
-	for Mxg = 1; Mxg < 5; Mxg++ {
-		s += mfcLenS(fmt.Sprintf("sorty-%d", Mxg), func(al []string) { SortLen(al) }, ar, ap)
+	for MaxGor = 1; MaxGor < 5; MaxGor++ {
+		s += mfcLenS(fmt.Sprintf("sorty-%d", MaxGor), func(al []string) { SortLen(al) }, ar, ap)
 		ap, ar = ar, ap[:cap(ap)]
 	}
 	return s
@@ -542,8 +542,8 @@ func sumtLenS(ar, ap []uint32) float64 {
 // compare with ap and among themselves
 func sumtLenB(ar, ap []uint32) float64 {
 	s := .0
-	for Mxg = 1; Mxg < 5; Mxg++ {
-		s += mfcLenB(fmt.Sprintf("sorty-%d", Mxg), func(al [][]byte) { SortLen(al) }, ar, ap)
+	for MaxGor = 1; MaxGor < 5; MaxGor++ {
+		s += mfcLenB(fmt.Sprintf("sorty-%d", MaxGor), func(al [][]byte) { SortLen(al) }, ar, ap)
 		ap, ar = ar, ap[:cap(ap)]
 	}
 	return s
@@ -567,8 +567,8 @@ func sort3i(aq []uint32) {
 // compare with ap and among themselves
 func sumtLswU4(ar, ap []uint32) float64 {
 	s := .0
-	for Mxg = 1; Mxg < 5; Mxg++ {
-		s += mfcU4(fmt.Sprintf("sortyLsw-%d", Mxg), sort3i, ar, ap)
+	for MaxGor = 1; MaxGor < 5; MaxGor++ {
+		s += mfcU4(fmt.Sprintf("sortyLsw-%d", MaxGor), sort3i, ar, ap)
 		ap, ar = ar, ap[:cap(ap)]
 	}
 	return s
@@ -592,8 +592,8 @@ func sort3f(aq []float32) {
 // compare with ap and among themselves
 func sumtLswF4(ar, ap []float32) float64 {
 	s := .0
-	for Mxg = 1; Mxg < 5; Mxg++ {
-		s += mfcF4(fmt.Sprintf("sortyLsw-%d", Mxg), sort3f, ar, ap)
+	for MaxGor = 1; MaxGor < 5; MaxGor++ {
+		s += mfcF4(fmt.Sprintf("sortyLsw-%d", MaxGor), sort3f, ar, ap)
 		ap, ar = ar, ap[:cap(ap)]
 	}
 	return s
@@ -617,8 +617,8 @@ func sort3s(aq []string) {
 // compare with ap and among themselves
 func sumtLswS(ar, ap []uint32) float64 {
 	s := .0
-	for Mxg = 1; Mxg < 5; Mxg++ {
-		s += mfcS(fmt.Sprintf("sortyLsw-%d", Mxg), sort3s, ar, ap)
+	for MaxGor = 1; MaxGor < 5; MaxGor++ {
+		s += mfcS(fmt.Sprintf("sortyLsw-%d", MaxGor), sort3s, ar, ap)
 		ap, ar = ar, ap[:cap(ap)]
 	}
 	return s

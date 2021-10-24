@@ -203,7 +203,7 @@ func cdualparLenS(ar []string, ch chan int) int {
 	return k + 4 // convert k indice to ar
 }
 
-// short range sort function, assumes Mli < len(ar) <= Mlr
+// short range sort function, assumes MaxLenIns < len(ar) <= MaxLenRec
 func shortLenS(ar []string) {
 start:
 	aq, pv := pivotLenS(ar, 2)
@@ -219,19 +219,19 @@ start:
 		ar = ar[:k:k]
 	}
 
-	if len(aq) > Mli {
+	if len(aq) > MaxLenIns {
 		shortLenS(aq) // recurse on the shorter range
 		goto start
 	}
 	insertionLenS(aq) // at least one insertion range
 
-	if len(ar) > Mli {
+	if len(ar) > MaxLenIns {
 		goto start
 	}
 	insertionLenS(ar) // two insertion ranges
 }
 
-// long range sort function (single goroutine), assumes len(ar) > Mlr
+// long range sort function (single goroutine), assumes len(ar) > MaxLenRec
 func slongLenS(ar []string) {
 start:
 	aq, pv := pivotLenS(ar, 3)
@@ -247,21 +247,21 @@ start:
 		ar = ar[:k:k]
 	}
 
-	if len(aq) > Mlr { // at least one not-long range?
+	if len(aq) > MaxLenRec { // at least one not-long range?
 		slongLenS(aq) // recurse on the shorter range
 		goto start
 	}
 
-	if len(aq) > Mli {
+	if len(aq) > MaxLenIns {
 		shortLenS(aq)
 	} else {
 		insertionLenS(aq)
 	}
 
-	if len(ar) > Mlr { // two not-long ranges?
+	if len(ar) > MaxLenRec { // two not-long ranges?
 		goto start
 	}
-	shortLenS(ar) // we know len(ar) > Mli
+	shortLenS(ar) // we know len(ar) > MaxLenIns
 }
 
 // new-goroutine sort function
@@ -273,7 +273,7 @@ func glongLenS(ar []string, sv *syncVar) {
 	}
 }
 
-// long range sort function, assumes len(ar) > Mlr
+// long range sort function, assumes len(ar) > MaxLenRec
 func longLenS(ar []string, sv *syncVar) {
 start:
 	aq, pv := pivotLenS(ar, 3)
@@ -290,23 +290,23 @@ start:
 	}
 
 	// branches below are optimal for fewer total jumps
-	if len(aq) <= Mlr { // at least one not-long range?
+	if len(aq) <= MaxLenRec { // at least one not-long range?
 
-		if len(aq) > Mli {
+		if len(aq) > MaxLenIns {
 			shortLenS(aq)
 		} else {
 			insertionLenS(aq)
 		}
 
-		if len(ar) > Mlr { // two not-long ranges?
+		if len(ar) > MaxLenRec { // two not-long ranges?
 			goto start
 		}
-		shortLenS(ar) // we know len(ar) > Mli
+		shortLenS(ar) // we know len(ar) > MaxLenIns
 		return
 	}
 
 	// max goroutines? not atomic but good enough
-	if sv.ngr >= Mxg {
+	if sv.ngr >= MaxGor {
 		longLenS(aq, sv) // recurse on the shorter range
 		goto start
 	}
@@ -324,12 +324,12 @@ start:
 // sortLenS concurrently sorts ar by length in ascending order.
 func sortLenS(ar []string) {
 
-	if len(ar) < 2*(Mlr+1) || Mxg <= 1 {
+	if len(ar) < 2*(MaxLenRec+1) || MaxGor <= 1 {
 
 		// single-goroutine sorting
-		if len(ar) > Mlr {
+		if len(ar) > MaxLenRec {
 			slongLenS(ar)
-		} else if len(ar) > Mli {
+		} else if len(ar) > MaxLenIns {
 			shortLenS(ar)
 		} else if len(ar) > 1 {
 			insertionLenS(ar)
@@ -354,26 +354,26 @@ func sortLenS(ar []string) {
 		}
 
 		// handle shorter range
-		if len(aq) > Mlr {
+		if len(aq) > MaxLenRec {
 			if atomic.AddUint32(&sv.ngr, 1) == 0 { // increase goroutine counter
 				panic("sorty: sortLenS: counter overflow")
 			}
 			go glongLenS(aq, &sv)
 
-		} else if len(aq) > Mli {
+		} else if len(aq) > MaxLenIns {
 			shortLenS(aq)
 		} else {
 			insertionLenS(aq)
 		}
 
 		// longer range big enough? max goroutines?
-		if len(ar) < 2*(Mlr+1) || sv.ngr >= Mxg {
+		if len(ar) < 2*(MaxLenRec+1) || sv.ngr >= MaxGor {
 			break
 		}
 		// dual partition longer range
 	}
 
-	longLenS(ar, &sv) // we know len(ar) > Mlr
+	longLenS(ar, &sv) // we know len(ar) > MaxLenRec
 
 	if atomic.AddUint32(&sv.ngr, ^uint32(0)) != 0 { // decrease goroutine counter
 		<-sv.done // we are not the last, wait
