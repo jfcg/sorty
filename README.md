@@ -1,4 +1,4 @@
-## sorty [![go report card](https://goreportcard.com/badge/github.com/jfcg/sorty)](https://goreportcard.com/report/github.com/jfcg/sorty) [![go.dev ref](https://raw.githubusercontent.com/jfcg/.github/main/godev.svg)](https://pkg.go.dev/github.com/jfcg/sorty)
+## sorty [![go report card](https://goreportcard.com/badge/github.com/jfcg/sorty)](https://goreportcard.com/report/github.com/jfcg/sorty) [![go.dev ref](https://raw.githubusercontent.com/jfcg/.github/main/godev.svg)](https://pkg.go.dev/github.com/jfcg/sorty/v2)
 
 sorty is a type-specific, fast, efficient, concurrent / parallel
 [QuickSort](https://en.wikipedia.org/wiki/Quicksort) implementation (with an enhanced
@@ -10,25 +10,25 @@ sorty.SortLen(len_slice)      // []string or [][]T 'by length' in ascending orde
 sorty.Sort(n, lesswap)        // lesswap() based
 ```
 If you have a pair of `Less()` and `Swap()`, then you can trivially write your
-[`lesswap()`](https://pkg.go.dev/github.com/jfcg/sorty#Sort) and sort your generic
+[`lesswap()`](https://pkg.go.dev/github.com/jfcg/sorty/v2#Sort) and sort your generic
 collections using multiple CPU cores quickly.
-sorty natively [sorts](https://pkg.go.dev/github.com/jfcg/sorty#SortSlice)
+sorty natively [sorts](https://pkg.go.dev/github.com/jfcg/sorty/v2#SortSlice)
 ```
 []int, []int32, []int64, []uint, []uint32, []uint64,
 []uintptr, []float32, []float64, []string, [][]byte
 ```
 sorty also natively sorts `[]string` and `[][]T` (for any type `T`)
-[by length](https://pkg.go.dev/github.com/jfcg/sorty#SortLen).
+[by length](https://pkg.go.dev/github.com/jfcg/sorty/v2#SortLen).
 
 sorty is stable (as in version), well-tested and pretty careful with resources & performance:
 - `lesswap()` operates [**faster**](https://github.com/lynxkite/lynxkite/pull/141#issuecomment-779673635)
 than [`sort.Interface`](https://pkg.go.dev/sort#Interface) on generic collections.
-- For each `Sort*()` call, sorty uses up to [`MaxGor`](https://pkg.go.dev/github.com/jfcg/sorty#pkg-variables)
+- For each `Sort*()` call, sorty uses up to [`MaxGor`](https://pkg.go.dev/github.com/jfcg/sorty/v2#pkg-variables)
 (3 by default, including caller) concurrent goroutines and up to one channel.
 - Goroutines and channel are created/used **only when necessary**.
 - `MaxGor=1` (or a short input) yields single-goroutine sorting: no goroutines or channel will be created.
 - `MaxGor` can be changed live, even during an ongoing `Sort*()` call.
-- [`MaxLen*`](https://pkg.go.dev/github.com/jfcg/sorty#pkg-constants) parameters are
+- [`MaxLen*`](https://pkg.go.dev/github.com/jfcg/sorty/v2#pkg-constants) parameters are
 tuned to get the best performance, see below.
 - sorty API adheres to [semantic](https://semver.org) versioning.
 
@@ -135,7 +135,7 @@ calls in `tmain_test.go` and compare your tuned sorty with other libraries:
 ```
 go test -timeout 1h -gcflags '-dwarf=0 -B -wb=0' -ldflags '-s -w'
 ```
-Remember to build sorty (and your functions like [`SortObjAsc()`](https://pkg.go.dev/github.com/jfcg/sorty#Sort))
+Remember to build sorty (and your functions like [`SortObjAsc()`](https://pkg.go.dev/github.com/jfcg/sorty/v2#Sort))
 with the same optimization flags you used for tuning. `-B` flag is especially helpful.
 
 ### Support
