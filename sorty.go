@@ -6,7 +6,7 @@
 
 // Package sorty is a type-specific, fast, efficient, concurrent / parallel QuickSort
 // implementation. It is in-place and does not require extra memory. You can call:
-//  sorty.SortSlice(native_slice) // []int32, []float64 etc. in ascending order
+//  sorty.SortSlice(native_slice) // []int, []float64, []string etc. in ascending order
 //  sorty.SortLen(len_slice)      // []string or [][]T 'by length' in ascending order
 //  sorty.Sort(n, lesswap)        // lesswap() based
 package sorty

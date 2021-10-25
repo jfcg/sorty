@@ -42,9 +42,10 @@ func extractSlc(ar interface{}) (slc sixb.Slice, k reflect.Kind) {
 	return
 }
 
-// IsSortedSlice returns 0 if ar is sorted in ascending order, otherwise it returns
-// i > 0 with ar[i] < ar[i-1]. ar's (underlying) type can be []int, []int32, []int64,
-// []uint, []uint32, []uint64, []uintptr, []float32, []float64, []string, [][]byte,
+// IsSortedSlice returns 0 if ar is sorted in ascending order, otherwise
+// it returns i > 0 with ar[i] < ar[i-1]. ar's (underlying) type can be
+//  []int, []int32, []int64, []uint, []uint32, []uint64,
+//  []uintptr, []float32, []float64, []string, [][]byte
 // otherwise it panics.
 func IsSortedSlice(ar interface{}) int {
 	slc, k := extractSlc(ar)
@@ -78,8 +79,9 @@ func IsSortedSlice(ar interface{}) int {
 }
 
 // SortSlice concurrently sorts ar in ascending order. ar's (underlying) type can be
-// []int, []int32, []int64, []uint, []uint32, []uint64, []uintptr, []float32, []float64,
-// []string, [][]byte, otherwise it panics.
+//  []int, []int32, []int64, []uint, []uint32, []uint64,
+//  []uintptr, []float32, []float64, []string, [][]byte
+// otherwise it panics.
 func SortSlice(ar interface{}) {
 	slc, k := extractSlc(ar)
 	switch k {
