@@ -25,15 +25,8 @@ func isSortedU4(ar []uint32) int {
 
 // insertion sort, assumes len(ar) >= 2
 func insertionU4(ar []uint32) {
-	hi := len(ar) - 1
-	for l, h := (hi-3)>>1, hi; l >= 0; {
-		if ar[h] < ar[l] {
-			ar[l], ar[h] = ar[h], ar[l]
-		}
-		l--
-		h--
-	}
-	for h := 0; ; {
+	h, hi := 0, len(ar)-1
+	for {
 		l := h
 		h++
 		v := ar[h]

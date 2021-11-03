@@ -10,15 +10,8 @@ import "sync/atomic"
 
 // insertion sort, assumes len(ar) >= 2
 func insertionLenB(ar [][]byte) {
-	hi := len(ar) - 1
-	for l, h := (hi-3)>>1, hi; l >= 0; {
-		if len(ar[h]) < len(ar[l]) {
-			ar[l], ar[h] = ar[h], ar[l]
-		}
-		l--
-		h--
-	}
-	for h := 0; ; {
+	h, hi := 0, len(ar)-1
+	for {
 		l := h
 		h++
 		v := ar[h]
