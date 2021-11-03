@@ -6,9 +6,13 @@
 
 package sorty
 
-import "sync/atomic"
+import (
+	"sync/atomic"
 
-// IsSortedI8 returns 0 if ar is sorted in ascending order,
+	"github.com/jfcg/sixb"
+)
+
+// isSortedI8 returns 0 if ar is sorted in ascending order,
 // otherwise it returns i > 0 with ar[i] < ar[i-1]
 func isSortedI8(ar []int64) int {
 	for i := len(ar) - 1; i > 0; i-- {
@@ -49,57 +53,50 @@ func insertionI8(ar []int64) {
 	}
 }
 
-// pivotI8 divides ar into 2n+1 equal intervals, sorts mid-points of them
-// to find median-of-2n+1 pivot. ensures lo/hi ranges have at least n elements by
-// moving 2n of mid-points to n positions at lo/hi ends.
-// assumes n > 0, len(ar) > 4n+2. returns remaining slice,pivot for partitioning.
+// pivotI8 selects 2n equidistant samples from ar that minimizes max distance to any
+// non-selected member, calculates median-of-2n pivot from samples. ensures lo/hi ranges
+// have at least n elements by moving sorted samples to n positions at lo/hi ends.
+// assumes 5 > n > 0, len(ar) > 4n. returns remaining slice,pivot for partitioning.
 func pivotI8(ar []int64, n int) ([]int64, int64) {
-	m := len(ar) >> 1
-	s := len(ar) / (2*n + 1) // step > 1
-	l, h := m-n*s, m+n*s
 
-	for q, k := h, m-2*s; k >= l; { // insertion sort ar[m+i*s], i=-n..n
-		if ar[q] < ar[k] {
-			ar[k], ar[q] = ar[q], ar[k]
-		}
-		q -= s
+	d := 2 * n
+	s := len(ar) / d // sample step > 1
+	d--
+	h := d * s
+	l := (len(ar) - h) >> 1
+	if l >= n && l > (s+1)>>1 {
+		s++
+		h += d
+		l -= n
+	}
+	h += l // first/last sample positions
+
+	var sample [8]int64
+	for i, k := d, h; i >= 0; i-- {
+		sample[i] = ar[k]
 		k -= s
 	}
-	for q := l; ; {
-		k := q
-		q += s
-		v := ar[q]
-		if v < ar[k] {
-			for {
-				ar[k+s] = ar[k]
-				k -= s
-				if k < l || v >= ar[k] {
-					break
-				}
-			}
-			ar[k+s] = v
-		}
-		if q >= h {
-			break
-		}
-	}
+	insertionI8(sample[:2*n]) // sort 2n samples
 
-	lo, hi := 0, len(ar)
+	i, lo, hi := 0, 0, len(ar)
 
-	// move lo/hi mid-points to lo/hi ends
+	// move sorted samples to lo/hi ends
 	for {
 		hi--
-		ar[l], ar[lo] = ar[lo], ar[l]
-		ar[h], ar[hi] = ar[hi], ar[h]
+		ar[h] = ar[hi]
+		ar[hi] = sample[d]
+		ar[l] = ar[lo]
+		ar[lo] = sample[i]
+		i++
+		d--
 		l += s
 		h -= s
 		lo++
-		if h <= m {
+		if d < i {
 			break
 		}
 	}
-
-	return ar[lo:hi:hi], ar[m] // lo <= m-s+1, m+s-1 < hi
+	return ar[lo:hi:hi], sixb.MeanI8(sample[n-1], sample[n])
 }
 
 // partition ar into <= and >= pivot, assumes len(ar) >= 2
@@ -332,7 +329,7 @@ start:
 	goto start
 }
 
-// SortI8 concurrently sorts ar in ascending order.
+// sortI8 concurrently sorts ar in ascending order.
 func sortI8(ar []int64) {
 
 	if len(ar) < 2*(MaxLenRec+1) || MaxGor <= 1 {
