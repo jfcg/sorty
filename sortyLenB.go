@@ -6,7 +6,11 @@
 
 package sorty
 
-import "sync/atomic"
+import (
+	"sync/atomic"
+
+	"github.com/jfcg/sixb"
+)
 
 // insertion sort, assumes len(ar) >= 2
 func insertionLenB(ar [][]byte) {
@@ -31,57 +35,50 @@ func insertionLenB(ar [][]byte) {
 	}
 }
 
-// pivotLenB divides ar into 2n+1 equal intervals, sorts mid-points of them
-// to find median-of-2n+1 pivot. ensures lo/hi ranges have at least n elements by
-// moving 2n of mid-points to n positions at lo/hi ends.
-// assumes n > 0, len(ar) > 4n+2. returns remaining slice,pivot for partitioning.
+// pivotLenB selects 2n equidistant samples from ar that minimizes max distance to any
+// non-selected member, calculates median-of-2n pivot from samples. ensures lo/hi ranges
+// have at least n elements by moving sorted samples to n positions at lo/hi ends.
+// assumes 5 > n > 0, len(ar) > 4n. returns remaining slice,pivot for partitioning.
 func pivotLenB(ar [][]byte, n int) ([][]byte, int) {
-	m := len(ar) >> 1
-	s := len(ar) / (2*n + 1) // step > 1
-	l, h := m-n*s, m+n*s
 
-	for q, k := h, m-2*s; k >= l; { // insertion sort ar[m+i*s], i=-n..n
-		if len(ar[q]) < len(ar[k]) {
-			ar[k], ar[q] = ar[q], ar[k]
-		}
-		q -= s
+	d := 2 * n
+	s := len(ar) / d // sample step > 1
+	d--
+	h := d * s
+	l := (len(ar) - h) >> 1
+	if l >= n && l > (s+1)>>1 {
+		s++
+		h += d
+		l -= n
+	}
+	h += l // first/last sample positions
+
+	var sample [8][]byte
+	for i, k := d, h; i >= 0; i-- {
+		sample[i] = ar[k]
 		k -= s
 	}
-	for q := l; ; {
-		k := q
-		q += s
-		v := ar[q]
-		if len(v) < len(ar[k]) {
-			for {
-				ar[k+s] = ar[k]
-				k -= s
-				if k < l || len(v) >= len(ar[k]) {
-					break
-				}
-			}
-			ar[k+s] = v
-		}
-		if q >= h {
-			break
-		}
-	}
+	insertionLenB(sample[:2*n]) // sort 2n samples
 
-	lo, hi := 0, len(ar)
+	i, lo, hi := 0, 0, len(ar)
 
-	// move lo/hi mid-points to lo/hi ends
+	// move sorted samples to lo/hi ends
 	for {
 		hi--
-		ar[l], ar[lo] = ar[lo], ar[l]
-		ar[h], ar[hi] = ar[hi], ar[h]
+		ar[h] = ar[hi]
+		ar[hi] = sample[d]
+		ar[l] = ar[lo]
+		ar[lo] = sample[i]
+		i++
+		d--
 		l += s
 		h -= s
 		lo++
-		if h <= m {
+		if d < i {
 			break
 		}
 	}
-
-	return ar[lo:hi:hi], len(ar[m]) // lo <= m-s+1, m+s-1 < hi
+	return ar[lo:hi:hi], sixb.MeanI(len(sample[n-1]), len(sample[n]))
 }
 
 // partition ar into <= and >= pivot, assumes len(ar) >= 2
