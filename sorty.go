@@ -53,3 +53,20 @@ type syncVar struct {
 	ngr  uint32   // number of sorting goroutines
 	done chan int // end signal
 }
+
+// given slice length > 4n and n > 0, select equidistant 2n
+// samples that minimizes max distance to non-selected members.
+func minmaxSample(slen, n int) (d, s, h, l int) {
+	d = 2 * n
+	s = slen / d // sample step > 1
+	d--
+	h = d * s
+	l = (slen - h) >> 1
+	if l >= n && l > (s+1)>>1 {
+		s++
+		h += d
+		l -= n
+	}
+	h += l // first/last sample positions
+	return
+}

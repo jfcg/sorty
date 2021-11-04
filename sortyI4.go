@@ -52,17 +52,8 @@ func insertionI4(ar []int32) {
 // assumes 5 > n > 0, len(ar) > 4n. returns remaining slice,pivot for partitioning.
 func pivotI4(ar []int32, n int) ([]int32, int32) {
 
-	d := 2 * n
-	s := len(ar) / d // sample step > 1
-	d--
-	h := d * s
-	l := (len(ar) - h) >> 1
-	if l >= n && l > (s+1)>>1 {
-		s++
-		h += d
-		l -= n
-	}
-	h += l // first/last sample positions
+	// sample step, first/last sample positions
+	d, s, h, l := minmaxSample(len(ar), n)
 
 	var sample [8]int32
 	for i, k := d, h; i >= 0; i-- {
