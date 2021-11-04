@@ -6,7 +6,11 @@
 
 package sorty
 
-import "sync/atomic"
+import (
+	"sync/atomic"
+
+	"github.com/jfcg/sixb"
+)
 
 // Lesswap function operates on an underlying collection to be sorted as:
 //  if less(i, k) { // strict ordering like < or >
@@ -32,7 +36,7 @@ func IsSorted(n int, lsw Lesswap) int {
 // insertion sort ar[lo..hi], assumes lo < hi
 func insertion(lsw Lesswap, lo, hi int) {
 
-	for l, h := mid(lo, hi-1)-1, hi; l >= lo; {
+	for l, h := sixb.MeanI(lo, hi-3), hi; l >= lo; {
 		lsw(h, l, h, l)
 		l--
 		h--
@@ -59,7 +63,7 @@ func insertion(lsw Lesswap, lo, hi int) {
 // moving 2n of mid-points to n positions at lo/hi ends.
 // assumes n > 0, lo+4n+1 < hi. returns start,pivot,end for partitioning.
 func pivot(lsw Lesswap, lo, hi, n int) (int, int, int) {
-	m := mid(lo, hi)
+	m := sixb.MeanI(lo, hi)
 	s := (hi - lo + 1) / (2*n + 1) // step > 1
 	l, h := m-n*s, m+n*s
 
@@ -196,8 +200,8 @@ func cdualpar(lsw Lesswap, lo, hi int, ch chan int) int {
 		return partition1(lsw, lo, pv, hi)
 	}
 
-	m := mid(lo, hi) // in pivot() lo/hi changed by possibly unequal amounts
-	a, b := mid(lo, m), mid(m, hi)
+	m := sixb.MeanI(lo, hi) // in pivot() lo/hi changed by possibly unequal amounts
+	a, b := sixb.MeanI(lo, m), sixb.MeanI(m, hi)
 
 	go gpart1(lsw, a+1, pv, b-1, ch) // mid half range
 

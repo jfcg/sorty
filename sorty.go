@@ -11,6 +11,8 @@
 //  sorty.Sort(n, lesswap)        // lesswap() based
 package sorty
 
+import "github.com/jfcg/sixb"
+
 // MaxGor is the maximum concurrent goroutines (including caller) used for sorting
 // per Sort*() call. MaxGor can be changed live, even during an ongoing Sort*() call.
 // MaxGor=1 (or a short input) yields single-goroutine sorting: no goroutines or
@@ -24,11 +26,6 @@ func init() {
 	}
 }
 
-// mid-point
-func mid(l, h int) int {
-	return int(uint(l+h) >> 1)
-}
-
 // Search returns lowest integer k in [0,n) where fn(k) is true, assuming:
 //  fn(k) => fn(k+1)
 // If there is no such k, it returns n. It can be used to locate an element
@@ -37,7 +34,7 @@ func Search(n int, fn func(int) bool) int {
 	l, h := 0, n
 
 	for l < h {
-		m := mid(l, h)
+		m := sixb.MeanI(l, h)
 
 		if fn(m) {
 			h = m

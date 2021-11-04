@@ -6,7 +6,11 @@
 
 package sorty
 
-import "sync/atomic"
+import (
+	"sync/atomic"
+
+	"github.com/jfcg/sixb"
+)
 
 // isSortedF4 returns 0 if ar is sorted in ascending order,
 // otherwise it returns i > 0 with ar[i] < ar[i-1]
@@ -166,7 +170,7 @@ func cdualparF4(ar []float32, ch chan int) int {
 
 	aq, pv := pivotF4(ar, 4) // median-of-9
 	k := len(aq) >> 1
-	a, b := k>>1, mid(k, len(aq))
+	a, b := k>>1, sixb.MeanI(k, len(aq))
 
 	go gpart1F4(aq[a:b:b], pv, ch) // mid half range
 

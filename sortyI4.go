@@ -170,7 +170,7 @@ func cdualparI4(ar []int32, ch chan int) int {
 
 	aq, pv := pivotI4(ar, 4) // median-of-9
 	k := len(aq) >> 1
-	a, b := k>>1, mid(k, len(aq))
+	a, b := k>>1, sixb.MeanI(k, len(aq))
 
 	go gpart1I4(aq[a:b:b], pv, ch) // mid half range
 
