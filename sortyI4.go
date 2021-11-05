@@ -23,6 +23,21 @@ func isSortedI4(ar []int32) int {
 	return 0
 }
 
+// pre-sort, assumes len(ar) >= 2
+func presortI4(ar []int32) {
+	l, h := len(ar)>>1, len(ar)
+	for {
+		l--
+		h--
+		if ar[h] < ar[l] {
+			ar[h], ar[l] = ar[l], ar[h]
+		}
+		if l <= 0 {
+			break
+		}
+	}
+}
+
 // insertion sort, assumes len(ar) >= 2
 func insertionI4(ar []int32) {
 	h, hi := 0, len(ar)-1
@@ -60,7 +75,7 @@ func pivotI4(ar []int32, n int) ([]int32, int32) {
 		sample[i] = ar[k]
 		k -= s
 	}
-	insertionI4(sample[:2*n]) // sort 2n samples
+	insertionI4(sample[:d+1]) // sort 2n samples
 
 	i, lo, hi := 0, 0, len(ar)
 
@@ -168,16 +183,16 @@ func gpart1I4(ar []int32, pv int32, ch chan int) {
 // returns k with ar[:k] <= pivot, ar[k:] >= pivot
 func cdualparI4(ar []int32, ch chan int) int {
 
-	aq, pv := pivotI4(ar, 4) // median-of-9
+	aq, pv := pivotI4(ar, 4) // median-of-8 pivot
 	k := len(aq) >> 1
 	a, b := k>>1, sixb.MeanI(k, len(aq))
 
 	go gpart1I4(aq[a:b:b], pv, ch) // mid half range
 
-	t := a
+	k = a
 	a, b = partition2I4(aq, a, b, pv) // left/right quarter ranges
-	k = <-ch
-	k += t // convert k indice to aq
+
+	k += <-ch // convert returned indice to aq
 
 	// only one gap is possible
 	for ; 0 <= a; a-- { // gap left in low range?
@@ -198,8 +213,8 @@ func cdualparI4(ar []int32, ch chan int) int {
 // short range sort function, assumes MaxLenIns < len(ar) <= MaxLenRec
 func shortI4(ar []int32) {
 start:
-	aq, pv := pivotI4(ar, 2)
-	k := partition1I4(aq, pv) // median-of-5 partitioning
+	aq, pv := pivotI4(ar, 2) // median-of-4 pivot
+	k := partition1I4(aq, pv)
 
 	k += 2 // convert k indice from aq to ar
 
@@ -215,19 +230,23 @@ start:
 		shortI4(aq) // recurse on the shorter range
 		goto start
 	}
+	if len(aq) > MaxLenIns/2 {
+		presortI4(aq) // pre-sort if big enough
+	}
 	insertionI4(aq) // at least one insertion range
 
 	if len(ar) > MaxLenIns {
 		goto start
 	}
-	insertionI4(ar) // two insertion ranges
+	presortI4(ar) // two insertion ranges
+	insertionI4(ar)
 }
 
 // long range sort function (single goroutine), assumes len(ar) > MaxLenRec
 func slongI4(ar []int32) {
 start:
-	aq, pv := pivotI4(ar, 3)
-	k := partition1I4(aq, pv) // median-of-7 partitioning
+	aq, pv := pivotI4(ar, 3) // median-of-6 pivot
+	k := partition1I4(aq, pv)
 
 	k += 3 // convert k indice from aq to ar
 
@@ -247,6 +266,9 @@ start:
 	if len(aq) > MaxLenIns {
 		shortI4(aq)
 	} else {
+		if len(aq) > MaxLenIns/2 {
+			presortI4(aq) // pre-sort if big enough
+		}
 		insertionI4(aq)
 	}
 
@@ -268,8 +290,8 @@ func glongI4(ar []int32, sv *syncVar) {
 // long range sort function, assumes len(ar) > MaxLenRec
 func longI4(ar []int32, sv *syncVar) {
 start:
-	aq, pv := pivotI4(ar, 3)
-	k := partition1I4(aq, pv) // median-of-7 partitioning
+	aq, pv := pivotI4(ar, 3) // median-of-6 pivot
+	k := partition1I4(aq, pv)
 
 	k += 3 // convert k indice from aq to ar
 
@@ -287,6 +309,9 @@ start:
 		if len(aq) > MaxLenIns {
 			shortI4(aq)
 		} else {
+			if len(aq) > MaxLenIns/2 {
+				presortI4(aq) // pre-sort if big enough
+			}
 			insertionI4(aq)
 		}
 
@@ -324,6 +349,9 @@ func sortI4(ar []int32) {
 		} else if len(ar) > MaxLenIns {
 			shortI4(ar)
 		} else if len(ar) > 1 {
+			if len(ar) > MaxLenIns/2 {
+				presortI4(ar) // pre-sort if big enough
+			}
 			insertionI4(ar)
 		}
 		return
@@ -333,7 +361,7 @@ func sortI4(ar []int32) {
 	sv := syncVar{1, // number of goroutines including this
 		make(chan int)} // end signal
 	for {
-		// median-of-9 concurrent dual partitioning with done
+		// concurrent dual partitioning with done
 		k := cdualparI4(ar, sv.done)
 		var aq []int32
 
@@ -355,6 +383,9 @@ func sortI4(ar []int32) {
 		} else if len(aq) > MaxLenIns {
 			shortI4(aq)
 		} else {
+			if len(aq) > MaxLenIns/2 {
+				presortI4(aq) // pre-sort if big enough
+			}
 			insertionI4(aq)
 		}
 

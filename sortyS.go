@@ -23,6 +23,21 @@ func isSortedS(ar []string) int {
 	return 0
 }
 
+// pre-sort, assumes len(ar) >= 2
+func presortS(ar []string) {
+	l, h := len(ar)>>1, len(ar)
+	for {
+		l--
+		h--
+		if ar[h] < ar[l] {
+			ar[h], ar[l] = ar[l], ar[h]
+		}
+		if l <= 0 {
+			break
+		}
+	}
+}
+
 // insertion sort, assumes len(ar) >= 2
 func insertionS(ar []string) {
 	h, hi := 0, len(ar)-1
@@ -60,7 +75,7 @@ func pivotS(ar []string, n int) ([]string, string) {
 		sample[i] = ar[k]
 		k -= s
 	}
-	insertionS(sample[:2*n]) // sort 2n samples
+	insertionS(sample[:d+1]) // sort 2n samples
 
 	i, lo, hi := 0, 0, len(ar)
 
@@ -168,16 +183,16 @@ func gpart1S(ar []string, pv string, ch chan int) {
 // returns k with ar[:k] <= pivot, ar[k:] >= pivot
 func cdualparS(ar []string, ch chan int) int {
 
-	aq, pv := pivotS(ar, 4) // median-of-9
+	aq, pv := pivotS(ar, 4) // median-of-8 pivot
 	k := len(aq) >> 1
 	a, b := k>>1, sixb.MeanI(k, len(aq))
 
 	go gpart1S(aq[a:b:b], pv, ch) // mid half range
 
-	t := a
+	k = a
 	a, b = partition2S(aq, a, b, pv) // left/right quarter ranges
-	k = <-ch
-	k += t // convert k indice to aq
+
+	k += <-ch // convert returned indice to aq
 
 	// only one gap is possible
 	for ; 0 <= a; a-- { // gap left in low range?
@@ -198,8 +213,8 @@ func cdualparS(ar []string, ch chan int) int {
 // short range sort function, assumes MaxLenInsFC < len(ar) <= MaxLenRec
 func shortS(ar []string) {
 start:
-	aq, pv := pivotS(ar, 2)
-	k := partition1S(aq, pv) // median-of-5 partitioning
+	aq, pv := pivotS(ar, 2) // median-of-4 pivot
+	k := partition1S(aq, pv)
 
 	k += 2 // convert k indice from aq to ar
 
@@ -215,19 +230,23 @@ start:
 		shortS(aq) // recurse on the shorter range
 		goto start
 	}
+	if len(aq) > MaxLenInsFC/2 {
+		presortS(aq) // pre-sort if big enough
+	}
 	insertionS(aq) // at least one insertion range
 
 	if len(ar) > MaxLenInsFC {
 		goto start
 	}
-	insertionS(ar) // two insertion ranges
+	presortS(ar) // two insertion ranges
+	insertionS(ar)
 }
 
 // long range sort function (single goroutine), assumes len(ar) > MaxLenRec
 func slongS(ar []string) {
 start:
-	aq, pv := pivotS(ar, 3)
-	k := partition1S(aq, pv) // median-of-7 partitioning
+	aq, pv := pivotS(ar, 3) // median-of-6 pivot
+	k := partition1S(aq, pv)
 
 	k += 3 // convert k indice from aq to ar
 
@@ -247,6 +266,9 @@ start:
 	if len(aq) > MaxLenInsFC {
 		shortS(aq)
 	} else {
+		if len(aq) > MaxLenInsFC/2 {
+			presortS(aq) // pre-sort if big enough
+		}
 		insertionS(aq)
 	}
 
@@ -268,8 +290,8 @@ func glongS(ar []string, sv *syncVar) {
 // long range sort function, assumes len(ar) > MaxLenRec
 func longS(ar []string, sv *syncVar) {
 start:
-	aq, pv := pivotS(ar, 3)
-	k := partition1S(aq, pv) // median-of-7 partitioning
+	aq, pv := pivotS(ar, 3) // median-of-6 pivot
+	k := partition1S(aq, pv)
 
 	k += 3 // convert k indice from aq to ar
 
@@ -287,6 +309,9 @@ start:
 		if len(aq) > MaxLenInsFC {
 			shortS(aq)
 		} else {
+			if len(aq) > MaxLenInsFC/2 {
+				presortS(aq) // pre-sort if big enough
+			}
 			insertionS(aq)
 		}
 
@@ -324,6 +349,9 @@ func sortS(ar []string) {
 		} else if len(ar) > MaxLenInsFC {
 			shortS(ar)
 		} else if len(ar) > 1 {
+			if len(ar) > MaxLenInsFC/2 {
+				presortS(ar) // pre-sort if big enough
+			}
 			insertionS(ar)
 		}
 		return
@@ -333,7 +361,7 @@ func sortS(ar []string) {
 	sv := syncVar{1, // number of goroutines including this
 		make(chan int)} // end signal
 	for {
-		// median-of-9 concurrent dual partitioning with done
+		// concurrent dual partitioning with done
 		k := cdualparS(ar, sv.done)
 		var aq []string
 
@@ -355,6 +383,9 @@ func sortS(ar []string) {
 		} else if len(aq) > MaxLenInsFC {
 			shortS(aq)
 		} else {
+			if len(aq) > MaxLenInsFC/2 {
+				presortS(aq) // pre-sort if big enough
+			}
 			insertionS(aq)
 		}
 

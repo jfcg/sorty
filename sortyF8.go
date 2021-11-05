@@ -23,6 +23,21 @@ func isSortedF8(ar []float64) int {
 	return 0
 }
 
+// pre-sort, assumes len(ar) >= 2
+func presortF8(ar []float64) {
+	l, h := len(ar)>>1, len(ar)
+	for {
+		l--
+		h--
+		if ar[h] < ar[l] {
+			ar[h], ar[l] = ar[l], ar[h]
+		}
+		if l <= 0 {
+			break
+		}
+	}
+}
+
 // insertion sort, assumes len(ar) >= 2
 func insertionF8(ar []float64) {
 	h, hi := 0, len(ar)-1
@@ -60,7 +75,7 @@ func pivotF8(ar []float64, n int) ([]float64, float64) {
 		sample[i] = ar[k]
 		k -= s
 	}
-	insertionF8(sample[:2*n]) // sort 2n samples
+	insertionF8(sample[:d+1]) // sort 2n samples
 
 	i, lo, hi := 0, 0, len(ar)
 
@@ -168,16 +183,16 @@ func gpart1F8(ar []float64, pv float64, ch chan int) {
 // returns k with ar[:k] <= pivot, ar[k:] >= pivot
 func cdualparF8(ar []float64, ch chan int) int {
 
-	aq, pv := pivotF8(ar, 4) // median-of-9
+	aq, pv := pivotF8(ar, 4) // median-of-8 pivot
 	k := len(aq) >> 1
 	a, b := k>>1, sixb.MeanI(k, len(aq))
 
 	go gpart1F8(aq[a:b:b], pv, ch) // mid half range
 
-	t := a
+	k = a
 	a, b = partition2F8(aq, a, b, pv) // left/right quarter ranges
-	k = <-ch
-	k += t // convert k indice to aq
+
+	k += <-ch // convert returned indice to aq
 
 	// only one gap is possible
 	for ; 0 <= a; a-- { // gap left in low range?
@@ -198,8 +213,8 @@ func cdualparF8(ar []float64, ch chan int) int {
 // short range sort function, assumes MaxLenIns < len(ar) <= MaxLenRec
 func shortF8(ar []float64) {
 start:
-	aq, pv := pivotF8(ar, 2)
-	k := partition1F8(aq, pv) // median-of-5 partitioning
+	aq, pv := pivotF8(ar, 2) // median-of-4 pivot
+	k := partition1F8(aq, pv)
 
 	k += 2 // convert k indice from aq to ar
 
@@ -215,19 +230,23 @@ start:
 		shortF8(aq) // recurse on the shorter range
 		goto start
 	}
+	if len(aq) > MaxLenIns/2 {
+		presortF8(aq) // pre-sort if big enough
+	}
 	insertionF8(aq) // at least one insertion range
 
 	if len(ar) > MaxLenIns {
 		goto start
 	}
-	insertionF8(ar) // two insertion ranges
+	presortF8(ar) // two insertion ranges
+	insertionF8(ar)
 }
 
 // long range sort function (single goroutine), assumes len(ar) > MaxLenRec
 func slongF8(ar []float64) {
 start:
-	aq, pv := pivotF8(ar, 3)
-	k := partition1F8(aq, pv) // median-of-7 partitioning
+	aq, pv := pivotF8(ar, 3) // median-of-6 pivot
+	k := partition1F8(aq, pv)
 
 	k += 3 // convert k indice from aq to ar
 
@@ -247,6 +266,9 @@ start:
 	if len(aq) > MaxLenIns {
 		shortF8(aq)
 	} else {
+		if len(aq) > MaxLenIns/2 {
+			presortF8(aq) // pre-sort if big enough
+		}
 		insertionF8(aq)
 	}
 
@@ -268,8 +290,8 @@ func glongF8(ar []float64, sv *syncVar) {
 // long range sort function, assumes len(ar) > MaxLenRec
 func longF8(ar []float64, sv *syncVar) {
 start:
-	aq, pv := pivotF8(ar, 3)
-	k := partition1F8(aq, pv) // median-of-7 partitioning
+	aq, pv := pivotF8(ar, 3) // median-of-6 pivot
+	k := partition1F8(aq, pv)
 
 	k += 3 // convert k indice from aq to ar
 
@@ -287,6 +309,9 @@ start:
 		if len(aq) > MaxLenIns {
 			shortF8(aq)
 		} else {
+			if len(aq) > MaxLenIns/2 {
+				presortF8(aq) // pre-sort if big enough
+			}
 			insertionF8(aq)
 		}
 
@@ -324,6 +349,9 @@ func sortF8(ar []float64) {
 		} else if len(ar) > MaxLenIns {
 			shortF8(ar)
 		} else if len(ar) > 1 {
+			if len(ar) > MaxLenIns/2 {
+				presortF8(ar) // pre-sort if big enough
+			}
 			insertionF8(ar)
 		}
 		return
@@ -333,7 +361,7 @@ func sortF8(ar []float64) {
 	sv := syncVar{1, // number of goroutines including this
 		make(chan int)} // end signal
 	for {
-		// median-of-9 concurrent dual partitioning with done
+		// concurrent dual partitioning with done
 		k := cdualparF8(ar, sv.done)
 		var aq []float64
 
@@ -355,6 +383,9 @@ func sortF8(ar []float64) {
 		} else if len(aq) > MaxLenIns {
 			shortF8(aq)
 		} else {
+			if len(aq) > MaxLenIns/2 {
+				presortF8(aq) // pre-sort if big enough
+			}
 			insertionF8(aq)
 		}
 
