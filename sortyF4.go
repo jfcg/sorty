@@ -242,42 +242,6 @@ start:
 	insertionF4(ar)
 }
 
-// long range sort function (single goroutine), assumes len(ar) > MaxLenRec
-func slongF4(ar []float32) {
-start:
-	aq, pv := pivotF4(ar, 3) // median-of-6 pivot
-	k := partition1F4(aq, pv)
-
-	k += 3 // convert k indice from aq to ar
-
-	if k < len(ar)-k {
-		aq = ar[:k:k]
-		ar = ar[k:] // ar is the longer range
-	} else {
-		aq = ar[k:]
-		ar = ar[:k:k]
-	}
-
-	if len(aq) > MaxLenRec { // at least one not-long range?
-		slongF4(aq) // recurse on the shorter range
-		goto start
-	}
-
-	if len(aq) > MaxLenIns {
-		shortF4(aq)
-	} else {
-		if len(aq) > MaxLenIns/2 {
-			presortF4(aq) // pre-sort if big enough
-		}
-		insertionF4(aq)
-	}
-
-	if len(ar) > MaxLenRec { // two not-long ranges?
-		goto start
-	}
-	shortF4(ar) // we know len(ar) > MaxLenIns
-}
-
 // new-goroutine sort function
 func glongF4(ar []float32, sv *syncVar) {
 	longF4(ar, sv)
@@ -323,7 +287,7 @@ start:
 	}
 
 	// max goroutines? not atomic but good enough
-	if sv.ngr >= MaxGor {
+	if sv == nil || sv.ngr >= MaxGor {
 		longF4(aq, sv) // recurse on the shorter range
 		goto start
 	}
@@ -343,9 +307,8 @@ func sortF4(ar []float32) {
 
 	if len(ar) < 2*(MaxLenRec+1) || MaxGor <= 1 {
 
-		// single-goroutine sorting
-		if len(ar) > MaxLenRec {
-			slongF4(ar)
+		if len(ar) > MaxLenRec { // single-goroutine sorting
+			longF4(ar, nil)
 		} else if len(ar) > MaxLenIns {
 			shortF4(ar)
 		} else if len(ar) > 1 {

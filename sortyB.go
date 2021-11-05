@@ -242,42 +242,6 @@ start:
 	insertionB(ar)
 }
 
-// long range sort function (single goroutine), assumes len(ar) > MaxLenRec
-func slongB(ar [][]byte) {
-start:
-	aq, pv := pivotB(ar, 3) // median-of-6 pivot
-	k := partition1B(aq, pv)
-
-	k += 3 // convert k indice from aq to ar
-
-	if k < len(ar)-k {
-		aq = ar[:k:k]
-		ar = ar[k:] // ar is the longer range
-	} else {
-		aq = ar[k:]
-		ar = ar[:k:k]
-	}
-
-	if len(aq) > MaxLenRec { // at least one not-long range?
-		slongB(aq) // recurse on the shorter range
-		goto start
-	}
-
-	if len(aq) > MaxLenInsFC {
-		shortB(aq)
-	} else {
-		if len(aq) > MaxLenInsFC/2 {
-			presortB(aq) // pre-sort if big enough
-		}
-		insertionB(aq)
-	}
-
-	if len(ar) > MaxLenRec { // two not-long ranges?
-		goto start
-	}
-	shortB(ar) // we know len(ar) > MaxLenInsFC
-}
-
 // new-goroutine sort function
 func glongB(ar [][]byte, sv *syncVar) {
 	longB(ar, sv)
@@ -323,7 +287,7 @@ start:
 	}
 
 	// max goroutines? not atomic but good enough
-	if sv.ngr >= MaxGor {
+	if sv == nil || sv.ngr >= MaxGor {
 		longB(aq, sv) // recurse on the shorter range
 		goto start
 	}
@@ -343,9 +307,8 @@ func sortB(ar [][]byte) {
 
 	if len(ar) < 2*(MaxLenRec+1) || MaxGor <= 1 {
 
-		// single-goroutine sorting
-		if len(ar) > MaxLenRec {
-			slongB(ar)
+		if len(ar) > MaxLenRec { // single-goroutine sorting
+			longB(ar, nil)
 		} else if len(ar) > MaxLenInsFC {
 			shortB(ar)
 		} else if len(ar) > 1 {

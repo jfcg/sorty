@@ -242,42 +242,6 @@ start:
 	insertionI8(ar)
 }
 
-// long range sort function (single goroutine), assumes len(ar) > MaxLenRec
-func slongI8(ar []int64) {
-start:
-	aq, pv := pivotI8(ar, 3) // median-of-6 pivot
-	k := partition1I8(aq, pv)
-
-	k += 3 // convert k indice from aq to ar
-
-	if k < len(ar)-k {
-		aq = ar[:k:k]
-		ar = ar[k:] // ar is the longer range
-	} else {
-		aq = ar[k:]
-		ar = ar[:k:k]
-	}
-
-	if len(aq) > MaxLenRec { // at least one not-long range?
-		slongI8(aq) // recurse on the shorter range
-		goto start
-	}
-
-	if len(aq) > MaxLenIns {
-		shortI8(aq)
-	} else {
-		if len(aq) > MaxLenIns/2 {
-			presortI8(aq) // pre-sort if big enough
-		}
-		insertionI8(aq)
-	}
-
-	if len(ar) > MaxLenRec { // two not-long ranges?
-		goto start
-	}
-	shortI8(ar) // we know len(ar) > MaxLenIns
-}
-
 // new-goroutine sort function
 func glongI8(ar []int64, sv *syncVar) {
 	longI8(ar, sv)
@@ -323,7 +287,7 @@ start:
 	}
 
 	// max goroutines? not atomic but good enough
-	if sv.ngr >= MaxGor {
+	if sv == nil || sv.ngr >= MaxGor {
 		longI8(aq, sv) // recurse on the shorter range
 		goto start
 	}
@@ -343,9 +307,8 @@ func sortI8(ar []int64) {
 
 	if len(ar) < 2*(MaxLenRec+1) || MaxGor <= 1 {
 
-		// single-goroutine sorting
-		if len(ar) > MaxLenRec {
-			slongI8(ar)
+		if len(ar) > MaxLenRec { // single-goroutine sorting
+			longI8(ar, nil)
 		} else if len(ar) > MaxLenIns {
 			shortI8(ar)
 		} else if len(ar) > 1 {
