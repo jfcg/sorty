@@ -23,6 +23,21 @@ func isSortedLenS(ar []string) int {
 	return 0
 }
 
+// pre-sort, assumes len(ar) >= 2
+func presortLenS(ar []string) {
+	l, h := len(ar)>>1, len(ar)
+	for {
+		l--
+		h--
+		if len(ar[h]) < len(ar[l]) {
+			ar[h], ar[l] = ar[l], ar[h]
+		}
+		if l <= 0 {
+			break
+		}
+	}
+}
+
 // insertion sort, assumes len(ar) >= 2
 func insertionLenS(ar []string) {
 	h, hi := 0, len(ar)-1
@@ -60,7 +75,7 @@ func pivotLenS(ar []string, n int) ([]string, int) {
 		sample[i] = ar[k]
 		k -= s
 	}
-	insertionLenS(sample[:2*n]) // sort 2n samples
+	insertionLenS(sample[:d+1]) // sort 2n samples
 
 	i, lo, hi := 0, 0, len(ar)
 
@@ -125,7 +140,7 @@ func partition1LenS(ar []string, pv int) int {
 
 // rearrange ar[:a] and ar[b:] into <= and >= pivot, assumes 0 < a < b < len(ar)
 // gap (a,b) expands until one of the intervals is fully consumed
-func partition2LenS(ar []string, a, b, pv int) (int, int) {
+func partition2LenS(ar []string, a, b int, pv int) (int, int) {
 	a--
 	for {
 		if len(ar[b]) < pv { // avoid unnecessary comparisons
@@ -168,16 +183,16 @@ func gpart1LenS(ar []string, pv int, ch chan int) {
 // returns k with ar[:k] <= pivot, ar[k:] >= pivot
 func cdualparLenS(ar []string, ch chan int) int {
 
-	aq, pv := pivotLenS(ar, 4) // median-of-9
+	aq, pv := pivotLenS(ar, 4) // median-of-8 pivot
 	k := len(aq) >> 1
 	a, b := k>>1, sixb.MeanI(k, len(aq))
 
 	go gpart1LenS(aq[a:b:b], pv, ch) // mid half range
 
-	t := a
+	k = a
 	a, b = partition2LenS(aq, a, b, pv) // left/right quarter ranges
-	k = <-ch
-	k += t // convert k indice to aq
+
+	k += <-ch // convert returned indice to aq
 
 	// only one gap is possible
 	for ; 0 <= a; a-- { // gap left in low range?
@@ -198,8 +213,8 @@ func cdualparLenS(ar []string, ch chan int) int {
 // short range sort function, assumes MaxLenIns < len(ar) <= MaxLenRec
 func shortLenS(ar []string) {
 start:
-	aq, pv := pivotLenS(ar, 2)
-	k := partition1LenS(aq, pv) // median-of-5 partitioning
+	aq, pv := pivotLenS(ar, 2) // median-of-4 pivot
+	k := partition1LenS(aq, pv)
 
 	k += 2 // convert k indice from aq to ar
 
@@ -215,19 +230,23 @@ start:
 		shortLenS(aq) // recurse on the shorter range
 		goto start
 	}
+	if len(aq) > MaxLenIns/2 {
+		presortLenS(aq) // pre-sort if big enough
+	}
 	insertionLenS(aq) // at least one insertion range
 
 	if len(ar) > MaxLenIns {
 		goto start
 	}
-	insertionLenS(ar) // two insertion ranges
+	presortLenS(ar) // two insertion ranges
+	insertionLenS(ar)
 }
 
 // long range sort function (single goroutine), assumes len(ar) > MaxLenRec
 func slongLenS(ar []string) {
 start:
-	aq, pv := pivotLenS(ar, 3)
-	k := partition1LenS(aq, pv) // median-of-7 partitioning
+	aq, pv := pivotLenS(ar, 3) // median-of-6 pivot
+	k := partition1LenS(aq, pv)
 
 	k += 3 // convert k indice from aq to ar
 
@@ -247,6 +266,9 @@ start:
 	if len(aq) > MaxLenIns {
 		shortLenS(aq)
 	} else {
+		if len(aq) > MaxLenIns/2 {
+			presortLenS(aq) // pre-sort if big enough
+		}
 		insertionLenS(aq)
 	}
 
@@ -268,8 +290,8 @@ func glongLenS(ar []string, sv *syncVar) {
 // long range sort function, assumes len(ar) > MaxLenRec
 func longLenS(ar []string, sv *syncVar) {
 start:
-	aq, pv := pivotLenS(ar, 3)
-	k := partition1LenS(aq, pv) // median-of-7 partitioning
+	aq, pv := pivotLenS(ar, 3) // median-of-6 pivot
+	k := partition1LenS(aq, pv)
 
 	k += 3 // convert k indice from aq to ar
 
@@ -287,6 +309,9 @@ start:
 		if len(aq) > MaxLenIns {
 			shortLenS(aq)
 		} else {
+			if len(aq) > MaxLenIns/2 {
+				presortLenS(aq) // pre-sort if big enough
+			}
 			insertionLenS(aq)
 		}
 
@@ -324,6 +349,9 @@ func sortLenS(ar []string) {
 		} else if len(ar) > MaxLenIns {
 			shortLenS(ar)
 		} else if len(ar) > 1 {
+			if len(ar) > MaxLenIns/2 {
+				presortLenS(ar) // pre-sort if big enough
+			}
 			insertionLenS(ar)
 		}
 		return
@@ -333,7 +361,7 @@ func sortLenS(ar []string) {
 	sv := syncVar{1, // number of goroutines including this
 		make(chan int)} // end signal
 	for {
-		// median-of-9 concurrent dual partitioning with done
+		// concurrent dual partitioning with done
 		k := cdualparLenS(ar, sv.done)
 		var aq []string
 
@@ -355,6 +383,9 @@ func sortLenS(ar []string) {
 		} else if len(aq) > MaxLenIns {
 			shortLenS(aq)
 		} else {
+			if len(aq) > MaxLenIns/2 {
+				presortLenS(aq) // pre-sort if big enough
+			}
 			insertionLenS(aq)
 		}
 
