@@ -43,20 +43,10 @@ func IsSortedLen(ar interface{}) int {
 	}
 	if r > 0 {
 		s := *(*[]string)(unsafe.Pointer(&slc))
-		for i := len(s) - 1; i > 0; i-- {
-			if len(s[i]) < len(s[i-1]) {
-				return i
-			}
-		}
-		return 0
+		return isSortedLenS(s)
 	}
 	b := *(*[][]byte)(unsafe.Pointer(&slc))
-	for i := len(b) - 1; i > 0; i-- {
-		if len(b[i]) < len(b[i-1]) {
-			return i
-		}
-	}
-	return 0
+	return isSortedLenB(b)
 }
 
 // SortLen concurrently sorts ar 'by length' in ascending order. ar's (underlying)

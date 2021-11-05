@@ -12,6 +12,17 @@ import (
 	"github.com/jfcg/sixb"
 )
 
+// isSortedLenB returns 0 if ar is sorted by length in ascending
+// order, otherwise it returns i > 0 with len(ar[i]) < len(ar[i-1])
+func isSortedLenB(ar [][]byte) int {
+	for i := len(ar) - 1; i > 0; i-- {
+		if len(ar[i]) < len(ar[i-1]) {
+			return i
+		}
+	}
+	return 0
+}
+
 // insertion sort, assumes len(ar) >= 2
 func insertionLenB(ar [][]byte) {
 	h, hi := 0, len(ar)-1
