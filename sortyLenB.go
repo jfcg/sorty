@@ -1,4 +1,4 @@
-/*	Copyright (c) 2021, Serhat Şevki Dinçer.
+/*	Copyright (c) 2019-present, Serhat Şevki Dinçer.
 	This Source Code Form is subject to the terms of the Mozilla Public
 	License, v. 2.0. If a copy of the MPL was not distributed with this
 	file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -59,6 +59,14 @@ func insertionLenB(ar [][]byte) {
 			break
 		}
 	}
+}
+
+// pre+insertion sort, assumes len(ar) >= 2
+func pinsertLenB(ar [][]byte) {
+	if len(ar) > MaxLenIns/2 {
+		presortLenB(ar) // pre-sort if big enough
+	}
+	insertionLenB(ar)
 }
 
 // pivotLenB selects 2n equidistant samples from ar that minimizes max distance to any
@@ -230,16 +238,21 @@ start:
 		shortLenB(aq) // recurse on the shorter range
 		goto start
 	}
-	if len(aq) > MaxLenIns/2 {
-		presortLenB(aq) // pre-sort if big enough
+	if len(aq) <= MaxLenIns/2 {
+		goto insert
 	}
+presort:
+	presortLenB(aq) // pre-sort if big enough
+insert:
 	insertionLenB(aq) // at least one insertion range
 
 	if len(ar) > MaxLenIns {
 		goto start
 	}
-	presortLenB(ar) // two insertion ranges
-	insertionLenB(ar)
+	if &ar[0] != &aq[0] {
+		aq = ar
+		goto presort // two insertion ranges
+	}
 }
 
 // new-goroutine sort function
@@ -273,10 +286,7 @@ start:
 		if len(aq) > MaxLenIns {
 			shortLenB(aq)
 		} else {
-			if len(aq) > MaxLenIns/2 {
-				presortLenB(aq) // pre-sort if big enough
-			}
-			insertionLenB(aq)
+			pinsertLenB(aq)
 		}
 
 		if len(ar) > MaxLenRec { // two not-long ranges?
@@ -312,10 +322,7 @@ func sortLenB(ar [][]byte) {
 		} else if len(ar) > MaxLenIns {
 			shortLenB(ar)
 		} else if len(ar) > 1 {
-			if len(ar) > MaxLenIns/2 {
-				presortLenB(ar) // pre-sort if big enough
-			}
-			insertionLenB(ar)
+			pinsertLenB(ar)
 		}
 		return
 	}
@@ -346,10 +353,7 @@ func sortLenB(ar [][]byte) {
 		} else if len(aq) > MaxLenIns {
 			shortLenB(aq)
 		} else {
-			if len(aq) > MaxLenIns/2 {
-				presortLenB(aq) // pre-sort if big enough
-			}
-			insertionLenB(aq)
+			pinsertLenB(aq)
 		}
 
 		// longer range big enough? max goroutines?

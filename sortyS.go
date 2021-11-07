@@ -1,4 +1,4 @@
-/*	Copyright (c) 2019, Serhat Şevki Dinçer.
+/*	Copyright (c) 2019-present, Serhat Şevki Dinçer.
 	This Source Code Form is subject to the terms of the Mozilla Public
 	License, v. 2.0. If a copy of the MPL was not distributed with this
 	file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -12,8 +12,8 @@ import (
 	"github.com/jfcg/sixb"
 )
 
-// isSortedS returns 0 if ar is sorted in ascending order,
-// otherwise it returns i > 0 with ar[i] < ar[i-1]
+// isSortedS returns 0 if ar is sorted in ascending lexicographic
+// order, otherwise it returns i > 0 with ar[i] < ar[i-1]
 func isSortedS(ar []string) int {
 	for i := len(ar) - 1; i > 0; i-- {
 		if ar[i] < ar[i-1] {
@@ -59,6 +59,14 @@ func insertionS(ar []string) {
 			break
 		}
 	}
+}
+
+// pre+insertion sort, assumes len(ar) >= 2
+func pinsertS(ar []string) {
+	if len(ar) > MaxLenInsFC/2 {
+		presortS(ar) // pre-sort if big enough
+	}
+	insertionS(ar)
 }
 
 // pivotS selects 2n equidistant samples from ar that minimizes max distance to any
@@ -230,16 +238,21 @@ start:
 		shortS(aq) // recurse on the shorter range
 		goto start
 	}
-	if len(aq) > MaxLenInsFC/2 {
-		presortS(aq) // pre-sort if big enough
+	if len(aq) <= MaxLenInsFC/2 {
+		goto insert
 	}
+presort:
+	presortS(aq) // pre-sort if big enough
+insert:
 	insertionS(aq) // at least one insertion range
 
 	if len(ar) > MaxLenInsFC {
 		goto start
 	}
-	presortS(ar) // two insertion ranges
-	insertionS(ar)
+	if &ar[0] != &aq[0] {
+		aq = ar
+		goto presort // two insertion ranges
+	}
 }
 
 // new-goroutine sort function
@@ -273,10 +286,7 @@ start:
 		if len(aq) > MaxLenInsFC {
 			shortS(aq)
 		} else {
-			if len(aq) > MaxLenInsFC/2 {
-				presortS(aq) // pre-sort if big enough
-			}
-			insertionS(aq)
+			pinsertS(aq)
 		}
 
 		if len(ar) > MaxLenRec { // two not-long ranges?
@@ -302,7 +312,7 @@ start:
 	goto start
 }
 
-// sortS concurrently sorts ar in ascending order.
+// sortS concurrently sorts ar in ascending lexicographic order.
 func sortS(ar []string) {
 
 	if len(ar) < 2*(MaxLenRec+1) || MaxGor <= 1 {
@@ -312,10 +322,7 @@ func sortS(ar []string) {
 		} else if len(ar) > MaxLenInsFC {
 			shortS(ar)
 		} else if len(ar) > 1 {
-			if len(ar) > MaxLenInsFC/2 {
-				presortS(ar) // pre-sort if big enough
-			}
-			insertionS(ar)
+			pinsertS(ar)
 		}
 		return
 	}
@@ -346,10 +353,7 @@ func sortS(ar []string) {
 		} else if len(aq) > MaxLenInsFC {
 			shortS(aq)
 		} else {
-			if len(aq) > MaxLenInsFC/2 {
-				presortS(aq) // pre-sort if big enough
-			}
-			insertionS(aq)
+			pinsertS(aq)
 		}
 
 		// longer range big enough? max goroutines?

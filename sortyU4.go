@@ -1,4 +1,4 @@
-/*	Copyright (c) 2019, Serhat Şevki Dinçer.
+/*	Copyright (c) 2019-present, Serhat Şevki Dinçer.
 	This Source Code Form is subject to the terms of the Mozilla Public
 	License, v. 2.0. If a copy of the MPL was not distributed with this
 	file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -12,8 +12,8 @@ import (
 	"github.com/jfcg/sixb"
 )
 
-// isSortedU4 returns 0 if ar is sorted in ascending order,
-// otherwise it returns i > 0 with ar[i] < ar[i-1]
+// isSortedU4 returns 0 if ar is sorted in ascending
+// order, otherwise it returns i > 0 with ar[i] < ar[i-1]
 func isSortedU4(ar []uint32) int {
 	for i := len(ar) - 1; i > 0; i-- {
 		if ar[i] < ar[i-1] {
@@ -59,6 +59,14 @@ func insertionU4(ar []uint32) {
 			break
 		}
 	}
+}
+
+// pre+insertion sort, assumes len(ar) >= 2
+func pinsertU4(ar []uint32) {
+	if len(ar) > MaxLenIns/2 {
+		presortU4(ar) // pre-sort if big enough
+	}
+	insertionU4(ar)
 }
 
 // pivotU4 selects 2n equidistant samples from ar that minimizes max distance to any
@@ -230,16 +238,21 @@ start:
 		shortU4(aq) // recurse on the shorter range
 		goto start
 	}
-	if len(aq) > MaxLenIns/2 {
-		presortU4(aq) // pre-sort if big enough
+	if len(aq) <= MaxLenIns/2 {
+		goto insert
 	}
+presort:
+	presortU4(aq) // pre-sort if big enough
+insert:
 	insertionU4(aq) // at least one insertion range
 
 	if len(ar) > MaxLenIns {
 		goto start
 	}
-	presortU4(ar) // two insertion ranges
-	insertionU4(ar)
+	if &ar[0] != &aq[0] {
+		aq = ar
+		goto presort // two insertion ranges
+	}
 }
 
 // new-goroutine sort function
@@ -273,10 +286,7 @@ start:
 		if len(aq) > MaxLenIns {
 			shortU4(aq)
 		} else {
-			if len(aq) > MaxLenIns/2 {
-				presortU4(aq) // pre-sort if big enough
-			}
-			insertionU4(aq)
+			pinsertU4(aq)
 		}
 
 		if len(ar) > MaxLenRec { // two not-long ranges?
@@ -312,10 +322,7 @@ func sortU4(ar []uint32) {
 		} else if len(ar) > MaxLenIns {
 			shortU4(ar)
 		} else if len(ar) > 1 {
-			if len(ar) > MaxLenIns/2 {
-				presortU4(ar) // pre-sort if big enough
-			}
-			insertionU4(ar)
+			pinsertU4(ar)
 		}
 		return
 	}
@@ -346,10 +353,7 @@ func sortU4(ar []uint32) {
 		} else if len(aq) > MaxLenIns {
 			shortU4(aq)
 		} else {
-			if len(aq) > MaxLenIns/2 {
-				presortU4(aq) // pre-sort if big enough
-			}
-			insertionU4(aq)
+			pinsertU4(aq)
 		}
 
 		// longer range big enough? max goroutines?
