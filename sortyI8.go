@@ -23,25 +23,21 @@ func isSortedI8(ar []int64) int {
 	return 0
 }
 
-// pre-sort, assumes len(ar) >= 2
+// pre-sort
 func presortI8(ar []int64) {
-	l, h := len(ar)>>1, len(ar)
-	for {
-		l--
-		h--
+	l, h := 0, (MaxLenIns+1)/3
+	for h < len(ar) {
 		if ar[h] < ar[l] {
 			ar[h], ar[l] = ar[l], ar[h]
 		}
-		if l <= 0 {
-			break
-		}
+		l++
+		h++
 	}
 }
 
-// insertion sort, assumes len(ar) >= 2
+// insertion sort
 func insertionI8(ar []int64) {
-	h, hi := 0, len(ar)-1
-	for {
+	for h := 0; h < len(ar)-1; {
 		l := h
 		h++
 		v := ar[h]
@@ -55,17 +51,12 @@ func insertionI8(ar []int64) {
 			}
 			ar[l+1] = v
 		}
-		if h >= hi {
-			break
-		}
 	}
 }
 
-// pre+insertion sort, assumes len(ar) >= 2
+// pre+insertion sort
 func pinsertI8(ar []int64) {
-	if len(ar) > MaxLenIns/2 {
-		presortI8(ar) // pre-sort if big enough
-	}
+	presortI8(ar)
 	insertionI8(ar)
 }
 
@@ -86,7 +77,6 @@ func pivotI8(ar []int64, n int) ([]int64, int64) {
 	insertionI8(sample[:d+1]) // sort 2n samples
 
 	lo, hi := 0, len(ar)
-
 	for { // move sorted samples to lo/hi ends
 		hi--
 		ar[h] = ar[hi]
@@ -236,12 +226,8 @@ start:
 		shortI8(aq) // recurse on the shorter range
 		goto start
 	}
-	if len(aq) <= MaxLenIns/2 {
-		goto insert
-	}
-presort:
-	presortI8(aq) // pre-sort if big enough
-insert:
+psort:
+	presortI8(aq)
 	insertionI8(aq) // at least one insertion range
 
 	if len(ar) > MaxLenIns {
@@ -249,7 +235,7 @@ insert:
 	}
 	if &ar[0] != &aq[0] {
 		aq = ar
-		goto presort // two insertion ranges
+		goto psort // two insertion ranges
 	}
 }
 
@@ -319,7 +305,7 @@ func sortI8(ar []int64) {
 			longI8(ar, nil)
 		} else if len(ar) > MaxLenIns {
 			shortI8(ar)
-		} else if len(ar) > 1 {
+		} else {
 			pinsertI8(ar)
 		}
 		return

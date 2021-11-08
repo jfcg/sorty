@@ -23,25 +23,21 @@ func isSortedI4(ar []int32) int {
 	return 0
 }
 
-// pre-sort, assumes len(ar) >= 2
+// pre-sort
 func presortI4(ar []int32) {
-	l, h := len(ar)>>1, len(ar)
-	for {
-		l--
-		h--
+	l, h := 0, (MaxLenIns+1)/3
+	for h < len(ar) {
 		if ar[h] < ar[l] {
 			ar[h], ar[l] = ar[l], ar[h]
 		}
-		if l <= 0 {
-			break
-		}
+		l++
+		h++
 	}
 }
 
-// insertion sort, assumes len(ar) >= 2
+// insertion sort
 func insertionI4(ar []int32) {
-	h, hi := 0, len(ar)-1
-	for {
+	for h := 0; h < len(ar)-1; {
 		l := h
 		h++
 		v := ar[h]
@@ -55,17 +51,12 @@ func insertionI4(ar []int32) {
 			}
 			ar[l+1] = v
 		}
-		if h >= hi {
-			break
-		}
 	}
 }
 
-// pre+insertion sort, assumes len(ar) >= 2
+// pre+insertion sort
 func pinsertI4(ar []int32) {
-	if len(ar) > MaxLenIns/2 {
-		presortI4(ar) // pre-sort if big enough
-	}
+	presortI4(ar)
 	insertionI4(ar)
 }
 
@@ -86,7 +77,6 @@ func pivotI4(ar []int32, n int) ([]int32, int32) {
 	insertionI4(sample[:d+1]) // sort 2n samples
 
 	lo, hi := 0, len(ar)
-
 	for { // move sorted samples to lo/hi ends
 		hi--
 		ar[h] = ar[hi]
@@ -236,12 +226,8 @@ start:
 		shortI4(aq) // recurse on the shorter range
 		goto start
 	}
-	if len(aq) <= MaxLenIns/2 {
-		goto insert
-	}
-presort:
-	presortI4(aq) // pre-sort if big enough
-insert:
+psort:
+	presortI4(aq)
 	insertionI4(aq) // at least one insertion range
 
 	if len(ar) > MaxLenIns {
@@ -249,7 +235,7 @@ insert:
 	}
 	if &ar[0] != &aq[0] {
 		aq = ar
-		goto presort // two insertion ranges
+		goto psort // two insertion ranges
 	}
 }
 
@@ -319,7 +305,7 @@ func sortI4(ar []int32) {
 			longI4(ar, nil)
 		} else if len(ar) > MaxLenIns {
 			shortI4(ar)
-		} else if len(ar) > 1 {
+		} else {
 			pinsertI4(ar)
 		}
 		return

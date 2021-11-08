@@ -23,25 +23,21 @@ func isSortedF8(ar []float64) int {
 	return 0
 }
 
-// pre-sort, assumes len(ar) >= 2
+// pre-sort
 func presortF8(ar []float64) {
-	l, h := len(ar)>>1, len(ar)
-	for {
-		l--
-		h--
+	l, h := 0, (MaxLenIns+1)/3
+	for h < len(ar) {
 		if ar[h] < ar[l] {
 			ar[h], ar[l] = ar[l], ar[h]
 		}
-		if l <= 0 {
-			break
-		}
+		l++
+		h++
 	}
 }
 
-// insertion sort, assumes len(ar) >= 2
+// insertion sort
 func insertionF8(ar []float64) {
-	h, hi := 0, len(ar)-1
-	for {
+	for h := 0; h < len(ar)-1; {
 		l := h
 		h++
 		v := ar[h]
@@ -55,17 +51,12 @@ func insertionF8(ar []float64) {
 			}
 			ar[l+1] = v
 		}
-		if h >= hi {
-			break
-		}
 	}
 }
 
-// pre+insertion sort, assumes len(ar) >= 2
+// pre+insertion sort
 func pinsertF8(ar []float64) {
-	if len(ar) > MaxLenIns/2 {
-		presortF8(ar) // pre-sort if big enough
-	}
+	presortF8(ar)
 	insertionF8(ar)
 }
 
@@ -86,7 +77,6 @@ func pivotF8(ar []float64, n int) ([]float64, float64) {
 	insertionF8(sample[:d+1]) // sort 2n samples
 
 	lo, hi := 0, len(ar)
-
 	for { // move sorted samples to lo/hi ends
 		hi--
 		ar[h] = ar[hi]
@@ -236,12 +226,8 @@ start:
 		shortF8(aq) // recurse on the shorter range
 		goto start
 	}
-	if len(aq) <= MaxLenIns/2 {
-		goto insert
-	}
-presort:
-	presortF8(aq) // pre-sort if big enough
-insert:
+psort:
+	presortF8(aq)
 	insertionF8(aq) // at least one insertion range
 
 	if len(ar) > MaxLenIns {
@@ -249,7 +235,7 @@ insert:
 	}
 	if &ar[0] != &aq[0] {
 		aq = ar
-		goto presort // two insertion ranges
+		goto psort // two insertion ranges
 	}
 }
 
@@ -319,7 +305,7 @@ func sortF8(ar []float64) {
 			longF8(ar, nil)
 		} else if len(ar) > MaxLenIns {
 			shortF8(ar)
-		} else if len(ar) > 1 {
+		} else {
 			pinsertF8(ar)
 		}
 		return

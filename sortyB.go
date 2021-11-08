@@ -23,25 +23,21 @@ func isSortedB(ar [][]byte) int {
 	return 0
 }
 
-// pre-sort, assumes len(ar) >= 2
+// pre-sort
 func presortB(ar [][]byte) {
-	l, h := len(ar)>>1, len(ar)
-	for {
-		l--
-		h--
+	l, h := 0, (MaxLenInsFC+1)/3
+	for h < len(ar) {
 		if string(ar[h]) < string(ar[l]) {
 			ar[h], ar[l] = ar[l], ar[h]
 		}
-		if l <= 0 {
-			break
-		}
+		l++
+		h++
 	}
 }
 
-// insertion sort, assumes len(ar) >= 2
+// insertion sort
 func insertionB(ar [][]byte) {
-	h, hi := 0, len(ar)-1
-	for {
+	for h := 0; h < len(ar)-1; {
 		l := h
 		h++
 		v := ar[h]
@@ -55,17 +51,12 @@ func insertionB(ar [][]byte) {
 			}
 			ar[l+1] = v
 		}
-		if h >= hi {
-			break
-		}
 	}
 }
 
-// pre+insertion sort, assumes len(ar) >= 2
+// pre+insertion sort
 func pinsertB(ar [][]byte) {
-	if len(ar) > MaxLenInsFC/2 {
-		presortB(ar) // pre-sort if big enough
-	}
+	presortB(ar)
 	insertionB(ar)
 }
 
@@ -86,7 +77,6 @@ func pivotB(ar [][]byte, n int) ([][]byte, string) {
 	insertionB(sample[:d+1]) // sort 2n samples
 
 	lo, hi := 0, len(ar)
-
 	for { // move sorted samples to lo/hi ends
 		hi--
 		ar[h] = ar[hi]
@@ -236,12 +226,8 @@ start:
 		shortB(aq) // recurse on the shorter range
 		goto start
 	}
-	if len(aq) <= MaxLenInsFC/2 {
-		goto insert
-	}
-presort:
-	presortB(aq) // pre-sort if big enough
-insert:
+psort:
+	presortB(aq)
 	insertionB(aq) // at least one insertion range
 
 	if len(ar) > MaxLenInsFC {
@@ -249,7 +235,7 @@ insert:
 	}
 	if &ar[0] != &aq[0] {
 		aq = ar
-		goto presort // two insertion ranges
+		goto psort // two insertion ranges
 	}
 }
 
@@ -319,7 +305,7 @@ func sortB(ar [][]byte) {
 			longB(ar, nil)
 		} else if len(ar) > MaxLenInsFC {
 			shortB(ar)
-		} else if len(ar) > 1 {
+		} else {
 			pinsertB(ar)
 		}
 		return
