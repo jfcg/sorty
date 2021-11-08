@@ -85,21 +85,19 @@ func pivotF4(ar []float32, n int) ([]float32, float32) {
 	}
 	insertionF4(sample[:d+1]) // sort 2n samples
 
-	i, lo, hi := 0, 0, len(ar)
+	lo, hi := 0, len(ar)
 
-	// move sorted samples to lo/hi ends
-	for {
+	for { // move sorted samples to lo/hi ends
 		hi--
 		ar[h] = ar[hi]
 		ar[hi] = sample[d]
 		ar[l] = ar[lo]
-		ar[lo] = sample[i]
-		i++
-		d--
+		ar[lo] = sample[lo]
 		l += s
 		h -= s
 		lo++
-		if d < i {
+		d--
+		if d < lo {
 			break
 		}
 	}
