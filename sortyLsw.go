@@ -58,21 +58,23 @@ func insertion(lsw Lesswap, l, h int) {
 	}
 }
 
-// pivot divides ar[lo..hi] into 2n+1 equal intervals, sorts mid-points of them
-// to find median-of-2n+1 pivot. ensures lo/hi ranges have at least n elements by
-// moving 2n of mid-points to n positions at lo/hi ends.
+// pivot selects 2n+1 equidistant samples from ar[lo..hi] that minimizes max distance to
+// any non-selected member, calculates median-of-2n+1 pivot from samples. ensures lo/hi
+// ranges have at least n elements by moving sorted samples to n positions at lo/hi ends.
 // assumes n > 0, lo+4n+1 < hi. returns start,pivot,end for partitioning.
 func pivot(lsw Lesswap, lo, hi, n int) (int, int, int) {
+
 	m := sixb.MeanI(lo, hi)
 	s := (hi - lo + 1) / (2*n + 1) // step > 1
 	l, h := m-n*s, m+n*s
-
-	for q, k := h, m-2*s; k >= l; { // insertion sort ar[m+i*s], i=-n..n
-		lsw(q, k, q, k)
-		q -= s
-		k -= s
+	if l-lo >= n && hi-h > (s+1)>>1 {
+		s++
+		l -= n
+		h += n
 	}
-	for r := l; ; {
+
+	lsw(h, l, h, l)
+	for r := l; ; { // insertion sort ar[m+i*s], i=-n..n
 		k := r
 		r += s
 		q := r
