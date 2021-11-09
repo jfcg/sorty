@@ -33,26 +33,26 @@ func IsSorted(n int, lsw Lesswap) int {
 	return 0
 }
 
-// insertion sort ar[lo..hi], assumes lo < hi
-func insertion(lsw Lesswap, lo, hi int) {
+// insertion sort ar[l..h], assumes l < h
+func insertion(lsw Lesswap, l, h int) {
 
-	for l, h := sixb.MeanI(lo, hi-3), hi; l >= lo; {
-		lsw(h, l, h, l)
-		l--
-		h--
+	for i, k := l, l+(MaxLenInsFC+1)/3; k <= h; { // pre-sort
+		lsw(k, i, k, i)
+		i++
+		k++
 	}
-	for h := lo; ; {
-		l := h
-		h++
-		k := h
-		for lsw(k, l, k, l) {
-			k = l
-			l--
-			if l < lo {
+	for k := l; ; { // insertion
+		i := k
+		k++
+		q := k
+		for lsw(q, i, q, i) {
+			q--
+			i--
+			if i < l {
 				break
 			}
 		}
-		if h >= hi {
+		if k >= h {
 			break
 		}
 	}
@@ -77,7 +77,7 @@ func pivot(lsw Lesswap, lo, hi, n int) (int, int, int) {
 		r += s
 		q := r
 		for lsw(q, k, q, k) {
-			q = k
+			q -= s
 			k -= s
 			if k < l {
 				break
@@ -145,7 +145,7 @@ func partition1(lsw Lesswap, l, pv, h int) int {
 		}
 	}
 	// classify mid element
-	if l == h && (h == pv || lsw(h, pv, h, h)) { // 3rd=4th disables swap
+	if l == h && h != pv && lsw(h, pv, h, h) { // 3rd=4th disables swap
 		l++
 	}
 	return l
@@ -194,7 +194,7 @@ func gpart1(lsw Lesswap, l, pv, h int, ch chan int) {
 // returns m with ar[:m] <= pivot, ar[m:] >= pivot
 func cdualpar(lsw Lesswap, lo, hi int, ch chan int) int {
 
-	lo, pv, hi := pivot(lsw, lo, hi, 4) // median-of-9
+	lo, pv, hi := pivot(lsw, lo, hi, 4) // median-of-9 pivot
 
 	if hi-lo <= 2*MaxLenRec { // guard against short remaining range
 		return partition1(lsw, lo, pv, hi)
@@ -231,8 +231,8 @@ func cdualpar(lsw Lesswap, lo, hi int, ch chan int) int {
 // short range sort function, assumes MaxLenInsFC <= hi-lo < MaxLenRec
 func short(lsw Lesswap, lo, hi int) {
 start:
-	l, pv, h := pivot(lsw, lo, hi, 2)
-	l = partition1(lsw, l, pv, h) // median-of-5 partitioning
+	l, pv, h := pivot(lsw, lo, hi, 2) // median-of-5 pivot
+	l = partition1(lsw, l, pv, h)
 	h = l - 1
 	no, n := h-lo, hi-l
 
@@ -247,12 +247,36 @@ start:
 		short(lsw, l, h) // recurse on the shorter range
 		goto start
 	}
-	insertion(lsw, l, h) // at least one insertion range
+	// at least one insertion range, presort+insertion inlined
+psort:
+	for i, k := l, l+(MaxLenInsFC+1)/3; k <= h; { // pre-sort
+		lsw(k, i, k, i)
+		i++
+		k++
+	}
+	for k := l; ; { // insertion
+		i := k
+		k++
+		q := k
+		for lsw(q, i, q, i) {
+			q--
+			i--
+			if i < l {
+				break
+			}
+		}
+		if k >= h {
+			break
+		}
+	}
 
 	if no >= MaxLenInsFC {
 		goto start
 	}
-	insertion(lsw, lo, hi) // two insertion ranges
+	if lo != l {
+		l, h = lo, hi
+		goto psort // two insertion ranges
+	}
 }
 
 // new-goroutine sort function
@@ -267,8 +291,8 @@ func glong(lsw Lesswap, lo, hi int, sv *syncVar) {
 // long range sort function, assumes hi-lo >= MaxLenRec
 func long(lsw Lesswap, lo, hi int, sv *syncVar) {
 start:
-	l, pv, h := pivot(lsw, lo, hi, 3)
-	l = partition1(lsw, l, pv, h) // median-of-7 partitioning
+	l, pv, h := pivot(lsw, lo, hi, 3) // median-of-7 pivot
+	l = partition1(lsw, l, pv, h)
 	h = l - 1
 	no, n := h-lo, hi-l
 
@@ -348,7 +372,7 @@ func Sort(n int, lsw Lesswap) {
 		make(chan int)} // end signal
 	lo, hi := 0, n
 	for {
-		// median-of-9 concurrent dual partitioning with done
+		// concurrent dual partitioning with done
 		l := cdualpar(lsw, lo, hi, sv.done)
 		h := l - 1
 		no, n := h-lo, hi-l
