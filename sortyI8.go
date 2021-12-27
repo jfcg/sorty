@@ -281,7 +281,7 @@ start:
 	}
 
 	// max goroutines? not atomic but good enough
-	if sv == nil || sv.ngr >= MaxGor {
+	if sv == nil || gorFull(sv) {
 		longI8(aq, sv) // recurse on the shorter range
 		goto start
 	}
@@ -341,7 +341,7 @@ func sortI8(ar []int64) {
 		}
 
 		// longer range big enough? max goroutines?
-		if len(ar) < 2*(MaxLenRec+1) || sv.ngr >= MaxGor {
+		if len(ar) < 2*(MaxLenRec+1) || gorFull(&sv) {
 			break
 		}
 		// dual partition longer range

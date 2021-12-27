@@ -51,6 +51,12 @@ type syncVar struct {
 	done chan int // end signal
 }
 
+// gorFull returns true if goroutine quota is full
+//go:norace
+func gorFull(sv *syncVar) bool {
+	return sv.ngr >= MaxGor
+}
+
 // given slice length > 4n and n > 0, select equidistant 2n
 // samples that minimizes max distance to non-selected members.
 func minmaxSample(slen, n int) (d, s, h, l int) {

@@ -322,7 +322,7 @@ start:
 	}
 
 	// max goroutines? not atomic but good enough
-	if sv == nil || sv.ngr >= MaxGor {
+	if sv == nil || gorFull(sv) {
 		long(lsw, l, h, sv) // recurse on the shorter range
 		goto start
 	}
@@ -400,7 +400,7 @@ func Sort(n int, lsw Lesswap) {
 		}
 
 		// longer range big enough? max goroutines?
-		if no <= 2*MaxLenRec || sv.ngr >= MaxGor {
+		if no <= 2*MaxLenRec || gorFull(&sv) {
 			break
 		}
 		// dual partition longer range
