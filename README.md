@@ -1,10 +1,11 @@
 ## sorty [![go report card](https://goreportcard.com/badge/github.com/jfcg/sorty)](https://goreportcard.com/report/github.com/jfcg/sorty) [![go.dev ref](https://raw.githubusercontent.com/jfcg/.github/main/godev.svg)](https://pkg.go.dev/github.com/jfcg/sorty/v2)
 
-sorty is a type-specific, fast, efficient, concurrent / parallel
-[QuickSort](https://en.wikipedia.org/wiki/Quicksort) implementation (with an enhanced
-[InsertionSort](https://en.wikipedia.org/wiki/Insertion_sort) as subroutine).
-It is in-place and does not require extra memory. You can call:
+sorty is a type-specific, fast, efficient, concurrent / parallel sorting
+library. It is an innovative [QuickSort](https://en.wikipedia.org/wiki/Quicksort)
+implementation, hence in-place and does not require extra memory. You can call:
 ```
+import "github.com/jfcg/sorty/v2"
+
 sorty.SortSlice(native_slice) // []int, []float64, []string etc. in ascending order
 sorty.SortLen(len_slice)      // []string or [][]T 'by length' in ascending order
 sorty.Sort(n, lesswap)        // lesswap() based
@@ -12,6 +13,7 @@ sorty.Sort(n, lesswap)        // lesswap() based
 If you have a pair of `Less()` and `Swap()`, then you can trivially write your
 [`lesswap()`](https://pkg.go.dev/github.com/jfcg/sorty/v2#Sort) and sort your generic
 collections using multiple CPU cores quickly.
+
 sorty natively [sorts](https://pkg.go.dev/github.com/jfcg/sorty/v2#SortSlice) any type equivalent to
 ```
 []int, []int32, []int64, []uint, []uint32, []uint64,
@@ -139,4 +141,6 @@ Remember to build sorty (and your functions like [`SortObjAsc()`](https://pkg.go
 with the same optimization flags you used for tuning. `-B` flag is especially helpful.
 
 ### Support
-If you use sorty and like it, please support via ETH:`0x464B840ee70bBe7962b90bD727Aac172Fa8B9C15`
+If you use sorty and like it, please support via:
+- BTC:`bc1qr8m7n0w3xes6ckmau02s47a23e84umujej822e`
+- ETH:`0x3a844321042D8f7c5BB2f7AB17e20273CA6277f6`

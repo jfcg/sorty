@@ -4,8 +4,11 @@
 	file, You can obtain one at http://mozilla.org/MPL/2.0/.
 */
 
-// Package sorty is a type-specific, fast, efficient, concurrent / parallel QuickSort
-// implementation. It is in-place and does not require extra memory. You can call:
+// Package sorty is a type-specific, fast, efficient, concurrent / parallel sorting
+// library. It is an innovative QuickSort implementation, hence in-place and does not
+// require extra memory. You can call:
+//  import "github.com/jfcg/sorty/v2"
+//
 //  sorty.SortSlice(native_slice) // []int, []float64, []string etc. in ascending order
 //  sorty.SortLen(len_slice)      // []string or [][]T 'by length' in ascending order
 //  sorty.Sort(n, lesswap)        // lesswap() based
