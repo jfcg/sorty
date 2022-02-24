@@ -1,9 +1,9 @@
-## sorty [![go report card](https://goreportcard.com/badge/github.com/jfcg/sorty)](https://goreportcard.com/report/github.com/jfcg/sorty) [![go.dev ref](https://raw.githubusercontent.com/jfcg/.github/main/godev.svg)](https://pkg.go.dev/github.com/jfcg/sorty/v2)
+## sorty [![go report card](https://goreportcard.com/badge/github.com/jfcg/sorty/v2)](https://goreportcard.com/report/github.com/jfcg/sorty/v2) [![go.dev ref](https://raw.githubusercontent.com/jfcg/.github/main/godev.svg)](https://pkg.go.dev/github.com/jfcg/sorty/v2#pkg-overview)
 
 sorty is a type-specific, fast, efficient, concurrent / parallel sorting
 library. It is an innovative [QuickSort](https://en.wikipedia.org/wiki/Quicksort)
 implementation, hence in-place and does not require extra memory. You can call:
-```
+```go
 import "github.com/jfcg/sorty/v2"
 
 sorty.SortSlice(native_slice) // []int, []float64, []string etc. in ascending order
@@ -15,7 +15,7 @@ If you have a pair of `Less()` and `Swap()`, then you can trivially write your
 collections using multiple CPU cores quickly.
 
 sorty natively [sorts](https://pkg.go.dev/github.com/jfcg/sorty/v2#SortSlice) any type equivalent to
-```
+```go
 []int, []int32, []int64, []uint, []uint32, []uint64,
 []uintptr, []float32, []float64, []string, [][]byte
 ```
@@ -35,7 +35,9 @@ tuned to get the best performance, see below.
 - sorty API adheres to [semantic](https://semver.org) versioning.
 
 ### Benchmarks
-Comparing against [sort.Slice](https://golang.org/pkg/sort), [sortutil](https://github.com/twotwotwo/sorts),
+<details><summary>Show benchmarks</summary>
+
+Comparing against [sort.Slice](https://pkg.go.dev/sort#Slice), [sortutil](https://github.com/twotwotwo/sorts),
 [zermelo](https://github.com/shawnsmithdev/zermelo) and [radix](https://github.com/yourbasic/radix) with Go
 version `1.17.3` on:
 
@@ -122,20 +124,21 @@ sort.Slice| 2.98| 4.08| 3.56
    sorty-2| 0.60| 0.72| 0.60
    sorty-3| 0.42| 0.58| 0.52
    sorty-4| 0.39| 0.54| 0.47
+</details>
 
 ### Testing & Parameter Tuning
 First, make sure everything is fine:
-```
+```sh
 go test -timeout 1h
 ```
 You can tune `MaxLen*` for your platform/CPU with (optimization flags):
-```
-go test -timeout 4h -gcflags '-dwarf=0 -B -wb=0' -ldflags '-s -w' -tags tuneparam
+```sh
+go test -timeout 4h -gcflags '-dwarf=0 -B' -ldflags '-s -w' -tags tuneparam
 ```
 Now update `MaxLen*` in `maxc.go`, uncomment imports & respective `mfc*()`
 calls in `tmain_test.go` and compare your tuned sorty with other libraries:
-```
-go test -timeout 1h -gcflags '-dwarf=0 -B -wb=0' -ldflags '-s -w'
+```sh
+go test -timeout 1h -gcflags '-dwarf=0 -B' -ldflags '-s -w'
 ```
 Remember to build sorty (and your functions like [`SortObjAsc()`](https://pkg.go.dev/github.com/jfcg/sorty/v2#Sort))
 with the same optimization flags you used for tuning. `-B` flag is especially helpful.
