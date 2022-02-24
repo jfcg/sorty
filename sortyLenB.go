@@ -98,7 +98,7 @@ func pivotLenB(ar [][]byte, n int) ([][]byte, int) {
 // returns k with ar[:k] <= pivot, ar[k:] >= pivot
 func partition1LenB(ar [][]byte, pv int) int {
 	l, h := 0, len(ar)-1
-	for {
+	for l < h {
 		if len(ar[h]) < pv { // avoid unnecessary comparisons
 			for {
 				if pv < len(ar[l]) {
@@ -124,9 +124,6 @@ func partition1LenB(ar [][]byte, pv int) int {
 		}
 		l++
 		h--
-		if l >= h {
-			break
-		}
 	}
 	if l == h && len(ar[h]) < pv { // classify mid element
 		l++
@@ -138,7 +135,7 @@ func partition1LenB(ar [][]byte, pv int) int {
 // gap (a,b) expands until one of the intervals is fully consumed
 func partition2LenB(ar [][]byte, a, b int, pv int) (int, int) {
 	a--
-	for {
+	for a >= 0 && b < len(ar) {
 		if len(ar[b]) < pv { // avoid unnecessary comparisons
 			for {
 				if pv < len(ar[a]) {
@@ -164,10 +161,8 @@ func partition2LenB(ar [][]byte, a, b int, pv int) (int, int) {
 		}
 		a--
 		b++
-		if a < 0 || b >= len(ar) {
-			return a, b
-		}
 	}
+	return a, b
 }
 
 // new-goroutine partition

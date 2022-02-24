@@ -98,7 +98,7 @@ func pivotU4(ar []uint32, n int) ([]uint32, uint32) {
 // returns k with ar[:k] <= pivot, ar[k:] >= pivot
 func partition1U4(ar []uint32, pv uint32) int {
 	l, h := 0, len(ar)-1
-	for {
+	for l < h {
 		if ar[h] < pv { // avoid unnecessary comparisons
 			for {
 				if pv < ar[l] {
@@ -124,9 +124,6 @@ func partition1U4(ar []uint32, pv uint32) int {
 		}
 		l++
 		h--
-		if l >= h {
-			break
-		}
 	}
 	if l == h && ar[h] < pv { // classify mid element
 		l++
@@ -138,7 +135,7 @@ func partition1U4(ar []uint32, pv uint32) int {
 // gap (a,b) expands until one of the intervals is fully consumed
 func partition2U4(ar []uint32, a, b int, pv uint32) (int, int) {
 	a--
-	for {
+	for a >= 0 && b < len(ar) {
 		if ar[b] < pv { // avoid unnecessary comparisons
 			for {
 				if pv < ar[a] {
@@ -164,10 +161,8 @@ func partition2U4(ar []uint32, a, b int, pv uint32) (int, int) {
 		}
 		a--
 		b++
-		if a < 0 || b >= len(ar) {
-			return a, b
-		}
 	}
+	return a, b
 }
 
 // new-goroutine partition

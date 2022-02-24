@@ -98,7 +98,7 @@ func pivotS(ar []string, n int) ([]string, string) {
 // returns k with ar[:k] <= pivot, ar[k:] >= pivot
 func partition1S(ar []string, pv string) int {
 	l, h := 0, len(ar)-1
-	for {
+	for l < h {
 		if ar[h] < pv { // avoid unnecessary comparisons
 			for {
 				if pv < ar[l] {
@@ -124,9 +124,6 @@ func partition1S(ar []string, pv string) int {
 		}
 		l++
 		h--
-		if l >= h {
-			break
-		}
 	}
 	if l == h && ar[h] < pv { // classify mid element
 		l++
@@ -138,7 +135,7 @@ func partition1S(ar []string, pv string) int {
 // gap (a,b) expands until one of the intervals is fully consumed
 func partition2S(ar []string, a, b int, pv string) (int, int) {
 	a--
-	for {
+	for a >= 0 && b < len(ar) {
 		if ar[b] < pv { // avoid unnecessary comparisons
 			for {
 				if pv < ar[a] {
@@ -164,10 +161,8 @@ func partition2S(ar []string, a, b int, pv string) (int, int) {
 		}
 		a--
 		b++
-		if a < 0 || b >= len(ar) {
-			return a, b
-		}
 	}
+	return a, b
 }
 
 // new-goroutine partition
