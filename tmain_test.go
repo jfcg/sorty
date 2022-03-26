@@ -11,6 +11,7 @@ package sorty
 
 import (
 	"fmt"
+	"os"
 	"sort"
 	"testing"
 	"time"
@@ -104,6 +105,30 @@ func TestString(t *testing.T) {
 		sort.Slice(al, func(i, k int) bool { return sixb.BtoS(al[i]) < sixb.BtoS(al[k]) })
 	}, bufbu, nil)
 	sumtB(bufau, bufbu) // sorty
+}
+
+func BenchmarkSortB(b *testing.B) {
+	env, arg := os.Environ(), os.Args
+	slc := make([][]byte, 16*(len(arg)+len(env)))
+
+	b.ResetTimer()
+	for q := 0; q < b.N; q++ {
+		// fill slc
+		for i, r := 16, 0; i > 0; i-- {
+			for k := len(arg) - 1; k >= 0; k-- {
+				slc[r] = sixb.StoB(arg[k])
+				r++
+			}
+			for k := len(env) - 1; k >= 0; k-- {
+				slc[r] = sixb.StoB(env[k])
+				r++
+			}
+		}
+		sortB(slc)
+		if isSortedB(slc) != 0 {
+			b.Fatal("sortB error")
+		}
+	}
 }
 
 // test & time sorting string/[]byte slices 'by length'

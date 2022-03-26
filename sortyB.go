@@ -13,10 +13,10 @@ import (
 )
 
 // isSortedB returns 0 if ar is sorted in ascending lexicographic
-// order, otherwise it returns i > 0 with string(ar[i]) < string(ar[i-1])
+// order, otherwise it returns i > 0 with sixb.BtoS(ar[i]) < sixb.BtoS(ar[i-1])
 func isSortedB(ar [][]byte) int {
 	for i := len(ar) - 1; i > 0; i-- {
-		if string(ar[i]) < string(ar[i-1]) {
+		if sixb.BtoS(ar[i]) < sixb.BtoS(ar[i-1]) {
 			return i
 		}
 	}
@@ -27,7 +27,7 @@ func isSortedB(ar [][]byte) int {
 func presortB(ar [][]byte) {
 	l, h := 0, (MaxLenInsFC+1)/3
 	for h < len(ar) {
-		if string(ar[h]) < string(ar[l]) {
+		if sixb.BtoS(ar[h]) < sixb.BtoS(ar[l]) {
 			ar[h], ar[l] = ar[l], ar[h]
 		}
 		l++
@@ -41,11 +41,11 @@ func insertionB(ar [][]byte) {
 		l := h
 		h++
 		v := ar[h]
-		if string(v) < string(ar[l]) {
+		if sixb.BtoS(v) < sixb.BtoS(ar[l]) {
 			for {
 				ar[l+1] = ar[l]
 				l--
-				if l < 0 || string(v) >= string(ar[l]) {
+				if l < 0 || sixb.BtoS(v) >= sixb.BtoS(ar[l]) {
 					break
 				}
 			}
@@ -91,7 +91,7 @@ func pivotB(ar [][]byte, n int) ([][]byte, string) {
 			break
 		}
 	}
-	return ar[lo:hi:hi], sixb.MeanS(string(sample[n-1]), string(sample[n]))
+	return ar[lo:hi:hi], sixb.MeanS(sixb.BtoS(sample[n-1]), sixb.BtoS(sample[n]))
 }
 
 // partition ar into <= and >= pivot, assumes len(ar) >= 2
@@ -99,9 +99,9 @@ func pivotB(ar [][]byte, n int) ([][]byte, string) {
 func partition1B(ar [][]byte, pv string) int {
 	l, h := 0, len(ar)-1
 	for l < h {
-		if string(ar[h]) < pv { // avoid unnecessary comparisons
+		if sixb.BtoS(ar[h]) < pv { // avoid unnecessary comparisons
 			for {
-				if pv < string(ar[l]) {
+				if pv < sixb.BtoS(ar[l]) {
 					ar[l], ar[h] = ar[h], ar[l]
 					break
 				}
@@ -110,13 +110,13 @@ func partition1B(ar [][]byte, pv string) int {
 					return l + 1
 				}
 			}
-		} else if pv < string(ar[l]) { // extend ranges in balance
+		} else if pv < sixb.BtoS(ar[l]) { // extend ranges in balance
 			for {
 				h--
 				if l >= h {
 					return l
 				}
-				if string(ar[h]) < pv {
+				if sixb.BtoS(ar[h]) < pv {
 					ar[l], ar[h] = ar[h], ar[l]
 					break
 				}
@@ -125,7 +125,7 @@ func partition1B(ar [][]byte, pv string) int {
 		l++
 		h--
 	}
-	if l == h && string(ar[h]) < pv { // classify mid element
+	if l == h && sixb.BtoS(ar[h]) < pv { // classify mid element
 		l++
 	}
 	return l
@@ -136,9 +136,9 @@ func partition1B(ar [][]byte, pv string) int {
 func partition2B(ar [][]byte, a, b int, pv string) (int, int) {
 	a--
 	for a >= 0 && b < len(ar) {
-		if string(ar[b]) < pv { // avoid unnecessary comparisons
+		if sixb.BtoS(ar[b]) < pv { // avoid unnecessary comparisons
 			for {
-				if pv < string(ar[a]) {
+				if pv < sixb.BtoS(ar[a]) {
 					ar[a], ar[b] = ar[b], ar[a]
 					break
 				}
@@ -147,13 +147,13 @@ func partition2B(ar [][]byte, a, b int, pv string) (int, int) {
 					return a, b
 				}
 			}
-		} else if pv < string(ar[a]) { // extend ranges in balance
+		} else if pv < sixb.BtoS(ar[a]) { // extend ranges in balance
 			for {
 				b++
 				if b >= len(ar) {
 					return a, b
 				}
-				if string(ar[b]) < pv {
+				if sixb.BtoS(ar[b]) < pv {
 					ar[a], ar[b] = ar[b], ar[a]
 					break
 				}
@@ -187,13 +187,13 @@ func cdualparB(ar [][]byte, ch chan int) int {
 
 	// only one gap is possible
 	for ; 0 <= a; a-- { // gap left in low range?
-		if pv < string(aq[a]) {
+		if pv < sixb.BtoS(aq[a]) {
 			k--
 			aq[a], aq[k] = aq[k], aq[a]
 		}
 	}
 	for ; b < len(aq); b++ { // gap left in high range?
-		if string(aq[b]) < pv {
+		if sixb.BtoS(aq[b]) < pv {
 			aq[b], aq[k] = aq[k], aq[b]
 			k++
 		}
