@@ -5,8 +5,8 @@ on:
     branches: [ main ]
 
 jobs:
-  analyze:
-    name: Analyze
+  analize:
+    name: Analize
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -14,8 +14,13 @@ jobs:
       security-events: write
 
     steps:
-    - name: Checkout repo
-      uses: actions/checkout@v2
+    - name: Checkout Repo
+      uses: actions/checkout@v3
+
+    - name: Setup Go
+      uses: actions/setup-go@v3
+      with:
+        go-version: '1.17'
 
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v1
