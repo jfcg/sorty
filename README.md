@@ -126,6 +126,8 @@ sort.Slice| 3.09| 3.47
 </details>
 
 ### Testing & Parameter Tuning
+<details><summary>Show testing & tuning</summary>
+
 First, make sure everything is fine:
 ```
 go test -timeout 1h
@@ -141,8 +143,9 @@ go test -timeout 1h -gcflags '-dwarf=0 -B' -ldflags '-s -w'
 ```
 Remember to build sorty (and your functions like [`SortObjAsc()`](https://pkg.go.dev/github.com/jfcg/sorty/v2#Sort))
 with the same optimization flags you used for tuning. `-B` flag is especially helpful.
+</details>
 
 ### Support
-If you use sorty and like it, please support via:
+See [Contributing](./.github/CONTRIBUTING.md), [Security](./.github/SECURITY.md) and [Support](./.github/SUPPORT.md) guides. Also if you use sorty and like it, please support via [Github Sponsors](https://github.com/sponsors/jfcg) or:
 - BTC:`bc1qr8m7n0w3xes6ckmau02s47a23e84umujej822e`
 - ETH:`0x3a844321042D8f7c5BB2f7AB17e20273CA6277f6`
