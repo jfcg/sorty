@@ -5,21 +5,24 @@
 */
 
 // Package sorty is a type-specific, fast, efficient, concurrent / parallel sorting
-// library. It is an innovative QuickSort implementation, hence in-place and does not
+// library. It is an innovative [QuickSort] implementation, hence in-place and does not
 // require extra memory. You can call:
-//  import "github.com/jfcg/sorty/v2"
 //
-//  sorty.SortSlice(native_slice) // []int, []float64, []string etc. in ascending order
-//  sorty.SortLen(len_slice)      // []string or [][]T 'by length' in ascending order
-//  sorty.Sort(n, lesswap)        // lesswap() based
+//	import "github.com/jfcg/sorty/v2"
+//
+//	sorty.SortSlice(native_slice) // []int, []float64, []string etc. in ascending order
+//	sorty.SortLen(len_slice)      // []string or [][]T 'by length' in ascending order
+//	sorty.Sort(n, lesswap)        // lesswap() based
+//
+// [QuickSort]: https://en.wikipedia.org/wiki/Quicksort
 package sorty
 
 import "github.com/jfcg/sixb"
 
-// MaxGor is the maximum concurrent goroutines (including caller) used for sorting
-// per Sort*() call. MaxGor can be changed live, even during an ongoing Sort*() call.
-// MaxGor=1 (or a short input) yields single-goroutine sorting: no goroutines or
-// channel will be created by sorty.
+// MaxGor is the maximum number of goroutines (including caller) that can be
+// concurrently used for sorting per Sort*() call. MaxGor can be changed live, even
+// during ongoing Sort*() calls. MaxGor ≤ 1 (or a short input) yields single-goroutine
+// sorting: sorty will not create any goroutines or channel.
 var MaxGor uint32 = 3
 
 func init() {
@@ -30,7 +33,9 @@ func init() {
 }
 
 // Search returns lowest integer k in [0,n) where fn(k) is true, assuming:
-//  fn(k) => fn(k+1)
+//
+//	fn(k) implies fn(k+1)
+//
 // If there is no such k, it returns n. It can be used to locate an element
 // in a sorted collection.
 func Search(n int, fn func(int) bool) int {
@@ -55,6 +60,7 @@ type syncVar struct {
 }
 
 // gorFull returns true if goroutine quota is full
+//
 //go:norace
 func gorFull(sv *syncVar) bool {
 	return sv.ngr >= MaxGor
@@ -73,6 +79,6 @@ func minmaxSample(slen, n int) (d, s, h, l int) {
 		h += d
 		l -= n
 	}
-	h += l // first/last sample positions
+	h += l // last/first sample positions
 	return
 }

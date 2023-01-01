@@ -13,13 +13,14 @@ import (
 )
 
 // Lesswap function operates on an underlying collection to be sorted as:
-//  if less(i, k) { // strict ordering like < or >
-//  	if r != s {
-//  		swap(r, s)
-//  	}
-//  	return true
-//  }
-//  return false
+//
+//	if less(i, k) { // strict ordering like < or >
+//		if r != s {
+//			swap(r, s)
+//		}
+//		return true
+//	}
+//	return false
 type Lesswap func(i, k, r, s int) bool
 
 // IsSorted returns 0 if underlying collection of length n is sorted,
@@ -340,20 +341,22 @@ start:
 // Sort concurrently sorts underlying collection of length n via lsw().
 // Once for each non-trivial type you want to sort in a certain way, you
 // can implement a custom sorting routine (for a slice for example) as:
-//  func SortObjAsc(c []Obj) {
-//  	lsw := func(i, k, r, s int) bool {
-//  		if c[i].Key < c[k].Key { // strict comparator like < or >
-//  			if r != s {
-//  				c[r], c[s] = c[s], c[r]
-//  			}
-//  			return true
-//  		}
-//  		return false
-//  	}
-//  	sorty.Sort(len(c), lsw)
-//  }
-// Lesswap is a 'contract' between users and sorty library. Strict
-// comparator, r!=s check, swap and returns are all strictly necessary.
+//
+//	func SortTypeAscending(slc []Type) {
+//		lsw := func(i, k, r, s int) bool {
+//			if slc[i].Key < slc[k].Key { // strict comparator like < or >
+//				if r != s {
+//					slc[r], slc[s] = slc[s], slc[r]
+//				}
+//				return true
+//			}
+//			return false
+//		}
+//		sorty.Sort(len(slc), lsw)
+//	}
+//
+// [Lesswap] is a contract between users and sorty. Strict
+// comparator, r!=s check, swap and returns are all necessary.
 func Sort(n int, lsw Lesswap) {
 
 	n-- // high indice

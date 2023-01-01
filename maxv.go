@@ -9,15 +9,13 @@
 
 package sorty
 
-var (
-	// MaxLenIns is the default maximum slice length for insertion sort.
-	MaxLenIns = 100
+// MaxLenIns is the default maximum slice length for insertion sort.
+var MaxLenIns = 100
 
-	// MaxLenInsFC is the maximum slice length for insertion sort when
-	// sorting strings or calling Sort().
-	MaxLenInsFC = 40
+// MaxLenInsFC is the maximum slice length for insertion sort when
+// sorting strings or calling [Sort]().
+var MaxLenInsFC = 40
 
-	// MaxLenRec is the maximum slice length for recursion when there is goroutine
-	// quota. So MaxLenRec+1 is the minimum slice length for new sorting goroutines.
-	MaxLenRec = 496
-)
+// MaxLenRec is the maximum slice length for recursion when there is goroutine
+// quota. So MaxLenRec+1 is the minimum slice length for new sorting goroutines.
+var MaxLenRec = 496
