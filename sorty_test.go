@@ -16,12 +16,12 @@ import (
 	"github.com/jfcg/sixb"
 )
 
-const N = 1 << 26
+const bufN = 1 << 25
 
 var (
 	// a & b buffers will hold all slices to sort
-	bufaf = make([]float32, N)
-	bufbf = make([]float32, N)
+	bufaf = make([]float32, bufN)
+	bufbf = make([]float32, bufN)
 
 	// different type views of the same buffers
 	bufau  = F4toU4(&bufaf) // uint32

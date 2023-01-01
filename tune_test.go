@@ -28,7 +28,7 @@ func printOpt(x, y int, v float64) {
 var (
 	optName = [...]string{"SortU4/F4", "Lsw-U4/F4", "SortS", "Lsw-S"}
 
-	bufap = make([]uint32, N)
+	bufap = make([]uint32, bufN)
 
 	optFn = [...]func() float64{
 		// optimize for native arithmetic types

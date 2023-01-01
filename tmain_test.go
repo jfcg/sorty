@@ -11,16 +11,11 @@ package sorty
 
 import (
 	"fmt"
-	"os"
 	"sort"
 	"testing"
 	"time"
 
 	"github.com/jfcg/sixb"
-	//"github.com/shawnsmithdev/zermelo/zfloat32"
-	//"github.com/shawnsmithdev/zermelo/zuint32"
-	//"github.com/twotwotwo/sorts/sortutil"
-	//"github.com/yourbasic/radix"
 )
 
 func printSec(tn string, d time.Duration) float64 {
@@ -30,36 +25,33 @@ func printSec(tn string, d time.Duration) float64 {
 }
 
 // sort and signal
-func sasU8(sd int64, al []uint64, ch chan bool) {
+func sasU8(sd int64, al []uint64, ch chan struct{}) {
 	fstU8(sd, al, sortU8)
-	ch <- false
+	ch <- struct{}{}
 }
 
-func sasF8(sd int64, al []float64, ch chan bool) {
+func sasF8(sd int64, al []float64, ch chan struct{}) {
 	fstF8(sd, al, sortF8)
-	ch <- false
+	ch <- struct{}{}
 }
 
-func sasI4(sd int64, al []int32, ch chan bool) {
+func sasI4(sd int64, al []int32, ch chan struct{}) {
 	fstI4(sd, al, sortI4)
-	ch <- false
+	ch <- struct{}{}
 }
 
-func sasI8(sd int64, al []int64, ch chan bool) {
+func sasI8(sd int64, al []int64, ch chan struct{}) {
 	fstI8(sd, al, sortI8)
-	ch <- false
+	ch <- struct{}{}
 }
 
-// test & time sorting uint32 slices for different libraries, compare their results
+// test & time sorting uint32 slices, compare their results
 func TestUint(t *testing.T) {
 	tsPtr = t
 
-	fmt.Println("\nSorting []uint32")
 	mfcU4("sort.Slice", func(al []uint32) {
 		sort.Slice(al, func(i, k int) bool { return al[i] < al[k] })
 	}, bufbu, nil)
-	//mfcU4("sortutil", sortutil.Uint32s, bufau, bufbu)
-	//mfcU4("zermelo", zuint32.Sort, bufau, bufbu)
 	sumtU4(bufau, bufbu) // sorty
 	sumtLswU4(bufau, bufbu)
 
@@ -68,16 +60,13 @@ func TestUint(t *testing.T) {
 	}
 }
 
-// test & time sorting float32 slices for different libraries, compare their results
+// test & time sorting float32 slices, compare their results
 func TestFloat(t *testing.T) {
 	tsPtr = t
 
-	fmt.Println("\nSorting []float32")
 	mfcF4("sort.Slice", func(al []float32) {
 		sort.Slice(al, func(i, k int) bool { return al[i] < al[k] })
 	}, bufbf, nil)
-	//mfcF4("sortutil", sortutil.Float32s, bufaf, bufbf)
-	//mfcF4("zermelo", zfloat32.Sort, bufaf, bufbf)
 	sumtF4(bufaf, bufbf) // sorty
 	sumtLswF4(bufaf, bufbf)
 
@@ -86,63 +75,41 @@ func TestFloat(t *testing.T) {
 	}
 }
 
-// test & time sorting string/[]byte slices for
-// different libraries, compare their results
+// test & time sorting string slices, compare their results
 func TestString(t *testing.T) {
 	tsPtr = t
 
-	fmt.Println("\nSorting []string")
 	mfcS("sort.Slice", func(al []string) {
 		sort.Slice(al, func(i, k int) bool { return al[i] < al[k] })
 	}, bufbu, nil)
-	//mfcS("sortutil", sortutil.Strings, bufau, bufbu)
-	//mfcS("radix", radix.Sort, bufau, bufbu)
 	sumtS(bufau, bufbu) // sorty
 	sumtLswS(bufau, bufbu)
+}
 
-	fmt.Println("\nSorting [][]byte")
+// test & time sorting []byte slices, compare their results
+func TestByteSlice(t *testing.T) {
+	tsPtr = t
+
 	mfcB("sort.Slice", func(al [][]byte) {
 		sort.Slice(al, func(i, k int) bool { return sixb.BtoS(al[i]) < sixb.BtoS(al[k]) })
 	}, bufbu, nil)
 	sumtB(bufau, bufbu) // sorty
 }
 
-func BenchmarkSortB(b *testing.B) {
-	env, arg := os.Environ(), os.Args
-	slc := make([][]byte, 16*(len(arg)+len(env)))
-
-	b.ResetTimer()
-	for q := 0; q < b.N; q++ {
-		// fill slc
-		for i, r := 16, 0; i > 0; i-- {
-			for k := len(arg) - 1; k >= 0; k-- {
-				slc[r] = sixb.StoB(arg[k])
-				r++
-			}
-			for k := len(env) - 1; k >= 0; k-- {
-				slc[r] = sixb.StoB(env[k])
-				r++
-			}
-		}
-		sortB(slc)
-		if isSortedB(slc) != 0 {
-			b.Fatal("sortB error")
-		}
-	}
-}
-
-// test & time sorting string/[]byte slices 'by length'
-// for different libraries, compare their results
-func TestLength(t *testing.T) {
+// test & time sorting string slices 'by length', compare their results
+func TestStringByLen(t *testing.T) {
 	tsPtr = t
 
-	fmt.Println("\nSorting []string by length")
 	mfcLenS("sort.Slice", func(al []string) {
 		sort.Slice(al, func(i, k int) bool { return len(al[i]) < len(al[k]) })
 	}, bufbu, nil)
 	sumtLenS(bufau, bufbu) // sorty
+}
 
-	fmt.Println("\nSorting [][]byte by length")
+// test & time sorting []byte slices 'by length', compare their results
+func TestByteSliceByLen(t *testing.T) {
+	tsPtr = t
+
 	mfcLenB("sort.Slice", func(al [][]byte) {
 		sort.Slice(al, func(i, k int) bool { return len(al[i]) < len(al[k]) })
 	}, bufbu, nil)
@@ -153,35 +120,34 @@ func TestLength(t *testing.T) {
 func TestConcurrent(t *testing.T) {
 	tsPtr = t
 
-	fmt.Println("\nConcurrent calls to Sort*()")
-	K, L, ch := N/2, N/4, make(chan bool)
+	bufK, bufL, tch := bufN/2, bufN/4, make(chan struct{})
 	MaxGor = 2
 
 	// two concurrent calls to sortU8() & sortF8() each
 	// up to 8 goroutines total
-	go sasU8(96, bufbu2[:L:L], ch)
-	go sasF8(97, bufaf2[:L:L], ch)
-	go sasU8(96, bufbu2[L:], ch)
-	fstF8(97, bufaf2[L:], sortF8)
+	go sasU8(96, bufbu2[:bufL:bufL], tch)
+	go sasF8(97, bufaf2[:bufL:bufL], tch)
+	go sasU8(96, bufbu2[bufL:], tch)
+	fstF8(97, bufaf2[bufL:], sortF8)
 
 	for i := 3; i > 0; i-- {
-		<-ch // wait others
+		<-tch // wait others
 	}
-	compareU4(bufbu[:K:K], bufbu[K:]) // same buffers
-	compareU4(bufau[:K:K], bufau[K:])
+	compareU4(bufbu[:bufK:bufK], bufbu[bufK:]) // same buffers
+	compareU4(bufau[:bufK:bufK], bufau[bufK:])
 
 	// two concurrent calls to sortI4() & sortI8() each
 	// up to 8 goroutines total
-	go sasI4(98, bufai[:K:K], ch)
-	go sasI8(99, bufbi2[:L:L], ch)
-	go sasI4(98, bufai[K:], ch)
-	fstI8(99, bufbi2[L:], sortI8)
+	go sasI4(98, bufai[:bufK:bufK], tch)
+	go sasI8(99, bufbi2[:bufL:bufL], tch)
+	go sasI4(98, bufai[bufK:], tch)
+	fstI8(99, bufbi2[bufL:], sortI8)
 
 	for i := 3; i > 0; i-- {
-		<-ch // wait others
+		<-tch // wait others
 	}
-	compareU4(bufbu[:K:K], bufbu[K:]) // same buffers
-	compareU4(bufau[:K:K], bufau[K:])
+	compareU4(bufbu[:bufK:bufK], bufbu[bufK:]) // same buffers
+	compareU4(bufau[:bufK:bufK], bufau[bufK:])
 }
 
 // Sort()ing short slices

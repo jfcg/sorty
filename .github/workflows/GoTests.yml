@@ -19,7 +19,7 @@ jobs:
         go-version: '1.19'
 
     - name: Run Tests
-      run: go test -timeout 30m ./...
+      run: go test -timeout 20m -v
 
     - name: Run Benchmarks
-      run: go test -timeout 30m -v -run ^$ -bench . -benchmem ./...
+      run: go test -timeout 20m -v -run ^$ -bench . -benchmem
