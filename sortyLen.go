@@ -9,58 +9,43 @@ package sorty
 import (
 	"reflect"
 	"unsafe"
-
-	"github.com/jfcg/sixb"
 )
-
-func extract(ar interface{}) (slc sixb.Slice, r int) {
-	t := reflect.TypeOf(ar)
-	if t.Kind() != reflect.Slice {
-		return
-	}
-	k := t.Elem().Kind()
-	if k == reflect.String {
-		r++
-	} else if k == reflect.Slice {
-		r--
-	} else {
-		return
-	}
-
-	v := reflect.ValueOf(ar)
-	p, l := v.Pointer(), v.Len()
-	slc = sixb.Slice{Data: unsafe.Pointer(p), Len: l, Cap: l}
-	return
-}
 
 // IsSortedLen returns 0 if ar is sorted 'by length' in ascending order, otherwise
 // it returns i > 0 with len(ar[i]) < len(ar[i-1]). ar's (underlying) type can be
-// []string or [][]T (for any type T), otherwise it panics.
+//
+//	[]string, [][]T // for any type T
+//
+// otherwise it panics.
 func IsSortedLen(ar interface{}) int {
-	slc, r := extract(ar)
-	if r == 0 {
-		panic("sorty: IsSortedLen: invalid input type")
-	}
-	if r > 0 {
+	slc, kind := extractSK(ar)
+	switch {
+	case kind == reflect.String:
 		s := *(*[]string)(unsafe.Pointer(&slc))
 		return isSortedLenS(s)
+	case kind >= sliceBias:
+		b := *(*[][]byte)(unsafe.Pointer(&slc))
+		return isSortedLenB(b)
 	}
-	b := *(*[][]byte)(unsafe.Pointer(&slc))
-	return isSortedLenB(b)
+	panic("sorty: IsSortedLen: invalid input type")
 }
 
 // SortLen concurrently sorts ar 'by length' in ascending order. ar's (underlying)
-// type can be []string or [][]T (for any type T), otherwise it panics.
+// type can be
+//
+//	[]string, [][]T // for any type T
+//
+// otherwise it panics.
 func SortLen(ar interface{}) {
-	slc, r := extract(ar)
-	if r == 0 {
-		panic("sorty: SortLen: invalid input type")
-	}
-	if r > 0 {
+	slc, kind := extractSK(ar)
+	switch {
+	case kind == reflect.String:
 		s := *(*[]string)(unsafe.Pointer(&slc))
 		sortLenS(s)
-		return
+	case kind >= sliceBias:
+		b := *(*[][]byte)(unsafe.Pointer(&slc))
+		sortLenB(b)
+	default:
+		panic("sorty: SortLen: invalid input type")
 	}
-	b := *(*[][]byte)(unsafe.Pointer(&slc))
-	sortLenB(b)
 }

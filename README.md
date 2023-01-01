@@ -17,7 +17,8 @@ collections using multiple CPU cores quickly.
 sorty natively [sorts](https://pkg.go.dev/github.com/jfcg/sorty/v2#SortSlice) any type equivalent to
 ```go
 []int, []int32, []int64, []uint, []uint32, []uint64,
-[]uintptr, []float32, []float64, []string, [][]byte
+[]uintptr, []float32, []float64, []string, [][]byte,
+[]unsafe.Pointer, []*T // for any type T
 ```
 sorty also natively sorts any type equivalent to `[]string` or `[][]T` (for any type `T`)
 [by length](https://pkg.go.dev/github.com/jfcg/sorty/v2#SortLen).

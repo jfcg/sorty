@@ -10,14 +10,19 @@
 //
 //	import "github.com/jfcg/sorty/v2"
 //
-//	sorty.SortSlice(native_slice) // []int, []float64, []string etc. in ascending order
+//	sorty.SortSlice(native_slice) // []int, []float64, []string, []*T etc. in ascending order
 //	sorty.SortLen(len_slice)      // []string or [][]T 'by length' in ascending order
 //	sorty.Sort(n, lesswap)        // lesswap() based
 //
 // [QuickSort]: https://en.wikipedia.org/wiki/Quicksort
 package sorty
 
-import "github.com/jfcg/sixb"
+import (
+	"reflect"
+	"unsafe"
+
+	"github.com/jfcg/sixb"
+)
 
 // MaxGor is the maximum number of goroutines (including caller) that can be
 // concurrently used for sorting per Sort*() call. MaxGor can be changed live, even
@@ -80,5 +85,41 @@ func minmaxSample(slen, n int) (d, s, h, l int) {
 		l -= n
 	}
 	h += l // last/first sample positions
+	return
+}
+
+const sliceBias reflect.Kind = 100
+
+// extracts slice and element kind from ar
+func extractSK(ar interface{}) (slc sixb.Slice, kind reflect.Kind) {
+	tipe := reflect.TypeOf(ar)
+	if tipe.Kind() != reflect.Slice {
+		return
+	}
+	tipe = tipe.Elem()
+	kind = tipe.Kind()
+
+	switch kind {
+	// map int/uint/pointer types to hardware type
+	case reflect.Uintptr, reflect.Pointer, reflect.UnsafePointer:
+		kind = reflect.Uint32 + reflect.Kind(unsafe.Sizeof(uintptr(0))>>3)
+	case reflect.Uint:
+		kind = reflect.Uint32 + reflect.Kind(unsafe.Sizeof(uint(0))>>3)
+	case reflect.Int:
+		kind = reflect.Int32 + reflect.Kind(unsafe.Sizeof(int(0))>>3)
+	// map []T to sliceBias + Kind(T)
+	case reflect.Slice:
+		kind = sliceBias + tipe.Elem().Kind()
+	// other recognized types
+	case reflect.Int32, reflect.Int64, reflect.Uint32, reflect.Uint64,
+		reflect.Float32, reflect.Float64, reflect.String:
+	default:
+		kind = reflect.Invalid
+		return
+	}
+
+	v := reflect.ValueOf(ar)
+	p, l := v.Pointer(), v.Len()
+	slc = sixb.Slice{Data: unsafe.Pointer(p), Len: l, Cap: l}
 	return
 }
