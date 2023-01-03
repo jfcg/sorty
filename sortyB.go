@@ -23,18 +23,6 @@ func isSortedB(ar [][]byte) int {
 	return 0
 }
 
-// pre-sort
-func presortB(ar [][]byte) {
-	l, h := 0, (MaxLenInsFC+1)/3
-	for h < len(ar) {
-		if sixb.BtoS(ar[h]) < sixb.BtoS(ar[l]) {
-			ar[h], ar[l] = ar[l], ar[h]
-		}
-		l++
-		h++
-	}
-}
-
 // insertion sort
 func insertionB(ar [][]byte) {
 	for h := 0; h < len(ar)-1; {
@@ -54,44 +42,22 @@ func insertionB(ar [][]byte) {
 	}
 }
 
-// pre+insertion sort
-func pinsertB(ar [][]byte) {
-	presortB(ar)
-	insertionB(ar)
-}
+// pivotB selects n equidistant samples from slc that minimizes max distance
+// to non-selected members, then calculates median-of-n pivot from samples.
+// Assumes even n, nsConc ≥ n ≥ 2, len(slc) ≥ 2n. Returns pivot for partitioning.
+func pivotB(slc [][]byte, n uint) string {
 
-// pivotB selects 2n equidistant samples from ar that minimizes max distance to any
-// non-selected member, calculates median-of-2n pivot from samples. ensures lo/hi ranges
-// have at least n elements by moving sorted samples to n positions at lo/hi ends.
-// assumes 5 > n > 0, len(ar) > 4n. returns remaining slice,pivot for partitioning.
-func pivotB(ar [][]byte, n int) ([][]byte, string) {
+	first, step, _ := minMaxSample(uint(len(slc)), n)
 
-	// sample step, first/last sample positions
-	d, s, h, l := minmaxSample(len(ar), n)
-
-	var sample [8][]byte
-	for i, k := d, h; i >= 0; i-- {
-		sample[i] = ar[k]
-		k -= s
+	var sample [nsConc]string
+	for i := int(n - 1); i >= 0; i-- {
+		sample[i] = sixb.BtoS(slc[first])
+		first += step
 	}
-	insertionB(sample[:d+1]) // sort 2n samples
+	insertionS(sample[:n]) // sort n samples
 
-	lo, hi := 0, len(ar)
-	for { // move sorted samples to lo/hi ends
-		hi--
-		ar[h] = ar[hi]
-		ar[hi] = sample[d]
-		ar[l] = ar[lo]
-		ar[lo] = sample[lo]
-		l += s
-		h -= s
-		lo++
-		d--
-		if d < lo {
-			break
-		}
-	}
-	return ar[lo:hi:hi], sixb.MeanS(sixb.BtoS(sample[n-1]), sixb.BtoS(sample[n]))
+	n >>= 1 // return mean of middle two samples
+	return sixb.MeanS(sample[n-1], sample[n])
 }
 
 // partition ar into <= and >= pivot, assumes len(ar) >= 2
@@ -174,40 +140,39 @@ func gpart1B(ar [][]byte, pv string, ch chan int) {
 // returns k with ar[:k] <= pivot, ar[k:] >= pivot
 func cdualparB(ar [][]byte, ch chan int) int {
 
-	aq, pv := pivotB(ar, 4) // median-of-8 pivot
-	k := len(aq) >> 1
-	a, b := k>>1, sixb.MeanI(k, len(aq))
+	pv := pivotB(ar, nsConc) // median-of-n pivot
+	k := len(ar) >> 1
+	a, b := k>>1, sixb.MeanI(k, len(ar))
 
-	go gpart1B(aq[a:b:b], pv, ch) // mid half range
+	go gpart1B(ar[a:b:b], pv, ch) // mid half range
 
 	k = a
-	a, b = partition2B(aq, a, b, pv) // left/right quarter ranges
+	a, b = partition2B(ar, a, b, pv) // left/right quarter ranges
 
-	k += <-ch // convert returned indice to aq
+	k += <-ch // convert returned indice to ar
 
 	// only one gap is possible
 	for ; 0 <= a; a-- { // gap left in low range?
-		if pv < sixb.BtoS(aq[a]) {
+		if pv < sixb.BtoS(ar[a]) {
 			k--
-			aq[a], aq[k] = aq[k], aq[a]
+			ar[a], ar[k] = ar[k], ar[a]
 		}
 	}
-	for ; b < len(aq); b++ { // gap left in high range?
-		if sixb.BtoS(aq[b]) < pv {
-			aq[b], aq[k] = aq[k], aq[b]
+	for ; b < len(ar); b++ { // gap left in high range?
+		if sixb.BtoS(ar[b]) < pv {
+			ar[b], ar[k] = ar[k], ar[b]
 			k++
 		}
 	}
-	return k + 4 // convert k indice to ar
+	return k
 }
 
 // short range sort function, assumes MaxLenInsFC < len(ar) <= MaxLenRec
 func shortB(ar [][]byte) {
 start:
-	aq, pv := pivotB(ar, 2) // median-of-4 pivot
-	k := partition1B(aq, pv)
-
-	k += 2 // convert k indice from aq to ar
+	pv := pivotB(ar, nsShort) // median-of-n pivot
+	k := partition1B(ar, pv)
+	var aq [][]byte
 
 	if k < len(ar)-k {
 		aq = ar[:k:k]
@@ -222,7 +187,6 @@ start:
 		goto start
 	}
 psort:
-	presortB(aq)
 	insertionB(aq) // at least one insertion range
 
 	if len(ar) > MaxLenInsFC {
@@ -246,10 +210,9 @@ func glongB(ar [][]byte, sv *syncVar) {
 // long range sort function, assumes len(ar) > MaxLenRec
 func longB(ar [][]byte, sv *syncVar) {
 start:
-	aq, pv := pivotB(ar, 3) // median-of-6 pivot
-	k := partition1B(aq, pv)
-
-	k += 3 // convert k indice from aq to ar
+	pv := pivotB(ar, nsLong) // median-of-n pivot
+	k := partition1B(ar, pv)
+	var aq [][]byte
 
 	if k < len(ar)-k {
 		aq = ar[:k:k]
@@ -265,7 +228,7 @@ start:
 		if len(aq) > MaxLenInsFC {
 			shortB(aq)
 		} else {
-			pinsertB(aq)
+			insertionB(aq)
 		}
 
 		if len(ar) > MaxLenRec { // two not-long ranges?
@@ -301,7 +264,7 @@ func sortB(ar [][]byte) {
 		} else if len(ar) > MaxLenInsFC {
 			shortB(ar)
 		} else {
-			pinsertB(ar)
+			insertionB(ar)
 		}
 		return
 	}
@@ -332,7 +295,7 @@ func sortB(ar [][]byte) {
 		} else if len(aq) > MaxLenInsFC {
 			shortB(aq)
 		} else {
-			pinsertB(aq)
+			insertionB(aq)
 		}
 
 		// longer range big enough? max goroutines?

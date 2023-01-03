@@ -23,18 +23,6 @@ func isSortedU8(ar []uint64) int {
 	return 0
 }
 
-// pre-sort
-func presortU8(ar []uint64) {
-	l, h := 0, (MaxLenIns+1)/3
-	for h < len(ar) {
-		if ar[h] < ar[l] {
-			ar[h], ar[l] = ar[l], ar[h]
-		}
-		l++
-		h++
-	}
-}
-
 // insertion sort
 func insertionU8(ar []uint64) {
 	for h := 0; h < len(ar)-1; {
@@ -54,44 +42,22 @@ func insertionU8(ar []uint64) {
 	}
 }
 
-// pre+insertion sort
-func pinsertU8(ar []uint64) {
-	presortU8(ar)
-	insertionU8(ar)
-}
+// pivotU8 selects n equidistant samples from slc that minimizes max distance
+// to non-selected members, then calculates median-of-n pivot from samples.
+// Assumes even n, nsConc ≥ n ≥ 2, len(slc) ≥ 2n. Returns pivot for partitioning.
+func pivotU8(slc []uint64, n uint) uint64 {
 
-// pivotU8 selects 2n equidistant samples from ar that minimizes max distance to any
-// non-selected member, calculates median-of-2n pivot from samples. ensures lo/hi ranges
-// have at least n elements by moving sorted samples to n positions at lo/hi ends.
-// assumes 5 > n > 0, len(ar) > 4n. returns remaining slice,pivot for partitioning.
-func pivotU8(ar []uint64, n int) ([]uint64, uint64) {
+	first, step, _ := minMaxSample(uint(len(slc)), n)
 
-	// sample step, first/last sample positions
-	d, s, h, l := minmaxSample(len(ar), n)
-
-	var sample [8]uint64
-	for i, k := d, h; i >= 0; i-- {
-		sample[i] = ar[k]
-		k -= s
+	var sample [nsConc]uint64
+	for i := int(n - 1); i >= 0; i-- {
+		sample[i] = slc[first]
+		first += step
 	}
-	insertionU8(sample[:d+1]) // sort 2n samples
+	insertionU8(sample[:n]) // sort n samples
 
-	lo, hi := 0, len(ar)
-	for { // move sorted samples to lo/hi ends
-		hi--
-		ar[h] = ar[hi]
-		ar[hi] = sample[d]
-		ar[l] = ar[lo]
-		ar[lo] = sample[lo]
-		l += s
-		h -= s
-		lo++
-		d--
-		if d < lo {
-			break
-		}
-	}
-	return ar[lo:hi:hi], sixb.MeanU8(sample[n-1], sample[n])
+	n >>= 1 // return mean of middle two samples
+	return sixb.MeanU8(sample[n-1], sample[n])
 }
 
 // partition ar into <= and >= pivot, assumes len(ar) >= 2
@@ -174,40 +140,39 @@ func gpart1U8(ar []uint64, pv uint64, ch chan int) {
 // returns k with ar[:k] <= pivot, ar[k:] >= pivot
 func cdualparU8(ar []uint64, ch chan int) int {
 
-	aq, pv := pivotU8(ar, 4) // median-of-8 pivot
-	k := len(aq) >> 1
-	a, b := k>>1, sixb.MeanI(k, len(aq))
+	pv := pivotU8(ar, nsConc) // median-of-n pivot
+	k := len(ar) >> 1
+	a, b := k>>1, sixb.MeanI(k, len(ar))
 
-	go gpart1U8(aq[a:b:b], pv, ch) // mid half range
+	go gpart1U8(ar[a:b:b], pv, ch) // mid half range
 
 	k = a
-	a, b = partition2U8(aq, a, b, pv) // left/right quarter ranges
+	a, b = partition2U8(ar, a, b, pv) // left/right quarter ranges
 
-	k += <-ch // convert returned indice to aq
+	k += <-ch // convert returned indice to ar
 
 	// only one gap is possible
 	for ; 0 <= a; a-- { // gap left in low range?
-		if pv < aq[a] {
+		if pv < ar[a] {
 			k--
-			aq[a], aq[k] = aq[k], aq[a]
+			ar[a], ar[k] = ar[k], ar[a]
 		}
 	}
-	for ; b < len(aq); b++ { // gap left in high range?
-		if aq[b] < pv {
-			aq[b], aq[k] = aq[k], aq[b]
+	for ; b < len(ar); b++ { // gap left in high range?
+		if ar[b] < pv {
+			ar[b], ar[k] = ar[k], ar[b]
 			k++
 		}
 	}
-	return k + 4 // convert k indice to ar
+	return k
 }
 
 // short range sort function, assumes MaxLenIns < len(ar) <= MaxLenRec
 func shortU8(ar []uint64) {
 start:
-	aq, pv := pivotU8(ar, 2) // median-of-4 pivot
-	k := partition1U8(aq, pv)
-
-	k += 2 // convert k indice from aq to ar
+	pv := pivotU8(ar, nsShort) // median-of-n pivot
+	k := partition1U8(ar, pv)
+	var aq []uint64
 
 	if k < len(ar)-k {
 		aq = ar[:k:k]
@@ -222,7 +187,6 @@ start:
 		goto start
 	}
 psort:
-	presortU8(aq)
 	insertionU8(aq) // at least one insertion range
 
 	if len(ar) > MaxLenIns {
@@ -246,10 +210,9 @@ func glongU8(ar []uint64, sv *syncVar) {
 // long range sort function, assumes len(ar) > MaxLenRec
 func longU8(ar []uint64, sv *syncVar) {
 start:
-	aq, pv := pivotU8(ar, 3) // median-of-6 pivot
-	k := partition1U8(aq, pv)
-
-	k += 3 // convert k indice from aq to ar
+	pv := pivotU8(ar, nsLong) // median-of-n pivot
+	k := partition1U8(ar, pv)
+	var aq []uint64
 
 	if k < len(ar)-k {
 		aq = ar[:k:k]
@@ -265,7 +228,7 @@ start:
 		if len(aq) > MaxLenIns {
 			shortU8(aq)
 		} else {
-			pinsertU8(aq)
+			insertionU8(aq)
 		}
 
 		if len(ar) > MaxLenRec { // two not-long ranges?
@@ -301,7 +264,7 @@ func sortU8(ar []uint64) {
 		} else if len(ar) > MaxLenIns {
 			shortU8(ar)
 		} else {
-			pinsertU8(ar)
+			insertionU8(ar)
 		}
 		return
 	}
@@ -332,7 +295,7 @@ func sortU8(ar []uint64) {
 		} else if len(aq) > MaxLenIns {
 			shortU8(aq)
 		} else {
-			pinsertU8(aq)
+			insertionU8(aq)
 		}
 
 		// longer range big enough? max goroutines?

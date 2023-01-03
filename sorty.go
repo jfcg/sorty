@@ -32,7 +32,7 @@ var MaxGor uint32 = 3
 
 func init() {
 	if !(4097 > MaxGor && MaxGor > 0 && MaxLenRec > 2*MaxLenIns &&
-		MaxLenIns > MaxLenInsFC && MaxLenInsFC > 9) {
+		MaxLenIns > MaxLenInsFC && MaxLenInsFC > 2*nsShort) {
 		panic("sorty: check your MaxGor/MaxLen* values")
 	}
 }
@@ -68,24 +68,40 @@ type syncVar struct {
 //
 //go:norace
 func gorFull(sv *syncVar) bool {
-	return sv.ngr >= MaxGor
+	mg := MaxGor
+	return sv.ngr >= mg
 }
 
-// given slice length > 4n and n > 0, select equidistant 2n
-// samples that minimizes max distance to non-selected members.
-func minmaxSample(slen, n int) (d, s, h, l int) {
-	d = 2 * n
-	s = slen / d // sample step > 1
-	d--
-	h = d * s
-	l = (slen - h) >> 1
-	if l >= n && l > (s+1)>>1 {
-		s++
-		h += d
-		l -= n
+const (
+	// #samples in pivot selection for
+	nsShort = 4 // short range
+	nsLong  = 6 // long range
+	nsConc  = 8 // dual range
+)
+
+// Given n ≥ 2 and slice length ≥ 2n, select n equidistant samples
+// from slice that minimizes max distance to non-selected members.
+func minMaxSample(slen, n uint) (first, step, last uint) {
+	step = slen / n // ≥ 2
+	n--
+	span := n * step
+	tail := slen - span // 1 + #members in both tails
+	if tail > n && tail>>1 > (step+1)>>1 {
+		step++
+		span += n
+		tail -= n
 	}
-	h += l // last/first sample positions
+	first = tail >> 1 // larger tail
+	last = first + span
 	return
+}
+
+func insertionI(slc []int) {
+	if unsafe.Sizeof(int(0)) == 8 {
+		insertionI8(*(*[]int64)(unsafe.Pointer(&slc)))
+	} else {
+		insertionI4(*(*[]int32)(unsafe.Pointer(&slc)))
+	}
 }
 
 const sliceBias reflect.Kind = 100
