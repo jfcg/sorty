@@ -24,21 +24,27 @@ func isSortedF8(ar []float64) int {
 }
 
 // insertion sort
-func insertionF8(ar []float64) {
-	for h := 0; h < len(ar)-1; {
-		l := h
-		h++
-		v := ar[h]
-		if v < ar[l] {
-			for {
-				ar[l+1] = ar[l]
-				l--
-				if l < 0 || v >= ar[l] {
-					break
-				}
-			}
-			ar[l+1] = v
+func insertionF8(slc []float64) {
+	for h := 1; h < len(slc); h++ {
+		l, val := h, slc[h]
+		var pre float64
+		goto start
+	loop:
+		slc[l] = pre
+		l--
+		if l == 0 {
+			goto last
 		}
+	start:
+		pre = slc[l-1]
+		if val < pre {
+			goto loop
+		}
+		if l == h {
+			continue
+		}
+	last:
+		slc[l] = val
 	}
 }
 

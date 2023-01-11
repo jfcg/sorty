@@ -24,21 +24,27 @@ func isSortedLenB(ar [][]byte) int {
 }
 
 // insertion sort
-func insertionLenB(ar [][]byte) {
-	for h := 0; h < len(ar)-1; {
-		l := h
-		h++
-		v := ar[h]
-		if len(v) < len(ar[l]) {
-			for {
-				ar[l+1] = ar[l]
-				l--
-				if l < 0 || len(v) >= len(ar[l]) {
-					break
-				}
-			}
-			ar[l+1] = v
+func insertionLenB(slc [][]byte) {
+	for h := 1; h < len(slc); h++ {
+		l, val := h, slc[h]
+		var pre []byte
+		goto start
+	loop:
+		slc[l] = pre
+		l--
+		if l == 0 {
+			goto last
 		}
+	start:
+		pre = slc[l-1]
+		if len(val) < len(pre) {
+			goto loop
+		}
+		if l == h {
+			continue
+		}
+	last:
+		slc[l] = val
 	}
 }
 

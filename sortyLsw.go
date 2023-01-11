@@ -34,16 +34,12 @@ func IsSorted(n int, lsw Lesswap) int {
 	return 0
 }
 
-// insertion sort ar[l..h]
-func insertion(lsw Lesswap, l, h int) {
-	for k := l; k < h; {
-		i := k
-		k++
-		q := k
-		for lsw(q, i, q, i) {
-			q--
-			i--
-			if i < l {
+// insertion sort ar[lo..hi]
+func insertion(lsw Lesswap, lo, hi int) {
+	for h := lo + 1; h <= hi; h++ {
+		for l := h; lsw(l, l-1, l, l-1); {
+			l--
+			if l <= lo {
 				break
 			}
 		}
@@ -59,19 +55,13 @@ func pivot(lsw Lesswap, lo, hi int, n uint) int {
 	first := lo + int(f)
 	step := int(s)
 
-	for k := first; ; { // insertion sort slc[first + j * step], j=0,1,..
-		i := k
-		k += step
-		q := k
-		for lsw(q, i, q, i) {
-			q -= step
-			i -= step
-			if i < first {
+	// insertion sort slc[first + j * step], j=0,1,..
+	for h := first + step; h <= hi; h += step {
+		for l := h; lsw(l, l-step, l, l-step); {
+			l -= step
+			if l <= first {
 				break
 			}
-		}
-		if k >= hi {
-			break
 		}
 	}
 
@@ -209,14 +199,10 @@ start:
 	}
 	// at least one insertion range, insertion inlined
 isort:
-	for k := l; k < h; { // insertion
-		i := k
-		k++
-		q := k
-		for lsw(q, i, q, i) {
-			q--
+	for k := l + 1; k <= h; k++ {
+		for i := k; lsw(i, i-1, i, i-1); {
 			i--
-			if i < l {
+			if i <= l {
 				break
 			}
 		}

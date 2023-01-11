@@ -24,21 +24,27 @@ func isSortedB(ar [][]byte) int {
 }
 
 // insertion sort
-func insertionB(ar [][]byte) {
-	for h := 0; h < len(ar)-1; {
-		l := h
-		h++
-		v := ar[h]
-		if sixb.BtoS(v) < sixb.BtoS(ar[l]) {
-			for {
-				ar[l+1] = ar[l]
-				l--
-				if l < 0 || sixb.BtoS(v) >= sixb.BtoS(ar[l]) {
-					break
-				}
-			}
-			ar[l+1] = v
+func insertionB(slc [][]byte) {
+	for h := 1; h < len(slc); h++ {
+		l, val := h, slc[h]
+		var pre []byte
+		goto start
+	loop:
+		slc[l] = pre
+		l--
+		if l == 0 {
+			goto last
 		}
+	start:
+		pre = slc[l-1]
+		if sixb.BtoS(val) < sixb.BtoS(pre) {
+			goto loop
+		}
+		if l == h {
+			continue
+		}
+	last:
+		slc[l] = val
 	}
 }
 
