@@ -68,11 +68,13 @@ func pivot(lsw Lesswap, lo, hi int, n uint) int {
 	return sixb.MeanI(lo+1, hi)
 }
 
-// partition ar[l..h] into <= and >= pivot, assumes l < h
-// returns m with ar[:m] <= pivot, ar[m:] >= pivot
-func partition1(lsw Lesswap, l, pv, h int) int {
+// partition slc, returns k with slc[:k] ≤ pivot ≤ slc[k:]
+// swap: slc[h] < pv < slc[l]
+// next: slc[l] ≤ pv ≤ slc[h]
+func partOne(lsw Lesswap, l, pv, h int) int {
 	// avoid unnecessary comparisons, extend ranges in balance
-	for {
+	for ; l < h; l, h = l+1, h-1 {
+
 		if lsw(h, pv, h, h) { // 3rd=4th disables swap
 			for {
 				if lsw(pv, l, h, l) {
@@ -94,11 +96,6 @@ func partition1(lsw Lesswap, l, pv, h int) int {
 				}
 			}
 		}
-		l++
-		h--
-		if l >= h {
-			break
-		}
 	}
 	// classify mid element
 	if l == h && h != pv && lsw(h, pv, h, h) { // 3rd=4th disables swap
@@ -107,70 +104,68 @@ func partition1(lsw Lesswap, l, pv, h int) int {
 	return l
 }
 
-// rearrange ar[l..a] and ar[b..h] into <= and >= pivot, assumes l <= a < pv < b <= h
-// gap (a..b) expands until one of the intervals is fully consumed
-func partition2(lsw Lesswap, l, a, pv, b, h int) (int, int) {
+// swaps elements to get slc[lo..l] ≤ pivot ≤ slc[h..hi]
+// Gap (l,h) expands until one of the intervals is fully consumed.
+// swap: slc[h] < pv < slc[l]
+// next: slc[l] ≤ pv ≤ slc[h]
+func partTwo(lsw Lesswap, lo, l, pv, h, hi int) (int, int) {
 	// avoid unnecessary comparisons, extend ranges in balance
-	for {
-		if lsw(b, pv, b, b) { // 3rd=4th disables swap
+	for ; lo <= l && h <= hi; l, h = l-1, h+1 {
+
+		if lsw(h, pv, h, h) { // 3rd=4th disables swap
 			for {
-				if lsw(pv, a, b, a) {
+				if lsw(pv, l, h, l) {
 					break
 				}
-				a--
-				if a < l {
-					return a, b
+				l--
+				if l < lo {
+					return l, h
 				}
 			}
-		} else if lsw(pv, a, a, a) { // 3rd=4th disables swap
+		} else if lsw(pv, l, l, l) { // 3rd=4th disables swap
 			for {
-				b++
-				if b > h {
-					return a, b
+				h++
+				if h > hi {
+					return l, h
 				}
-				if lsw(b, pv, b, a) {
+				if lsw(h, pv, h, l) {
 					break
 				}
 			}
-		}
-		a--
-		b++
-		if a < l || b > h {
-			return a, b
 		}
 	}
+	return l, h
 }
 
 // new-goroutine partition
-func gpart1(lsw Lesswap, l, pv, h int, ch chan int) {
-	ch <- partition1(lsw, l, pv, h)
+func gPartOne(lsw Lesswap, l, pv, h int, ch chan int) {
+	ch <- partOne(lsw, l, pv, h)
 }
 
-// concurrent dual partitioning
-// returns m with ar[:k] <= pivot, ar[k:] >= pivot
-func cdualpar(lsw Lesswap, lo, hi int, ch chan int) int {
+// partition slc in two goroutines, returns k with slc[:k] ≤ pivot ≤ slc[k:]
+func partCon(lsw Lesswap, lo, hi int, ch chan int) int {
 
 	pv := pivot(lsw, lo, hi, nsConc-1) // median-of-n pivot
-	a, b := sixb.MeanI(lo, pv), sixb.MeanI(pv, hi)
+	l, h := sixb.MeanI(lo, pv), sixb.MeanI(pv, hi)
 
-	go gpart1(lsw, a+1, pv, b-1, ch) // mid half range
+	go gPartOne(lsw, l+1, pv, h-1, ch) // mid half range
 
-	a, b = partition2(lsw, lo, a, pv, b, hi) // left/right quarter ranges
+	l, h = partTwo(lsw, lo, l, pv, h, hi) // left/right quarter ranges
 	k := <-ch
 
 	// only one gap is possible
-	for ; lo <= a; a-- { // gap left in low range?
-		if lsw(pv, a, k-1, a) {
+	for ; lo <= l; l-- { // gap left in low range?
+		if lsw(pv, l, k-1, l) {
 			k--
 			if k == pv { // swapped pivot when closing gap?
-				pv = a // Thanks to my wife Tansu who discovered this
+				pv = l // Thanks to my wife Tansu who discovered this
 			}
 		}
 	}
-	for ; b <= hi; b++ { // gap left in high range?
-		if lsw(b, pv, b, k) {
+	for ; h <= hi; h++ { // gap left in high range?
+		if lsw(h, pv, h, k) {
 			if k == pv { // swapped pivot when closing gap?
-				pv = b // It took days of agony to discover these two if's :D
+				pv = h // It took days of agony to discover these two if's :D
 			}
 			k++
 		}
@@ -182,7 +177,7 @@ func cdualpar(lsw Lesswap, lo, hi int, ch chan int) int {
 func short(lsw Lesswap, lo, hi int) {
 start:
 	pv := pivot(lsw, lo, hi, nsShort-1) // median-of-n pivot
-	l := partition1(lsw, lo, pv, hi)
+	l := partOne(lsw, lo, pv, hi)
 	h := l - 1
 	no, n := h-lo, hi-l
 
@@ -230,7 +225,7 @@ func glong(lsw Lesswap, lo, hi int, sv *syncVar) {
 func long(lsw Lesswap, lo, hi int, sv *syncVar) {
 start:
 	pv := pivot(lsw, lo, hi, nsLong-1) // median-of-n pivot
-	l := partition1(lsw, lo, pv, hi)
+	l := partOne(lsw, lo, pv, hi)
 	h := l - 1
 	no, n := h-lo, hi-l
 
@@ -313,7 +308,7 @@ func Sort(n int, lsw Lesswap) {
 	lo, hi := 0, n
 	for {
 		// concurrent dual partitioning with done
-		l := cdualpar(lsw, lo, hi, sv.done)
+		l := partCon(lsw, lo, hi, sv.done)
 		h := l - 1
 		no, n := h-lo, hi-l
 

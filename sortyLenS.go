@@ -66,107 +66,132 @@ func pivotLenS(slc []string, n uint) int {
 	return sixb.MeanI(sample[n-1], sample[n])
 }
 
-// partition ar into <= and >= pivot, assumes len(ar) >= 2
-// returns k with ar[:k] <= pivot, ar[k:] >= pivot
-func partition1LenS(ar []string, pv int) int {
-	l, h := 0, len(ar)-1
-	for l < h {
-		if len(ar[h]) < pv { // avoid unnecessary comparisons
-			for {
-				if pv < len(ar[l]) {
-					ar[l], ar[h] = ar[h], ar[l]
-					break
-				}
-				l++
-				if l >= h {
-					return l + 1
-				}
-			}
-		} else if pv < len(ar[l]) { // extend ranges in balance
-			for {
-				h--
-				if l >= h {
-					return l
-				}
-				if len(ar[h]) < pv {
-					ar[l], ar[h] = ar[h], ar[l]
-					break
-				}
-			}
+// partition slc, returns k with slc[:k] ≤ pivot ≤ slc[k:]
+// swap: slc[h] < pv ≤ slc[l]
+// swap: slc[h] ≤ pv < slc[l]
+// next: slc[l] ≤ pv ≤ slc[h]
+func partOneLenS(slc []string, pv int) int {
+	l, h := 0, len(slc)-1
+	goto start
+second:
+	for {
+		h--
+		if h <= l {
+			return l
+		}
+		if len(slc[h]) <= pv {
+			break
+		}
+	}
+swap:
+	slc[l], slc[h] = slc[h], slc[l]
+next:
+	l++
+	h--
+start:
+	if h <= l {
+		goto last
+	}
+
+	if pv <= len(slc[h]) { // avoid unnecessary comparisons
+		if pv < len(slc[l]) { // extend ranges in balance
+			goto second
+		}
+		goto next
+	}
+	for {
+		if pv <= len(slc[l]) {
+			goto swap
 		}
 		l++
-		h--
+		if h <= l {
+			return l + 1
+		}
 	}
-	if l == h && len(ar[h]) < pv { // classify mid element
+last:
+	if l == h && len(slc[h]) < pv { // classify mid element
 		l++
 	}
 	return l
 }
 
-// rearrange ar[:a] and ar[b:] into <= and >= pivot, assumes 0 < a < b < len(ar)
-// gap (a,b) expands until one of the intervals is fully consumed
-func partition2LenS(ar []string, a, b int, pv int) (int, int) {
-	a--
-	for a >= 0 && b < len(ar) {
-		if len(ar[b]) < pv { // avoid unnecessary comparisons
-			for {
-				if pv < len(ar[a]) {
-					ar[a], ar[b] = ar[b], ar[a]
-					break
-				}
-				a--
-				if a < 0 {
-					return a, b
-				}
-			}
-		} else if pv < len(ar[a]) { // extend ranges in balance
-			for {
-				b++
-				if b >= len(ar) {
-					return a, b
-				}
-				if len(ar[b]) < pv {
-					ar[a], ar[b] = ar[b], ar[a]
-					break
-				}
-			}
-		}
-		a--
-		b++
+// swaps elements to get slc[:l] ≤ pivot ≤ slc[h:]
+// Gap (l,h) expands until one of the intervals is fully consumed.
+// swap: slc[h] < pv ≤ slc[l]
+// swap: slc[h] ≤ pv < slc[l]
+// next: slc[l] ≤ pv ≤ slc[h]
+func partTwoLenS(slc []string, l, h int, pv int) (int, int) {
+	l--
+	if h <= l {
+		return l, h
 	}
-	return a, b
+	goto start
+second:
+	for {
+		h++
+		if h >= len(slc) {
+			return l, h
+		}
+		if len(slc[h]) <= pv {
+			break
+		}
+	}
+swap:
+	slc[l], slc[h] = slc[h], slc[l]
+next:
+	l--
+	h++
+start:
+	if l < 0 || h >= len(slc) {
+		return l, h
+	}
+
+	if pv <= len(slc[h]) { // avoid unnecessary comparisons
+		if pv < len(slc[l]) { // extend ranges in balance
+			goto second
+		}
+		goto next
+	}
+	for {
+		if pv <= len(slc[l]) {
+			goto swap
+		}
+		l--
+		if l < 0 {
+			return l, h
+		}
+	}
 }
 
 // new-goroutine partition
-func gpart1LenS(ar []string, pv int, ch chan int) {
-	ch <- partition1LenS(ar, pv)
+func gPartOneLenS(ar []string, pv int, ch chan int) {
+	ch <- partOneLenS(ar, pv)
 }
 
-// concurrent dual partitioning of ar
-// returns k with ar[:k] <= pivot, ar[k:] >= pivot
-func cdualparLenS(ar []string, ch chan int) int {
+// partition slc in two goroutines, returns k with slc[:k] ≤ pivot ≤ slc[k:]
+func partConLenS(slc []string, ch chan int) int {
 
-	pv := pivotLenS(ar, nsConc) // median-of-n pivot
-	k := len(ar) >> 1
-	a, b := k>>1, sixb.MeanI(k, len(ar))
+	pv := pivotLenS(slc, nsConc) // median-of-n pivot
+	k := len(slc) >> 1
+	l, h := k>>1, sixb.MeanI(k, len(slc))
 
-	go gpart1LenS(ar[a:b:b], pv, ch) // mid half range
+	go gPartOneLenS(slc[l:h:h], pv, ch) // mid half range
 
-	k = a
-	a, b = partition2LenS(ar, a, b, pv) // left/right quarter ranges
+	k = l
+	l, h = partTwoLenS(slc, l, h, pv) // left/right quarter ranges
 
-	k += <-ch // convert returned indice to ar
+	k += <-ch // convert returned indice to slc
 
 	// only one gap is possible
-	for ; 0 <= a; a-- { // gap left in low range?
-		if pv < len(ar[a]) {
+	for ; 0 <= l; l-- { // gap left in low range?
+		if pv < len(slc[l]) {
 			k--
-			ar[a], ar[k] = ar[k], ar[a]
+			slc[l], slc[k] = slc[k], slc[l]
 		}
 	}
-	for ; b < len(ar); b++ { // gap left in high range?
-		if len(ar[b]) < pv {
-			ar[b], ar[k] = ar[k], ar[b]
+	for ; h < len(slc); h++ { // gap left in high range?
+		if len(slc[h]) < pv {
+			slc[h], slc[k] = slc[k], slc[h]
 			k++
 		}
 	}
@@ -177,7 +202,7 @@ func cdualparLenS(ar []string, ch chan int) int {
 func shortLenS(ar []string) {
 start:
 	pv := pivotLenS(ar, nsShort) // median-of-n pivot
-	k := partition1LenS(ar, pv)
+	k := partOneLenS(ar, pv)
 	var aq []string
 
 	if k < len(ar)-k {
@@ -217,7 +242,7 @@ func glongLenS(ar []string, sv *syncVar) {
 func longLenS(ar []string, sv *syncVar) {
 start:
 	pv := pivotLenS(ar, nsLong) // median-of-n pivot
-	k := partition1LenS(ar, pv)
+	k := partOneLenS(ar, pv)
 	var aq []string
 
 	if k < len(ar)-k {
@@ -280,7 +305,7 @@ func sortLenS(ar []string) {
 		make(chan int)} // end signal
 	for {
 		// concurrent dual partitioning with done
-		k := cdualparLenS(ar, sv.done)
+		k := partConLenS(ar, sv.done)
 		var aq []string
 
 		if k < len(ar)-k {

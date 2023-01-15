@@ -66,107 +66,132 @@ func pivotI8(slc []int64, n uint) int64 {
 	return sixb.MeanI8(sample[n-1], sample[n])
 }
 
-// partition ar into <= and >= pivot, assumes len(ar) >= 2
-// returns k with ar[:k] <= pivot, ar[k:] >= pivot
-func partition1I8(ar []int64, pv int64) int {
-	l, h := 0, len(ar)-1
-	for l < h {
-		if ar[h] < pv { // avoid unnecessary comparisons
-			for {
-				if pv < ar[l] {
-					ar[l], ar[h] = ar[h], ar[l]
-					break
-				}
-				l++
-				if l >= h {
-					return l + 1
-				}
-			}
-		} else if pv < ar[l] { // extend ranges in balance
-			for {
-				h--
-				if l >= h {
-					return l
-				}
-				if ar[h] < pv {
-					ar[l], ar[h] = ar[h], ar[l]
-					break
-				}
-			}
+// partition slc, returns k with slc[:k] ≤ pivot ≤ slc[k:]
+// swap: slc[h] < pv ≤ slc[l]
+// swap: slc[h] ≤ pv < slc[l]
+// next: slc[l] ≤ pv ≤ slc[h]
+func partOneI8(slc []int64, pv int64) int {
+	l, h := 0, len(slc)-1
+	goto start
+second:
+	for {
+		h--
+		if h <= l {
+			return l
+		}
+		if slc[h] <= pv {
+			break
+		}
+	}
+swap:
+	slc[l], slc[h] = slc[h], slc[l]
+next:
+	l++
+	h--
+start:
+	if h <= l {
+		goto last
+	}
+
+	if pv <= slc[h] { // avoid unnecessary comparisons
+		if pv < slc[l] { // extend ranges in balance
+			goto second
+		}
+		goto next
+	}
+	for {
+		if pv <= slc[l] {
+			goto swap
 		}
 		l++
-		h--
+		if h <= l {
+			return l + 1
+		}
 	}
-	if l == h && ar[h] < pv { // classify mid element
+last:
+	if l == h && slc[h] < pv { // classify mid element
 		l++
 	}
 	return l
 }
 
-// rearrange ar[:a] and ar[b:] into <= and >= pivot, assumes 0 < a < b < len(ar)
-// gap (a,b) expands until one of the intervals is fully consumed
-func partition2I8(ar []int64, a, b int, pv int64) (int, int) {
-	a--
-	for a >= 0 && b < len(ar) {
-		if ar[b] < pv { // avoid unnecessary comparisons
-			for {
-				if pv < ar[a] {
-					ar[a], ar[b] = ar[b], ar[a]
-					break
-				}
-				a--
-				if a < 0 {
-					return a, b
-				}
-			}
-		} else if pv < ar[a] { // extend ranges in balance
-			for {
-				b++
-				if b >= len(ar) {
-					return a, b
-				}
-				if ar[b] < pv {
-					ar[a], ar[b] = ar[b], ar[a]
-					break
-				}
-			}
-		}
-		a--
-		b++
+// swaps elements to get slc[:l] ≤ pivot ≤ slc[h:]
+// Gap (l,h) expands until one of the intervals is fully consumed.
+// swap: slc[h] < pv ≤ slc[l]
+// swap: slc[h] ≤ pv < slc[l]
+// next: slc[l] ≤ pv ≤ slc[h]
+func partTwoI8(slc []int64, l, h int, pv int64) (int, int) {
+	l--
+	if h <= l {
+		return l, h
 	}
-	return a, b
+	goto start
+second:
+	for {
+		h++
+		if h >= len(slc) {
+			return l, h
+		}
+		if slc[h] <= pv {
+			break
+		}
+	}
+swap:
+	slc[l], slc[h] = slc[h], slc[l]
+next:
+	l--
+	h++
+start:
+	if l < 0 || h >= len(slc) {
+		return l, h
+	}
+
+	if pv <= slc[h] { // avoid unnecessary comparisons
+		if pv < slc[l] { // extend ranges in balance
+			goto second
+		}
+		goto next
+	}
+	for {
+		if pv <= slc[l] {
+			goto swap
+		}
+		l--
+		if l < 0 {
+			return l, h
+		}
+	}
 }
 
 // new-goroutine partition
-func gpart1I8(ar []int64, pv int64, ch chan int) {
-	ch <- partition1I8(ar, pv)
+func gPartOneI8(ar []int64, pv int64, ch chan int) {
+	ch <- partOneI8(ar, pv)
 }
 
-// concurrent dual partitioning of ar
-// returns k with ar[:k] <= pivot, ar[k:] >= pivot
-func cdualparI8(ar []int64, ch chan int) int {
+// partition slc in two goroutines, returns k with slc[:k] ≤ pivot ≤ slc[k:]
+func partConI8(slc []int64, ch chan int) int {
 
-	pv := pivotI8(ar, nsConc) // median-of-n pivot
-	k := len(ar) >> 1
-	a, b := k>>1, sixb.MeanI(k, len(ar))
+	pv := pivotI8(slc, nsConc) // median-of-n pivot
+	k := len(slc) >> 1
+	l, h := k>>1, sixb.MeanI(k, len(slc))
 
-	go gpart1I8(ar[a:b:b], pv, ch) // mid half range
+	go gPartOneI8(slc[l:h:h], pv, ch) // mid half range
 
-	k = a
-	a, b = partition2I8(ar, a, b, pv) // left/right quarter ranges
+	k = l
+	l, h = partTwoI8(slc, l, h, pv) // left/right quarter ranges
 
-	k += <-ch // convert returned indice to ar
+	k += <-ch // convert returned indice to slc
 
 	// only one gap is possible
-	for ; 0 <= a; a-- { // gap left in low range?
-		if pv < ar[a] {
+	for ; 0 <= l; l-- { // gap left in low range?
+		if pv < slc[l] {
 			k--
-			ar[a], ar[k] = ar[k], ar[a]
+			slc[l], slc[k] = slc[k], slc[l]
 		}
 	}
-	for ; b < len(ar); b++ { // gap left in high range?
-		if ar[b] < pv {
-			ar[b], ar[k] = ar[k], ar[b]
+	for ; h < len(slc); h++ { // gap left in high range?
+		if slc[h] < pv {
+			slc[h], slc[k] = slc[k], slc[h]
 			k++
 		}
 	}
@@ -177,7 +202,7 @@ func cdualparI8(ar []int64, ch chan int) int {
 func shortI8(ar []int64) {
 start:
 	pv := pivotI8(ar, nsShort) // median-of-n pivot
-	k := partition1I8(ar, pv)
+	k := partOneI8(ar, pv)
 	var aq []int64
 
 	if k < len(ar)-k {
@@ -217,7 +242,7 @@ func glongI8(ar []int64, sv *syncVar) {
 func longI8(ar []int64, sv *syncVar) {
 start:
 	pv := pivotI8(ar, nsLong) // median-of-n pivot
-	k := partition1I8(ar, pv)
+	k := partOneI8(ar, pv)
 	var aq []int64
 
 	if k < len(ar)-k {
@@ -280,7 +305,7 @@ func sortI8(ar []int64) {
 		make(chan int)} // end signal
 	for {
 		// concurrent dual partitioning with done
-		k := cdualparI8(ar, sv.done)
+		k := partConI8(ar, sv.done)
 		var aq []int64
 
 		if k < len(ar)-k {

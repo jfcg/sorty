@@ -66,107 +66,132 @@ func pivotB(slc [][]byte, n uint) string {
 	return sixb.MeanS(sample[n-1], sample[n])
 }
 
-// partition ar into <= and >= pivot, assumes len(ar) >= 2
-// returns k with ar[:k] <= pivot, ar[k:] >= pivot
-func partition1B(ar [][]byte, pv string) int {
-	l, h := 0, len(ar)-1
-	for l < h {
-		if sixb.BtoS(ar[h]) < pv { // avoid unnecessary comparisons
-			for {
-				if pv < sixb.BtoS(ar[l]) {
-					ar[l], ar[h] = ar[h], ar[l]
-					break
-				}
-				l++
-				if l >= h {
-					return l + 1
-				}
-			}
-		} else if pv < sixb.BtoS(ar[l]) { // extend ranges in balance
-			for {
-				h--
-				if l >= h {
-					return l
-				}
-				if sixb.BtoS(ar[h]) < pv {
-					ar[l], ar[h] = ar[h], ar[l]
-					break
-				}
-			}
+// partition slc, returns k with slc[:k] ≤ pivot ≤ slc[k:]
+// swap: slc[h] < pv ≤ slc[l]
+// swap: slc[h] ≤ pv < slc[l]
+// next: slc[l] ≤ pv ≤ slc[h]
+func partOneB(slc [][]byte, pv string) int {
+	l, h := 0, len(slc)-1
+	goto start
+second:
+	for {
+		h--
+		if h <= l {
+			return l
+		}
+		if sixb.BtoS(slc[h]) <= pv {
+			break
+		}
+	}
+swap:
+	slc[l], slc[h] = slc[h], slc[l]
+next:
+	l++
+	h--
+start:
+	if h <= l {
+		goto last
+	}
+
+	if pv <= sixb.BtoS(slc[h]) { // avoid unnecessary comparisons
+		if pv < sixb.BtoS(slc[l]) { // extend ranges in balance
+			goto second
+		}
+		goto next
+	}
+	for {
+		if pv <= sixb.BtoS(slc[l]) {
+			goto swap
 		}
 		l++
-		h--
+		if h <= l {
+			return l + 1
+		}
 	}
-	if l == h && sixb.BtoS(ar[h]) < pv { // classify mid element
+last:
+	if l == h && sixb.BtoS(slc[h]) < pv { // classify mid element
 		l++
 	}
 	return l
 }
 
-// rearrange ar[:a] and ar[b:] into <= and >= pivot, assumes 0 < a < b < len(ar)
-// gap (a,b) expands until one of the intervals is fully consumed
-func partition2B(ar [][]byte, a, b int, pv string) (int, int) {
-	a--
-	for a >= 0 && b < len(ar) {
-		if sixb.BtoS(ar[b]) < pv { // avoid unnecessary comparisons
-			for {
-				if pv < sixb.BtoS(ar[a]) {
-					ar[a], ar[b] = ar[b], ar[a]
-					break
-				}
-				a--
-				if a < 0 {
-					return a, b
-				}
-			}
-		} else if pv < sixb.BtoS(ar[a]) { // extend ranges in balance
-			for {
-				b++
-				if b >= len(ar) {
-					return a, b
-				}
-				if sixb.BtoS(ar[b]) < pv {
-					ar[a], ar[b] = ar[b], ar[a]
-					break
-				}
-			}
-		}
-		a--
-		b++
+// swaps elements to get slc[:l] ≤ pivot ≤ slc[h:]
+// Gap (l,h) expands until one of the intervals is fully consumed.
+// swap: slc[h] < pv ≤ slc[l]
+// swap: slc[h] ≤ pv < slc[l]
+// next: slc[l] ≤ pv ≤ slc[h]
+func partTwoB(slc [][]byte, l, h int, pv string) (int, int) {
+	l--
+	if h <= l {
+		return l, h
 	}
-	return a, b
+	goto start
+second:
+	for {
+		h++
+		if h >= len(slc) {
+			return l, h
+		}
+		if sixb.BtoS(slc[h]) <= pv {
+			break
+		}
+	}
+swap:
+	slc[l], slc[h] = slc[h], slc[l]
+next:
+	l--
+	h++
+start:
+	if l < 0 || h >= len(slc) {
+		return l, h
+	}
+
+	if pv <= sixb.BtoS(slc[h]) { // avoid unnecessary comparisons
+		if pv < sixb.BtoS(slc[l]) { // extend ranges in balance
+			goto second
+		}
+		goto next
+	}
+	for {
+		if pv <= sixb.BtoS(slc[l]) {
+			goto swap
+		}
+		l--
+		if l < 0 {
+			return l, h
+		}
+	}
 }
 
 // new-goroutine partition
-func gpart1B(ar [][]byte, pv string, ch chan int) {
-	ch <- partition1B(ar, pv)
+func gPartOneB(ar [][]byte, pv string, ch chan int) {
+	ch <- partOneB(ar, pv)
 }
 
-// concurrent dual partitioning of ar
-// returns k with ar[:k] <= pivot, ar[k:] >= pivot
-func cdualparB(ar [][]byte, ch chan int) int {
+// partition slc in two goroutines, returns k with slc[:k] ≤ pivot ≤ slc[k:]
+func partConB(slc [][]byte, ch chan int) int {
 
-	pv := pivotB(ar, nsConc) // median-of-n pivot
-	k := len(ar) >> 1
-	a, b := k>>1, sixb.MeanI(k, len(ar))
+	pv := pivotB(slc, nsConc) // median-of-n pivot
+	k := len(slc) >> 1
+	l, h := k>>1, sixb.MeanI(k, len(slc))
 
-	go gpart1B(ar[a:b:b], pv, ch) // mid half range
+	go gPartOneB(slc[l:h:h], pv, ch) // mid half range
 
-	k = a
-	a, b = partition2B(ar, a, b, pv) // left/right quarter ranges
+	k = l
+	l, h = partTwoB(slc, l, h, pv) // left/right quarter ranges
 
-	k += <-ch // convert returned indice to ar
+	k += <-ch // convert returned indice to slc
 
 	// only one gap is possible
-	for ; 0 <= a; a-- { // gap left in low range?
-		if pv < sixb.BtoS(ar[a]) {
+	for ; 0 <= l; l-- { // gap left in low range?
+		if pv < sixb.BtoS(slc[l]) {
 			k--
-			ar[a], ar[k] = ar[k], ar[a]
+			slc[l], slc[k] = slc[k], slc[l]
 		}
 	}
-	for ; b < len(ar); b++ { // gap left in high range?
-		if sixb.BtoS(ar[b]) < pv {
-			ar[b], ar[k] = ar[k], ar[b]
+	for ; h < len(slc); h++ { // gap left in high range?
+		if sixb.BtoS(slc[h]) < pv {
+			slc[h], slc[k] = slc[k], slc[h]
 			k++
 		}
 	}
@@ -177,7 +202,7 @@ func cdualparB(ar [][]byte, ch chan int) int {
 func shortB(ar [][]byte) {
 start:
 	pv := pivotB(ar, nsShort) // median-of-n pivot
-	k := partition1B(ar, pv)
+	k := partOneB(ar, pv)
 	var aq [][]byte
 
 	if k < len(ar)-k {
@@ -217,7 +242,7 @@ func glongB(ar [][]byte, sv *syncVar) {
 func longB(ar [][]byte, sv *syncVar) {
 start:
 	pv := pivotB(ar, nsLong) // median-of-n pivot
-	k := partition1B(ar, pv)
+	k := partOneB(ar, pv)
 	var aq [][]byte
 
 	if k < len(ar)-k {
@@ -280,7 +305,7 @@ func sortB(ar [][]byte) {
 		make(chan int)} // end signal
 	for {
 		// concurrent dual partitioning with done
-		k := cdualparB(ar, sv.done)
+		k := partConB(ar, sv.done)
 		var aq [][]byte
 
 		if k < len(ar)-k {
