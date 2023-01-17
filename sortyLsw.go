@@ -49,20 +49,30 @@ func insertion(lsw Lesswap, lo, hi int) {
 // pivot selects n equidistant samples from slc[lo:hi+1] that minimizes max distance
 // to non-selected members, then calculates median-of-n pivot from samples.
 // Assumes odd n ≥ 3 and len(slc) ≥ 2n. Returns pivot position.
+// Moves one sorted sample to each end to ensure sub-slices have lengths ≥ 1
 func pivot(lsw Lesswap, lo, hi int, n uint) int {
 
-	f, s, _ := minMaxSample(uint(hi+1-lo), n)
+	f, s, l := minMaxSample(uint(hi+1-lo), n)
 	first := lo + int(f)
 	step := int(s)
+	last := lo + int(l)
 
 	// insertion sort slc[first + j * step], j=0,1,..
-	for h := first + step; h <= hi; h += step {
+	for h := first + step; h <= last; h += step {
 		for l := h; lsw(l, l-step, l, l-step); {
 			l -= step
 			if l <= first {
 				break
 			}
 		}
+	}
+
+	// move one sorted sample to each end
+	if lo < first {
+		lsw(first, lo, first, lo)
+	}
+	if last < hi {
+		lsw(hi, last, hi, last)
 	}
 
 	return sixb.MeanI(lo+1, hi)
@@ -146,6 +156,8 @@ func gPartOne(lsw Lesswap, l, pv, h int, ch chan int) {
 func partCon(lsw Lesswap, lo, hi int, ch chan int) int {
 
 	pv := pivot(lsw, lo, hi, nsConc-1) // median-of-n pivot
+	lo++
+	hi--
 	l, h := sixb.MeanI(lo, pv), sixb.MeanI(pv, hi)
 
 	go gPartOne(lsw, l+1, pv, h-1, ch) // mid half range
@@ -177,7 +189,7 @@ func partCon(lsw Lesswap, lo, hi int, ch chan int) int {
 func short(lsw Lesswap, lo, hi int) {
 start:
 	pv := pivot(lsw, lo, hi, nsShort-1) // median-of-n pivot
-	l := partOne(lsw, lo, pv, hi)
+	l := partOne(lsw, lo+1, pv, hi-1)
 	h := l - 1
 	no, n := h-lo, hi-l
 
@@ -225,7 +237,7 @@ func glong(lsw Lesswap, lo, hi int, sv *syncVar) {
 func long(lsw Lesswap, lo, hi int, sv *syncVar) {
 start:
 	pv := pivot(lsw, lo, hi, nsLong-1) // median-of-n pivot
-	l := partOne(lsw, lo, pv, hi)
+	l := partOne(lsw, lo+1, pv, hi-1)
 	h := l - 1
 	no, n := h-lo, hi-l
 
