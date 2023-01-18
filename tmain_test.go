@@ -18,6 +18,39 @@ import (
 	"github.com/jfcg/sixb"
 )
 
+func TestMinMax(t *testing.T) {
+	for n := uint(2); n <= 3*nsConc; n++ {
+		for slen := 2 * n; slen <= 3*MaxLenRec; slen++ {
+
+			first, step, last := minMaxSample(slen, n)
+			diff := last - first
+
+			// basic checks
+			if !(first < last && last < slen && 2 <= step && step <= diff) {
+				t.Fatal("must have first < last < slen, 2 ≤ step ≤ last-first")
+			}
+
+			// first is larger tail, tails differ by at most 1
+			if !(slen-last-1 <= first && first <= slen-last) {
+				t.Fatal("must have slen-last-1 ≤ first ≤ slen-last")
+			}
+
+			// equidistant
+			if (n-1)*step != diff {
+				t.Fatal("must have first + (n-1) * step = last")
+			}
+
+			tail := slen - diff // 1 + #members in both tails
+
+			// max distance to non-selected members optimal?
+			if tail >= n && first > (step+1)>>1 || // from tails to inside
+				step>>1 > (tail+n-1)>>1 { // from inside to tails
+				t.Fatal("max distance sub-optimal")
+			}
+		}
+	}
+}
+
 func printSec(tn string, d time.Duration) float64 {
 	sec := d.Seconds()
 	fmt.Printf("%10s %5.2fs\n", tn, sec)
