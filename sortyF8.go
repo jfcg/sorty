@@ -201,7 +201,23 @@ func partConF8(slc []float64, ch chan int) int {
 // short range sort function, assumes MaxLenIns < len(ar) <= MaxLenRec
 func shortF8(ar []float64) {
 start:
-	pv := pivotF8(ar, nsShort) // median-of-n pivot
+	first, step := minMaxFour(uint32(len(ar)))
+	a, b, c, d := ar[first], ar[first+step], ar[first+2*step], ar[first+3*step]
+
+	if d < b {
+		d, b = b, d
+	}
+	if c < a {
+		c, a = a, c
+	}
+	if d < c {
+		c = d
+	}
+	if b < a {
+		b = a
+	}
+	pv := (b + c) / 2 // median-of-4 pivot
+
 	k := partOneF8(ar, pv)
 	var aq []float64
 
@@ -217,7 +233,7 @@ start:
 		shortF8(aq) // recurse on the shorter range
 		goto start
 	}
-psort:
+isort:
 	insertionF8(aq) // at least one insertion range
 
 	if len(ar) > MaxLenIns {
@@ -225,7 +241,7 @@ psort:
 	}
 	if &ar[0] != &aq[0] {
 		aq = ar
-		goto psort // two insertion ranges
+		goto isort // two insertion ranges
 	}
 }
 

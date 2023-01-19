@@ -201,7 +201,23 @@ func partConU8(slc []uint64, ch chan int) int {
 // short range sort function, assumes MaxLenIns < len(ar) <= MaxLenRec
 func shortU8(ar []uint64) {
 start:
-	pv := pivotU8(ar, nsShort) // median-of-n pivot
+	first, step := minMaxFour(uint32(len(ar)))
+	a, b, c, d := ar[first], ar[first+step], ar[first+2*step], ar[first+3*step]
+
+	if d < b {
+		d, b = b, d
+	}
+	if c < a {
+		c, a = a, c
+	}
+	if d < c {
+		c = d
+	}
+	if b < a {
+		b = a
+	}
+	pv := sixb.MeanU8(b, c) // median-of-4 pivot
+
 	k := partOneU8(ar, pv)
 	var aq []uint64
 
@@ -217,7 +233,7 @@ start:
 		shortU8(aq) // recurse on the shorter range
 		goto start
 	}
-psort:
+isort:
 	insertionU8(aq) // at least one insertion range
 
 	if len(ar) > MaxLenIns {
@@ -225,7 +241,7 @@ psort:
 	}
 	if &ar[0] != &aq[0] {
 		aq = ar
-		goto psort // two insertion ranges
+		goto isort // two insertion ranges
 	}
 }
 

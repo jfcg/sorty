@@ -201,7 +201,24 @@ func partConLenS(slc []string, ch chan int) int {
 // short range sort function, assumes MaxLenIns < len(ar) <= MaxLenRec
 func shortLenS(ar []string) {
 start:
-	pv := pivotLenS(ar, nsShort) // median-of-n pivot
+	first, step := minMaxFour(uint32(len(ar)))
+	a, b := len(ar[first]), len(ar[first+step])
+	c, d := len(ar[first+2*step]), len(ar[first+3*step])
+
+	if d < b {
+		d, b = b, d
+	}
+	if c < a {
+		c, a = a, c
+	}
+	if d < c {
+		c = d
+	}
+	if b < a {
+		b = a
+	}
+	pv := sixb.MeanI(b, c) // median-of-4 pivot
+
 	k := partOneLenS(ar, pv)
 	var aq []string
 
@@ -217,7 +234,7 @@ start:
 		shortLenS(aq) // recurse on the shorter range
 		goto start
 	}
-psort:
+isort:
 	insertionLenS(aq) // at least one insertion range
 
 	if len(ar) > MaxLenIns {
@@ -225,7 +242,7 @@ psort:
 	}
 	if &ar[0] != &aq[0] {
 		aq = ar
-		goto psort // two insertion ranges
+		goto isort // two insertion ranges
 	}
 }
 
