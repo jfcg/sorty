@@ -68,14 +68,10 @@ func pivot(lsw Lesswap, lo, hi int, n uint) int {
 	}
 
 	// move one sorted sample to each end
-	if lo < first {
-		lsw(first, lo, first, lo)
-	}
-	if last < hi {
-		lsw(hi, last, hi, last)
-	}
+	lsw(first, lo, first, lo)
+	lsw(hi, last, hi, last)
 
-	return sixb.MeanI(lo+1, hi)
+	return sixb.MeanI(first, last)
 }
 
 // partition slc, returns k with slc[:k] ≤ pivot ≤ slc[k:]
@@ -188,7 +184,20 @@ func partCon(lsw Lesswap, lo, hi int, ch chan int) int {
 // short range sort function, assumes MaxLenInsFC <= hi-lo < MaxLenRec
 func short(lsw Lesswap, lo, hi int) {
 start:
-	pv := pivot(lsw, lo, hi, nsShort-1) // median-of-n pivot
+	fr, step, _ := minMaxSample(uint(hi+1-lo), 3)
+	first := lo + int(fr)
+	pv := first + int(step)
+	last := pv + int(step)
+
+	lsw(pv, first, pv, first)
+	if lsw(last, pv, last, pv) {
+		lsw(pv, first, pv, first) // median-of-3 pivot
+	}
+
+	// move one sorted sample to each end
+	lsw(first, lo, first, lo)
+	lsw(hi, last, hi, last)
+
 	l := partOne(lsw, lo+1, pv, hi-1)
 	h := l - 1
 	no, n := h-lo, hi-l

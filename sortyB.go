@@ -50,20 +50,19 @@ func insertionB(slc [][]byte) {
 
 // pivotB selects n equidistant samples from slc that minimizes max distance
 // to non-selected members, then calculates median-of-n pivot from samples.
-// Assumes even n, nsConc ≥ n ≥ 2, len(slc) ≥ 2n. Returns pivot for partitioning.
+// Assumes odd n, nsConc > n ≥ 3, len(slc) ≥ 2n. Returns pivot for partitioning.
 func pivotB(slc [][]byte, n uint) string {
 
 	first, step, _ := minMaxSample(uint(len(slc)), n)
 
-	var sample [nsConc]string
+	var sample [nsConc - 1]string
 	for i := int(n - 1); i >= 0; i-- {
 		sample[i] = sixb.BtoS(slc[first])
 		first += step
 	}
 	insertionS(sample[:n]) // sort n samples
 
-	n >>= 1 // return mean of middle two samples
-	return sixb.MeanS(sample[n-1], sample[n])
+	return sample[n>>1] // return middle sample
 }
 
 // partition slc, returns k with slc[:k] ≤ pivot ≤ slc[k:]
@@ -171,7 +170,7 @@ func gPartOneB(ar [][]byte, pv string, ch chan int) {
 // partition slc in two goroutines, returns k with slc[:k] ≤ pivot ≤ slc[k:]
 func partConB(slc [][]byte, ch chan int) int {
 
-	pv := pivotB(slc, nsConc) // median-of-n pivot
+	pv := pivotB(slc, nsConc-1) // median-of-n pivot
 	k := len(slc) >> 1
 	l, h := k>>1, sixb.MeanI(k, len(slc))
 
@@ -201,7 +200,20 @@ func partConB(slc [][]byte, ch chan int) int {
 // short range sort function, assumes MaxLenInsFC < len(ar) <= MaxLenRec
 func shortB(ar [][]byte) {
 start:
-	pv := pivotB(ar, nsShort) // median-of-n pivot
+	first, step, last := minMaxSample(uint(len(ar)), 3)
+	f, pv, l := sixb.BtoS(ar[first]), sixb.BtoS(ar[first+step]), sixb.BtoS(ar[last])
+
+	if pv < f {
+		pv, f = f, pv
+	}
+	if l < pv {
+		if l < f {
+			pv = f
+		} else {
+			pv = l // median-of-3 pivot
+		}
+	}
+
 	k := partOneB(ar, pv)
 	var aq [][]byte
 
@@ -217,7 +229,7 @@ start:
 		shortB(aq) // recurse on the shorter range
 		goto start
 	}
-psort:
+isort:
 	insertionB(aq) // at least one insertion range
 
 	if len(ar) > MaxLenInsFC {
@@ -225,7 +237,7 @@ psort:
 	}
 	if &ar[0] != &aq[0] {
 		aq = ar
-		goto psort // two insertion ranges
+		goto isort // two insertion ranges
 	}
 }
 
@@ -241,7 +253,7 @@ func glongB(ar [][]byte, sv *syncVar) {
 // long range sort function, assumes len(ar) > MaxLenRec
 func longB(ar [][]byte, sv *syncVar) {
 start:
-	pv := pivotB(ar, nsLong) // median-of-n pivot
+	pv := pivotB(ar, nsLong-1) // median-of-n pivot
 	k := partOneB(ar, pv)
 	var aq [][]byte
 
