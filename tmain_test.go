@@ -49,6 +49,15 @@ func TestMinMax(t *testing.T) {
 			}
 		}
 	}
+
+	for slen := uint(8); slen <= 3*MaxLenRec; slen++ {
+		f1, s1, _ := minMaxSample(slen, 4)
+		f2, s2 := minMaxFour(uint32(slen))
+
+		if f1 != uint(f2) || s1 != uint(s2) {
+			t.Fatal("minMaxFour != minMaxSample")
+		}
+	}
 }
 
 func printSec(tn string, d time.Duration) float64 {

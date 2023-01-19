@@ -96,6 +96,17 @@ func minMaxSample(slen, n uint) (first, step, last uint) {
 	return
 }
 
+var firstFour = [8]uint32{0, 0, ^uint32(0), 0, 0, 1, 1, 0}
+var stepFour = [8]uint32{0, 0, 1, 1, 0, 0, 0, 1}
+
+// optimized version of minMaxSample for n=4
+func minMaxFour(slen uint32) (first, step uint32) {
+	mod := slen & 7
+	first = slen>>3 + firstFour[mod]
+	step = slen>>2 + stepFour[mod]
+	return
+}
+
 func insertionI(slc []int) {
 	if unsafe.Sizeof(int(0)) == 8 {
 		insertionI8(*(*[]int64)(unsafe.Pointer(&slc)))
