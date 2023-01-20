@@ -28,7 +28,7 @@ import (
 // concurrently used for sorting per Sort*() call. MaxGor can be changed live, even
 // during ongoing Sort*() calls. MaxGor ≤ 1 (or a short input) yields single-goroutine
 // sorting: sorty will not create any goroutines or channel.
-var MaxGor uint32 = 3
+var MaxGor uint64 = 3
 
 func init() {
 	if !(4097 > MaxGor && MaxGor > 0 && MaxLenRec > 2*MaxLenIns &&
@@ -60,7 +60,7 @@ func Search(n int, fn func(int) bool) int {
 
 // synchronization variables for [g]long*()
 type syncVar struct {
-	ngr  uint32   // number of sorting goroutines
+	nGor uint64   // number of sorting goroutines
 	done chan int // end signal
 }
 
@@ -69,7 +69,7 @@ type syncVar struct {
 //go:norace
 func gorFull(sv *syncVar) bool {
 	mg := MaxGor
-	return sv.ngr >= mg
+	return sv.nGor >= mg
 }
 
 const (

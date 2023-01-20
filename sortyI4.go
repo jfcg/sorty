@@ -254,7 +254,7 @@ isort:
 func gLongI4(ar []int32, sv *syncVar) {
 	longI4(ar, sv)
 
-	if atomic.AddUint32(&sv.ngr, ^uint32(0)) == 0 { // decrease goroutine counter
+	if atomic.AddUint64(&sv.nGor, ^uint64(0)) == 0 { // decrease goroutine counter
 		sv.done <- 0 // we are the last, all done
 	}
 }
@@ -296,11 +296,9 @@ start:
 		goto start
 	}
 
-	if atomic.AddUint32(&sv.ngr, 1) == 0 { // increase goroutine counter
-		panic("sorty: longI4: counter overflow")
-	}
 	// new-goroutine sort on the longer range only when
 	// both ranges are big and max goroutines is not exceeded
+	atomic.AddUint64(&sv.nGor, 1) // increase goroutine counter
 	go gLongI4(ar, sv)
 	ar = aq
 	goto start
@@ -339,9 +337,7 @@ func sortI4(ar []int32) {
 
 		// handle shorter range
 		if len(aq) > MaxLenRec {
-			if atomic.AddUint32(&sv.ngr, 1) == 0 { // increase goroutine counter
-				panic("sorty: sortI4: counter overflow")
-			}
+			atomic.AddUint64(&sv.nGor, 1) // increase goroutine counter
 			go gLongI4(aq, &sv)
 
 		} else if len(aq) > MaxLenIns {
@@ -359,7 +355,7 @@ func sortI4(ar []int32) {
 
 	longI4(ar, &sv) // we know len(ar) > MaxLenRec
 
-	if atomic.AddUint32(&sv.ngr, ^uint32(0)) != 0 { // decrease goroutine counter
+	if atomic.AddUint64(&sv.nGor, ^uint64(0)) != 0 { // decrease goroutine counter
 		<-sv.done // we are not the last, wait
 	}
 }
