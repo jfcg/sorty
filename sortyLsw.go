@@ -25,6 +25,8 @@ type Lesswap func(i, k, r, s int) bool
 
 // IsSorted returns 0 if underlying collection of length n is sorted,
 // otherwise it returns i > 0 with less(i,i-1) = true.
+//
+//go:nosplit
 func IsSorted(n int, lsw Lesswap) int {
 	for i := n - 1; i > 0; i-- {
 		if lsw(i, i-1, i, i) { // 3rd=4th disables swap
@@ -35,6 +37,8 @@ func IsSorted(n int, lsw Lesswap) int {
 }
 
 // insertion sort ar[lo..hi]
+//
+//go:nosplit
 func insertion(lsw Lesswap, lo, hi int) {
 	for h := lo + 1; h <= hi; h++ {
 		for l := h; lsw(l, l-1, l, l-1); {
@@ -50,6 +54,8 @@ func insertion(lsw Lesswap, lo, hi int) {
 // to non-selected members, then calculates median-of-n pivot from samples.
 // Assumes odd n ≥ 3 and len(slc) ≥ 2n. Returns pivot position.
 // Moves one sorted sample to each end to ensure sub-slices have lengths ≥ 1
+//
+//go:nosplit
 func pivot(lsw Lesswap, lo, hi int, n uint) int {
 
 	f, s, l := minMaxSample(uint(hi+1-lo), n)
@@ -77,6 +83,8 @@ func pivot(lsw Lesswap, lo, hi int, n uint) int {
 // partition slc, returns k with slc[:k] ≤ pivot ≤ slc[k:]
 // swap: slc[h] < pv < slc[l]
 // next: slc[l] ≤ pv ≤ slc[h]
+//
+//go:nosplit
 func partOne(lsw Lesswap, l, pv, h int) int {
 	// avoid unnecessary comparisons, extend ranges in balance
 	for ; l < h; l, h = l+1, h-1 {
@@ -114,6 +122,8 @@ func partOne(lsw Lesswap, l, pv, h int) int {
 // Gap (l,h) expands until one of the intervals is fully consumed.
 // swap: slc[h] < pv < slc[l]
 // next: slc[l] ≤ pv ≤ slc[h]
+//
+//go:nosplit
 func partTwo(lsw Lesswap, lo, l, pv, h, hi int) int {
 	// avoid unnecessary comparisons, extend ranges in balance
 	for {
@@ -150,11 +160,15 @@ func partTwo(lsw Lesswap, lo, l, pv, h, hi int) int {
 }
 
 // new-goroutine partition
+//
+//go:nosplit
 func gPartOne(lsw Lesswap, l, pv, h int, ch chan int) {
 	ch <- partOne(lsw, l, pv, h)
 }
 
 // partition slc in two goroutines, returns k with slc[:k] ≤ pivot ≤ slc[k:]
+//
+//go:nosplit
 func partCon(lsw Lesswap, lo, hi int, ch chan int) int {
 
 	pv := pivot(lsw, lo, hi, nsConc-1) // median-of-n pivot
@@ -191,7 +205,7 @@ func partCon(lsw Lesswap, lo, hi int, ch chan int) int {
 	return k
 }
 
-// short range sort function, assumes MaxLenInsFC <= hi-lo < MaxLenRec
+// short range sort function, assumes MaxLenInsFC <= hi-lo < MaxLenRec, recursive
 func short(lsw Lesswap, lo, hi int) {
 start:
 	fr, step, _ := minMaxSample(uint(hi+1-lo), 3)
@@ -244,6 +258,8 @@ isort:
 }
 
 // new-goroutine sort function
+//
+//go:nosplit
 func gLong(lsw Lesswap, lo, hi int, sv *syncVar) {
 	long(lsw, lo, hi, sv)
 
@@ -252,7 +268,7 @@ func gLong(lsw Lesswap, lo, hi int, sv *syncVar) {
 	}
 }
 
-// long range sort function, assumes hi-lo >= MaxLenRec
+// long range sort function, assumes hi-lo >= MaxLenRec, recursive
 func long(lsw Lesswap, lo, hi int, sv *syncVar) {
 start:
 	pv := pivot(lsw, lo, hi, nsLong-1) // median-of-n pivot
@@ -316,6 +332,8 @@ start:
 //
 // [Lesswap] is a contract between users and sorty. Strict
 // comparator, r!=s check, swap and returns are all necessary.
+//
+//go:nosplit
 func Sort(n int, lsw Lesswap) {
 
 	n-- // high index

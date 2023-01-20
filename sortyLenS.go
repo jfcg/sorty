@@ -13,7 +13,7 @@ import (
 )
 
 // isSortedLenS returns 0 if ar is sorted by length in ascending
-// order, otherwise it returns i > 0 with len(ar[i]) < len(ar[i-1])
+// order, otherwise it returns i > 0 with len(ar[i]) < len(ar[i-1]), inlined
 func isSortedLenS(ar []string) int {
 	for i := len(ar) - 1; i > 0; i-- {
 		if len(ar[i]) < len(ar[i-1]) {
@@ -23,7 +23,7 @@ func isSortedLenS(ar []string) int {
 	return 0
 }
 
-// insertion sort
+// insertion sort, inlined
 func insertionLenS(slc []string) {
 	for h := 1; h < len(slc); h++ {
 		l, val := h, slc[h]
@@ -51,6 +51,8 @@ func insertionLenS(slc []string) {
 // pivotLenS selects n equidistant samples from slc that minimizes max distance
 // to non-selected members, then calculates median-of-n pivot from samples.
 // Assumes even n, nsConc ≥ n ≥ 2, len(slc) ≥ 2n. Returns pivot for partitioning.
+//
+//go:nosplit
 func pivotLenS(slc []string, n uint) int {
 
 	first, step, _ := minMaxSample(uint(len(slc)), n)
@@ -70,6 +72,8 @@ func pivotLenS(slc []string, n uint) int {
 // swap: slc[h] < pv ≤ slc[l]
 // swap: slc[h] ≤ pv < slc[l]
 // next: slc[l] ≤ pv ≤ slc[h]
+//
+//go:nosplit
 func partOneLenS(slc []string, pv int) int {
 	l, h := 0, len(slc)-1
 	goto start
@@ -120,6 +124,8 @@ last:
 // swap: slc[h] < pv ≤ slc[l]
 // swap: slc[h] ≤ pv < slc[l]
 // next: slc[l] ≤ pv ≤ slc[h]
+//
+//go:nosplit
 func partTwoLenS(slc []string, l, h int, pv int) int {
 	l--
 	if h <= l {
@@ -167,11 +173,15 @@ start:
 }
 
 // new-goroutine partition
+//
+//go:nosplit
 func gPartOneLenS(ar []string, pv int, ch chan int) {
 	ch <- partOneLenS(ar, pv)
 }
 
 // partition slc in two goroutines, returns k with slc[:k] ≤ pivot ≤ slc[k:]
+//
+//go:nosplit
 func partConLenS(slc []string, ch chan int) int {
 
 	pv := pivotLenS(slc, nsConc) // median-of-n pivot
@@ -203,7 +213,7 @@ func partConLenS(slc []string, ch chan int) int {
 	return k
 }
 
-// short range sort function, assumes MaxLenIns < len(ar) <= MaxLenRec
+// short range sort function, assumes MaxLenIns < len(ar) <= MaxLenRec, recursive
 func shortLenS(ar []string) {
 start:
 	first, step := minMaxFour(uint32(len(ar)))
@@ -252,6 +262,8 @@ isort:
 }
 
 // new-goroutine sort function
+//
+//go:nosplit
 func gLongLenS(ar []string, sv *syncVar) {
 	longLenS(ar, sv)
 
@@ -260,7 +272,7 @@ func gLongLenS(ar []string, sv *syncVar) {
 	}
 }
 
-// long range sort function, assumes len(ar) > MaxLenRec
+// long range sort function, assumes len(ar) > MaxLenRec, recursive
 func longLenS(ar []string, sv *syncVar) {
 start:
 	pv := pivotLenS(ar, nsLong) // median-of-n pivot
@@ -306,6 +318,8 @@ start:
 }
 
 // sortLenS concurrently sorts ar by length in ascending order.
+//
+//go:nosplit
 func sortLenS(ar []string) {
 
 	if len(ar) < 2*(MaxLenRec+1) || MaxGor <= 1 {

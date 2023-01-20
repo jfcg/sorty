@@ -19,6 +19,8 @@ import (
 //	[]unsafe.Pointer, []*T // for any type T
 //
 // otherwise it panics.
+//
+//go:nosplit
 func IsSortedSlice(ar interface{}) int {
 	slc, kind := extractSK(ar)
 	switch kind {
@@ -57,6 +59,8 @@ func IsSortedSlice(ar interface{}) int {
 //	[]unsafe.Pointer, []*T // for any type T
 //
 // otherwise it panics.
+//
+//go:nosplit
 func SortSlice(ar interface{}) {
 	slc, kind := extractSK(ar)
 	switch kind {

@@ -13,7 +13,7 @@ import (
 )
 
 // isSortedF4 returns 0 if ar is sorted in ascending
-// order, otherwise it returns i > 0 with ar[i] < ar[i-1]
+// order, otherwise it returns i > 0 with ar[i] < ar[i-1], inlined
 func isSortedF4(ar []float32) int {
 	for i := len(ar) - 1; i > 0; i-- {
 		if ar[i] < ar[i-1] {
@@ -23,7 +23,7 @@ func isSortedF4(ar []float32) int {
 	return 0
 }
 
-// insertion sort
+// insertion sort, inlined
 func insertionF4(slc []float32) {
 	for h := 1; h < len(slc); h++ {
 		l, val := h, slc[h]
@@ -51,6 +51,8 @@ func insertionF4(slc []float32) {
 // pivotF4 selects n equidistant samples from slc that minimizes max distance
 // to non-selected members, then calculates median-of-n pivot from samples.
 // Assumes even n, nsConc ≥ n ≥ 2, len(slc) ≥ 2n. Returns pivot for partitioning.
+//
+//go:nosplit
 func pivotF4(slc []float32, n uint) float32 {
 
 	first, step, _ := minMaxSample(uint(len(slc)), n)
@@ -70,6 +72,8 @@ func pivotF4(slc []float32, n uint) float32 {
 // swap: slc[h] < pv ≤ slc[l]
 // swap: slc[h] ≤ pv < slc[l]
 // next: slc[l] ≤ pv ≤ slc[h]
+//
+//go:nosplit
 func partOneF4(slc []float32, pv float32) int {
 	l, h := 0, len(slc)-1
 	goto start
@@ -120,6 +124,8 @@ last:
 // swap: slc[h] < pv ≤ slc[l]
 // swap: slc[h] ≤ pv < slc[l]
 // next: slc[l] ≤ pv ≤ slc[h]
+//
+//go:nosplit
 func partTwoF4(slc []float32, l, h int, pv float32) int {
 	l--
 	if h <= l {
@@ -167,11 +173,15 @@ start:
 }
 
 // new-goroutine partition
+//
+//go:nosplit
 func gPartOneF4(ar []float32, pv float32, ch chan int) {
 	ch <- partOneF4(ar, pv)
 }
 
 // partition slc in two goroutines, returns k with slc[:k] ≤ pivot ≤ slc[k:]
+//
+//go:nosplit
 func partConF4(slc []float32, ch chan int) int {
 
 	pv := pivotF4(slc, nsConc) // median-of-n pivot
@@ -203,7 +213,7 @@ func partConF4(slc []float32, ch chan int) int {
 	return k
 }
 
-// short range sort function, assumes MaxLenIns < len(ar) <= MaxLenRec
+// short range sort function, assumes MaxLenIns < len(ar) <= MaxLenRec, recursive
 func shortF4(ar []float32) {
 start:
 	first, step := minMaxFour(uint32(len(ar)))
@@ -251,6 +261,8 @@ isort:
 }
 
 // new-goroutine sort function
+//
+//go:nosplit
 func gLongF4(ar []float32, sv *syncVar) {
 	longF4(ar, sv)
 
@@ -259,7 +271,7 @@ func gLongF4(ar []float32, sv *syncVar) {
 	}
 }
 
-// long range sort function, assumes len(ar) > MaxLenRec
+// long range sort function, assumes len(ar) > MaxLenRec, recursive
 func longF4(ar []float32, sv *syncVar) {
 start:
 	pv := pivotF4(ar, nsLong) // median-of-n pivot
@@ -305,6 +317,8 @@ start:
 }
 
 // sortF4 concurrently sorts ar in ascending order.
+//
+//go:nosplit
 func sortF4(ar []float32) {
 
 	if len(ar) < 2*(MaxLenRec+1) || MaxGor <= 1 {

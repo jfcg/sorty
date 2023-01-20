@@ -43,6 +43,8 @@ func init() {
 //
 // If there is no such k, it returns n. It can be used to locate an element
 // in a sorted collection.
+//
+//go:nosplit
 func Search(n int, fn func(int) bool) int {
 	l, h := 0, n
 
@@ -64,7 +66,7 @@ type syncVar struct {
 	done chan int // end signal
 }
 
-// gorFull returns true if goroutine quota is full
+// gorFull returns true if goroutine quota is full, inlined
 //
 //go:norace
 func gorFull(sv *syncVar) bool {
@@ -80,7 +82,7 @@ const (
 )
 
 // Given n ≥ 2 and slice length ≥ 2n, select n equidistant samples
-// from slice that minimizes max distance to non-selected members.
+// from slice that minimizes max distance to non-selected members, inlined
 func minMaxSample(slen, n uint) (first, step, last uint) {
 	step = slen / n // ≥ 2
 	n--
@@ -99,7 +101,7 @@ func minMaxSample(slen, n uint) (first, step, last uint) {
 var firstFour = [8]uint32{0, 0, ^uint32(0), 0, 0, 1, 1, 0}
 var stepFour = [8]uint32{0, 0, 1, 1, 0, 0, 0, 1}
 
-// optimized version of minMaxSample for n=4
+// optimized version of minMaxSample for n=4, inlined
 func minMaxFour(slen uint32) (first, step uint32) {
 	mod := slen & 7
 	first = slen>>3 + firstFour[mod]
@@ -107,6 +109,7 @@ func minMaxFour(slen uint32) (first, step uint32) {
 	return
 }
 
+// inlined
 func insertionI(slc []int) {
 	if unsafe.Sizeof(int(0)) == 8 {
 		insertionI8(*(*[]int64)(unsafe.Pointer(&slc)))
@@ -118,6 +121,8 @@ func insertionI(slc []int) {
 const sliceBias reflect.Kind = 100
 
 // extracts slice and element kind from ar
+//
+//go:nosplit
 func extractSK(ar interface{}) (slc sixb.Slice, kind reflect.Kind) {
 	tipe := reflect.TypeOf(ar)
 	if tipe.Kind() != reflect.Slice {

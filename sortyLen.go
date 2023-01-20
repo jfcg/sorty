@@ -17,6 +17,8 @@ import (
 //	[]string, [][]T // for any type T
 //
 // otherwise it panics.
+//
+//go:nosplit
 func IsSortedLen(ar interface{}) int {
 	slc, kind := extractSK(ar)
 	switch {
@@ -36,6 +38,8 @@ func IsSortedLen(ar interface{}) int {
 //	[]string, [][]T // for any type T
 //
 // otherwise it panics.
+//
+//go:nosplit
 func SortLen(ar interface{}) {
 	slc, kind := extractSK(ar)
 	switch {

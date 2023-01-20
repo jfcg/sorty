@@ -13,7 +13,7 @@ import (
 )
 
 // isSortedI8 returns 0 if ar is sorted in ascending
-// order, otherwise it returns i > 0 with ar[i] < ar[i-1]
+// order, otherwise it returns i > 0 with ar[i] < ar[i-1], inlined
 func isSortedI8(ar []int64) int {
 	for i := len(ar) - 1; i > 0; i-- {
 		if ar[i] < ar[i-1] {
@@ -23,7 +23,7 @@ func isSortedI8(ar []int64) int {
 	return 0
 }
 
-// insertion sort
+// insertion sort, inlined
 func insertionI8(slc []int64) {
 	for h := 1; h < len(slc); h++ {
 		l, val := h, slc[h]
@@ -51,6 +51,8 @@ func insertionI8(slc []int64) {
 // pivotI8 selects n equidistant samples from slc that minimizes max distance
 // to non-selected members, then calculates median-of-n pivot from samples.
 // Assumes even n, nsConc ≥ n ≥ 2, len(slc) ≥ 2n. Returns pivot for partitioning.
+//
+//go:nosplit
 func pivotI8(slc []int64, n uint) int64 {
 
 	first, step, _ := minMaxSample(uint(len(slc)), n)
@@ -70,6 +72,8 @@ func pivotI8(slc []int64, n uint) int64 {
 // swap: slc[h] < pv ≤ slc[l]
 // swap: slc[h] ≤ pv < slc[l]
 // next: slc[l] ≤ pv ≤ slc[h]
+//
+//go:nosplit
 func partOneI8(slc []int64, pv int64) int {
 	l, h := 0, len(slc)-1
 	goto start
@@ -120,6 +124,8 @@ last:
 // swap: slc[h] < pv ≤ slc[l]
 // swap: slc[h] ≤ pv < slc[l]
 // next: slc[l] ≤ pv ≤ slc[h]
+//
+//go:nosplit
 func partTwoI8(slc []int64, l, h int, pv int64) int {
 	l--
 	if h <= l {
@@ -167,11 +173,15 @@ start:
 }
 
 // new-goroutine partition
+//
+//go:nosplit
 func gPartOneI8(ar []int64, pv int64, ch chan int) {
 	ch <- partOneI8(ar, pv)
 }
 
 // partition slc in two goroutines, returns k with slc[:k] ≤ pivot ≤ slc[k:]
+//
+//go:nosplit
 func partConI8(slc []int64, ch chan int) int {
 
 	pv := pivotI8(slc, nsConc) // median-of-n pivot
@@ -203,7 +213,7 @@ func partConI8(slc []int64, ch chan int) int {
 	return k
 }
 
-// short range sort function, assumes MaxLenIns < len(ar) <= MaxLenRec
+// short range sort function, assumes MaxLenIns < len(ar) <= MaxLenRec, recursive
 func shortI8(ar []int64) {
 start:
 	first, step := minMaxFour(uint32(len(ar)))
@@ -251,6 +261,8 @@ isort:
 }
 
 // new-goroutine sort function
+//
+//go:nosplit
 func gLongI8(ar []int64, sv *syncVar) {
 	longI8(ar, sv)
 
@@ -259,7 +271,7 @@ func gLongI8(ar []int64, sv *syncVar) {
 	}
 }
 
-// long range sort function, assumes len(ar) > MaxLenRec
+// long range sort function, assumes len(ar) > MaxLenRec, recursive
 func longI8(ar []int64, sv *syncVar) {
 start:
 	pv := pivotI8(ar, nsLong) // median-of-n pivot
@@ -305,6 +317,8 @@ start:
 }
 
 // sortI8 concurrently sorts ar in ascending order.
+//
+//go:nosplit
 func sortI8(ar []int64) {
 
 	if len(ar) < 2*(MaxLenRec+1) || MaxGor <= 1 {

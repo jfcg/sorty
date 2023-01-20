@@ -13,7 +13,7 @@ import (
 )
 
 // isSortedU4 returns 0 if ar is sorted in ascending
-// order, otherwise it returns i > 0 with ar[i] < ar[i-1]
+// order, otherwise it returns i > 0 with ar[i] < ar[i-1], inlined
 func isSortedU4(ar []uint32) int {
 	for i := len(ar) - 1; i > 0; i-- {
 		if ar[i] < ar[i-1] {
@@ -23,7 +23,7 @@ func isSortedU4(ar []uint32) int {
 	return 0
 }
 
-// insertion sort
+// insertion sort, inlined
 func insertionU4(slc []uint32) {
 	for h := 1; h < len(slc); h++ {
 		l, val := h, slc[h]
@@ -51,6 +51,8 @@ func insertionU4(slc []uint32) {
 // pivotU4 selects n equidistant samples from slc that minimizes max distance
 // to non-selected members, then calculates median-of-n pivot from samples.
 // Assumes even n, nsConc ≥ n ≥ 2, len(slc) ≥ 2n. Returns pivot for partitioning.
+//
+//go:nosplit
 func pivotU4(slc []uint32, n uint) uint32 {
 
 	first, step, _ := minMaxSample(uint(len(slc)), n)
@@ -70,6 +72,8 @@ func pivotU4(slc []uint32, n uint) uint32 {
 // swap: slc[h] < pv ≤ slc[l]
 // swap: slc[h] ≤ pv < slc[l]
 // next: slc[l] ≤ pv ≤ slc[h]
+//
+//go:nosplit
 func partOneU4(slc []uint32, pv uint32) int {
 	l, h := 0, len(slc)-1
 	goto start
@@ -120,6 +124,8 @@ last:
 // swap: slc[h] < pv ≤ slc[l]
 // swap: slc[h] ≤ pv < slc[l]
 // next: slc[l] ≤ pv ≤ slc[h]
+//
+//go:nosplit
 func partTwoU4(slc []uint32, l, h int, pv uint32) int {
 	l--
 	if h <= l {
@@ -167,11 +173,15 @@ start:
 }
 
 // new-goroutine partition
+//
+//go:nosplit
 func gPartOneU4(ar []uint32, pv uint32, ch chan int) {
 	ch <- partOneU4(ar, pv)
 }
 
 // partition slc in two goroutines, returns k with slc[:k] ≤ pivot ≤ slc[k:]
+//
+//go:nosplit
 func partConU4(slc []uint32, ch chan int) int {
 
 	pv := pivotU4(slc, nsConc) // median-of-n pivot
@@ -203,7 +213,7 @@ func partConU4(slc []uint32, ch chan int) int {
 	return k
 }
 
-// short range sort function, assumes MaxLenIns < len(ar) <= MaxLenRec
+// short range sort function, assumes MaxLenIns < len(ar) <= MaxLenRec, recursive
 func shortU4(ar []uint32) {
 start:
 	first, step := minMaxFour(uint32(len(ar)))
@@ -251,6 +261,8 @@ isort:
 }
 
 // new-goroutine sort function
+//
+//go:nosplit
 func gLongU4(ar []uint32, sv *syncVar) {
 	longU4(ar, sv)
 
@@ -259,7 +271,7 @@ func gLongU4(ar []uint32, sv *syncVar) {
 	}
 }
 
-// long range sort function, assumes len(ar) > MaxLenRec
+// long range sort function, assumes len(ar) > MaxLenRec, recursive
 func longU4(ar []uint32, sv *syncVar) {
 start:
 	pv := pivotU4(ar, nsLong) // median-of-n pivot
@@ -305,6 +317,8 @@ start:
 }
 
 // sortU4 concurrently sorts ar in ascending order.
+//
+//go:nosplit
 func sortU4(ar []uint32) {
 
 	if len(ar) < 2*(MaxLenRec+1) || MaxGor <= 1 {

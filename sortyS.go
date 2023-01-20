@@ -13,7 +13,7 @@ import (
 )
 
 // isSortedS returns 0 if ar is sorted in ascending lexicographic
-// order, otherwise it returns i > 0 with ar[i] < ar[i-1]
+// order, otherwise it returns i > 0 with ar[i] < ar[i-1], inlined
 func isSortedS(ar []string) int {
 	for i := len(ar) - 1; i > 0; i-- {
 		if ar[i] < ar[i-1] {
@@ -23,7 +23,7 @@ func isSortedS(ar []string) int {
 	return 0
 }
 
-// insertion sort
+// insertion sort, inlined
 func insertionS(slc []string) {
 	for h := 1; h < len(slc); h++ {
 		l, val := h, slc[h]
@@ -51,6 +51,8 @@ func insertionS(slc []string) {
 // pivotS selects n equidistant samples from slc that minimizes max distance
 // to non-selected members, then calculates median-of-n pivot from samples.
 // Assumes odd n, nsConc > n ≥ 3, len(slc) ≥ 2n. Returns pivot for partitioning.
+//
+//go:nosplit
 func pivotS(slc []string, n uint) string {
 
 	first, step, _ := minMaxSample(uint(len(slc)), n)
@@ -69,6 +71,8 @@ func pivotS(slc []string, n uint) string {
 // swap: slc[h] < pv ≤ slc[l]
 // swap: slc[h] ≤ pv < slc[l]
 // next: slc[l] ≤ pv ≤ slc[h]
+//
+//go:nosplit
 func partOneS(slc []string, pv string) int {
 	l, h := 0, len(slc)-1
 	goto start
@@ -119,6 +123,8 @@ last:
 // swap: slc[h] < pv ≤ slc[l]
 // swap: slc[h] ≤ pv < slc[l]
 // next: slc[l] ≤ pv ≤ slc[h]
+//
+//go:nosplit
 func partTwoS(slc []string, l, h int, pv string) int {
 	l--
 	if h <= l {
@@ -166,11 +172,15 @@ start:
 }
 
 // new-goroutine partition
+//
+//go:nosplit
 func gPartOneS(ar []string, pv string, ch chan int) {
 	ch <- partOneS(ar, pv)
 }
 
 // partition slc in two goroutines, returns k with slc[:k] ≤ pivot ≤ slc[k:]
+//
+//go:nosplit
 func partConS(slc []string, ch chan int) int {
 
 	pv := pivotS(slc, nsConc-1) // median-of-n pivot
@@ -202,7 +212,7 @@ func partConS(slc []string, ch chan int) int {
 	return k
 }
 
-// short range sort function, assumes MaxLenInsFC < len(ar) <= MaxLenRec
+// short range sort function, assumes MaxLenInsFC < len(ar) <= MaxLenRec, recursive
 func shortS(ar []string) {
 start:
 	first, step, last := minMaxSample(uint(len(ar)), 3)
@@ -247,6 +257,8 @@ isort:
 }
 
 // new-goroutine sort function
+//
+//go:nosplit
 func gLongS(ar []string, sv *syncVar) {
 	longS(ar, sv)
 
@@ -255,7 +267,7 @@ func gLongS(ar []string, sv *syncVar) {
 	}
 }
 
-// long range sort function, assumes len(ar) > MaxLenRec
+// long range sort function, assumes len(ar) > MaxLenRec, recursive
 func longS(ar []string, sv *syncVar) {
 start:
 	pv := pivotS(ar, nsLong-1) // median-of-n pivot
