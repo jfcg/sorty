@@ -119,17 +119,17 @@ last:
 // swap: slc[h] < pv ≤ slc[l]
 // swap: slc[h] ≤ pv < slc[l]
 // next: slc[l] ≤ pv ≤ slc[h]
-func partTwoS(slc []string, l, h int, pv string) (int, int) {
+func partTwoS(slc []string, l, h int, pv string) int {
 	l--
 	if h <= l {
-		return l, h
+		return -1 // will not run
 	}
 	goto start
 second:
 	for {
 		h++
 		if h >= len(slc) {
-			return l, h
+			return l
 		}
 		if slc[h] <= pv {
 			break
@@ -141,8 +141,11 @@ next:
 	l--
 	h++
 start:
-	if l < 0 || h >= len(slc) {
-		return l, h
+	if l < 0 {
+		return h
+	}
+	if h >= len(slc) {
+		return l
 	}
 
 	if pv <= slc[h] { // avoid unnecessary comparisons
@@ -157,7 +160,7 @@ start:
 		}
 		l--
 		if l < 0 {
-			return l, h
+			return h
 		}
 	}
 }
@@ -171,27 +174,29 @@ func gPartOneS(ar []string, pv string, ch chan int) {
 func partConS(slc []string, ch chan int) int {
 
 	pv := pivotS(slc, nsConc-1) // median-of-n pivot
-	k := len(slc) >> 1
-	l, h := k>>1, sixb.MeanI(k, len(slc))
+	mid := len(slc) >> 1
+	l, h := mid>>1, sixb.MeanI(mid, len(slc))
 
 	go gPartOneS(slc[l:h:h], pv, ch) // mid half range
 
-	k = l
-	l, h = partTwoS(slc, l, h, pv) // left/right quarter ranges
+	r := partTwoS(slc, l, h, pv) // left/right quarter ranges
 
-	k += <-ch // convert returned indice to slc
+	k := l + <-ch // convert returned index to slc
 
 	// only one gap is possible
-	for ; 0 <= l; l-- { // gap left in low range?
-		if pv < slc[l] {
-			k--
-			slc[l], slc[k] = slc[k], slc[l]
+	if r < mid {
+		for ; 0 <= r; r-- { // gap left in low range?
+			if pv < slc[r] {
+				k--
+				slc[r], slc[k] = slc[k], slc[r]
+			}
 		}
-	}
-	for ; h < len(slc); h++ { // gap left in high range?
-		if slc[h] < pv {
-			slc[h], slc[k] = slc[k], slc[h]
-			k++
+	} else {
+		for ; r < len(slc); r++ { // gap left in high range?
+			if slc[r] < pv {
+				slc[r], slc[k] = slc[k], slc[r]
+				k++
+			}
 		}
 	}
 	return k
@@ -242,7 +247,7 @@ isort:
 }
 
 // new-goroutine sort function
-func glongS(ar []string, sv *syncVar) {
+func gLongS(ar []string, sv *syncVar) {
 	longS(ar, sv)
 
 	if atomic.AddUint32(&sv.ngr, ^uint32(0)) == 0 { // decrease goroutine counter
@@ -292,7 +297,7 @@ start:
 	}
 	// new-goroutine sort on the longer range only when
 	// both ranges are big and max goroutines is not exceeded
-	go glongS(ar, sv)
+	go gLongS(ar, sv)
 	ar = aq
 	goto start
 }
@@ -333,7 +338,7 @@ func sortS(ar []string) {
 			if atomic.AddUint32(&sv.ngr, 1) == 0 { // increase goroutine counter
 				panic("sorty: sortS: counter overflow")
 			}
-			go glongS(aq, &sv)
+			go gLongS(aq, &sv)
 
 		} else if len(aq) > MaxLenInsFC {
 			shortS(aq)

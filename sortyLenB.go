@@ -120,17 +120,17 @@ last:
 // swap: slc[h] < pv ≤ slc[l]
 // swap: slc[h] ≤ pv < slc[l]
 // next: slc[l] ≤ pv ≤ slc[h]
-func partTwoLenB(slc [][]byte, l, h int, pv int) (int, int) {
+func partTwoLenB(slc [][]byte, l, h int, pv int) int {
 	l--
 	if h <= l {
-		return l, h
+		return -1 // will not run
 	}
 	goto start
 second:
 	for {
 		h++
 		if h >= len(slc) {
-			return l, h
+			return l
 		}
 		if len(slc[h]) <= pv {
 			break
@@ -142,8 +142,11 @@ next:
 	l--
 	h++
 start:
-	if l < 0 || h >= len(slc) {
-		return l, h
+	if l < 0 {
+		return h
+	}
+	if h >= len(slc) {
+		return l
 	}
 
 	if pv <= len(slc[h]) { // avoid unnecessary comparisons
@@ -158,7 +161,7 @@ start:
 		}
 		l--
 		if l < 0 {
-			return l, h
+			return h
 		}
 	}
 }
@@ -172,27 +175,29 @@ func gPartOneLenB(ar [][]byte, pv int, ch chan int) {
 func partConLenB(slc [][]byte, ch chan int) int {
 
 	pv := pivotLenB(slc, nsConc) // median-of-n pivot
-	k := len(slc) >> 1
-	l, h := k>>1, sixb.MeanI(k, len(slc))
+	mid := len(slc) >> 1
+	l, h := mid>>1, sixb.MeanI(mid, len(slc))
 
 	go gPartOneLenB(slc[l:h:h], pv, ch) // mid half range
 
-	k = l
-	l, h = partTwoLenB(slc, l, h, pv) // left/right quarter ranges
+	r := partTwoLenB(slc, l, h, pv) // left/right quarter ranges
 
-	k += <-ch // convert returned indice to slc
+	k := l + <-ch // convert returned index to slc
 
 	// only one gap is possible
-	for ; 0 <= l; l-- { // gap left in low range?
-		if pv < len(slc[l]) {
-			k--
-			slc[l], slc[k] = slc[k], slc[l]
+	if r < mid {
+		for ; 0 <= r; r-- { // gap left in low range?
+			if pv < len(slc[r]) {
+				k--
+				slc[r], slc[k] = slc[k], slc[r]
+			}
 		}
-	}
-	for ; h < len(slc); h++ { // gap left in high range?
-		if len(slc[h]) < pv {
-			slc[h], slc[k] = slc[k], slc[h]
-			k++
+	} else {
+		for ; r < len(slc); r++ { // gap left in high range?
+			if len(slc[r]) < pv {
+				slc[r], slc[k] = slc[k], slc[r]
+				k++
+			}
 		}
 	}
 	return k
@@ -247,7 +252,7 @@ isort:
 }
 
 // new-goroutine sort function
-func glongLenB(ar [][]byte, sv *syncVar) {
+func gLongLenB(ar [][]byte, sv *syncVar) {
 	longLenB(ar, sv)
 
 	if atomic.AddUint32(&sv.ngr, ^uint32(0)) == 0 { // decrease goroutine counter
@@ -297,7 +302,7 @@ start:
 	}
 	// new-goroutine sort on the longer range only when
 	// both ranges are big and max goroutines is not exceeded
-	go glongLenB(ar, sv)
+	go gLongLenB(ar, sv)
 	ar = aq
 	goto start
 }
@@ -338,7 +343,7 @@ func sortLenB(ar [][]byte) {
 			if atomic.AddUint32(&sv.ngr, 1) == 0 { // increase goroutine counter
 				panic("sorty: sortLenB: counter overflow")
 			}
-			go glongLenB(aq, &sv)
+			go gLongLenB(aq, &sv)
 
 		} else if len(aq) > MaxLenIns {
 			shortLenB(aq)

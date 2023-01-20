@@ -120,17 +120,17 @@ last:
 // swap: slc[h] < pv ≤ slc[l]
 // swap: slc[h] ≤ pv < slc[l]
 // next: slc[l] ≤ pv ≤ slc[h]
-func partTwoU8(slc []uint64, l, h int, pv uint64) (int, int) {
+func partTwoU8(slc []uint64, l, h int, pv uint64) int {
 	l--
 	if h <= l {
-		return l, h
+		return -1 // will not run
 	}
 	goto start
 second:
 	for {
 		h++
 		if h >= len(slc) {
-			return l, h
+			return l
 		}
 		if slc[h] <= pv {
 			break
@@ -142,8 +142,11 @@ next:
 	l--
 	h++
 start:
-	if l < 0 || h >= len(slc) {
-		return l, h
+	if l < 0 {
+		return h
+	}
+	if h >= len(slc) {
+		return l
 	}
 
 	if pv <= slc[h] { // avoid unnecessary comparisons
@@ -158,7 +161,7 @@ start:
 		}
 		l--
 		if l < 0 {
-			return l, h
+			return h
 		}
 	}
 }
@@ -172,27 +175,29 @@ func gPartOneU8(ar []uint64, pv uint64, ch chan int) {
 func partConU8(slc []uint64, ch chan int) int {
 
 	pv := pivotU8(slc, nsConc) // median-of-n pivot
-	k := len(slc) >> 1
-	l, h := k>>1, sixb.MeanI(k, len(slc))
+	mid := len(slc) >> 1
+	l, h := mid>>1, sixb.MeanI(mid, len(slc))
 
 	go gPartOneU8(slc[l:h:h], pv, ch) // mid half range
 
-	k = l
-	l, h = partTwoU8(slc, l, h, pv) // left/right quarter ranges
+	r := partTwoU8(slc, l, h, pv) // left/right quarter ranges
 
-	k += <-ch // convert returned indice to slc
+	k := l + <-ch // convert returned index to slc
 
 	// only one gap is possible
-	for ; 0 <= l; l-- { // gap left in low range?
-		if pv < slc[l] {
-			k--
-			slc[l], slc[k] = slc[k], slc[l]
+	if r < mid {
+		for ; 0 <= r; r-- { // gap left in low range?
+			if pv < slc[r] {
+				k--
+				slc[r], slc[k] = slc[k], slc[r]
+			}
 		}
-	}
-	for ; h < len(slc); h++ { // gap left in high range?
-		if slc[h] < pv {
-			slc[h], slc[k] = slc[k], slc[h]
-			k++
+	} else {
+		for ; r < len(slc); r++ { // gap left in high range?
+			if slc[r] < pv {
+				slc[r], slc[k] = slc[k], slc[r]
+				k++
+			}
 		}
 	}
 	return k
@@ -246,7 +251,7 @@ isort:
 }
 
 // new-goroutine sort function
-func glongU8(ar []uint64, sv *syncVar) {
+func gLongU8(ar []uint64, sv *syncVar) {
 	longU8(ar, sv)
 
 	if atomic.AddUint32(&sv.ngr, ^uint32(0)) == 0 { // decrease goroutine counter
@@ -296,7 +301,7 @@ start:
 	}
 	// new-goroutine sort on the longer range only when
 	// both ranges are big and max goroutines is not exceeded
-	go glongU8(ar, sv)
+	go gLongU8(ar, sv)
 	ar = aq
 	goto start
 }
@@ -337,7 +342,7 @@ func sortU8(ar []uint64) {
 			if atomic.AddUint32(&sv.ngr, 1) == 0 { // increase goroutine counter
 				panic("sorty: sortU8: counter overflow")
 			}
-			go glongU8(aq, &sv)
+			go gLongU8(aq, &sv)
 
 		} else if len(aq) > MaxLenIns {
 			shortU8(aq)

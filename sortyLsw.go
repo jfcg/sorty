@@ -114,10 +114,9 @@ func partOne(lsw Lesswap, l, pv, h int) int {
 // Gap (l,h) expands until one of the intervals is fully consumed.
 // swap: slc[h] < pv < slc[l]
 // next: slc[l] ≤ pv ≤ slc[h]
-func partTwo(lsw Lesswap, lo, l, pv, h, hi int) (int, int) {
+func partTwo(lsw Lesswap, lo, l, pv, h, hi int) int {
 	// avoid unnecessary comparisons, extend ranges in balance
-	for ; lo <= l && h <= hi; l, h = l-1, h+1 {
-
+	for {
 		if lsw(h, pv, h, h) { // 3rd=4th disables swap
 			for {
 				if lsw(pv, l, h, l) {
@@ -125,22 +124,29 @@ func partTwo(lsw Lesswap, lo, l, pv, h, hi int) (int, int) {
 				}
 				l--
 				if l < lo {
-					return l, h
+					return h
 				}
 			}
 		} else if lsw(pv, l, l, l) { // 3rd=4th disables swap
 			for {
 				h++
 				if h > hi {
-					return l, h
+					return l
 				}
 				if lsw(h, pv, h, l) {
 					break
 				}
 			}
 		}
+		l--
+		h++
+		if l < lo {
+			return h
+		}
+		if h > hi {
+			return l
+		}
 	}
-	return l, h
 }
 
 // new-goroutine partition
@@ -158,24 +164,28 @@ func partCon(lsw Lesswap, lo, hi int, ch chan int) int {
 
 	go gPartOne(lsw, l+1, pv, h-1, ch) // mid half range
 
-	l, h = partTwo(lsw, lo, l, pv, h, hi) // left/right quarter ranges
+	r := partTwo(lsw, lo, l, pv, h, hi) // left/right quarter ranges
+
 	k := <-ch
 
 	// only one gap is possible
-	for ; lo <= l; l-- { // gap left in low range?
-		if lsw(pv, l, k-1, l) {
-			k--
-			if k == pv { // swapped pivot when closing gap?
-				pv = l // Thanks to my wife Tansu who discovered this
+	if r < pv {
+		for ; lo <= r; r-- { // gap left in low range?
+			if lsw(pv, r, k-1, r) {
+				k--
+				if k == pv { // swapped pivot when closing gap?
+					pv = r // Thanks to my wife Tansu who discovered this
+				}
 			}
 		}
-	}
-	for ; h <= hi; h++ { // gap left in high range?
-		if lsw(h, pv, h, k) {
-			if k == pv { // swapped pivot when closing gap?
-				pv = h // It took days of agony to discover these two if's :D
+	} else {
+		for ; r <= hi; r++ { // gap left in high range?
+			if lsw(r, pv, r, k) {
+				if k == pv { // swapped pivot when closing gap?
+					pv = r // It took days of agony to discover these two if's :D
+				}
+				k++
 			}
-			k++
 		}
 	}
 	return k
@@ -234,7 +244,7 @@ isort:
 }
 
 // new-goroutine sort function
-func glong(lsw Lesswap, lo, hi int, sv *syncVar) {
+func gLong(lsw Lesswap, lo, hi int, sv *syncVar) {
 	long(lsw, lo, hi, sv)
 
 	if atomic.AddUint32(&sv.ngr, ^uint32(0)) == 0 { // decrease goroutine counter
@@ -284,7 +294,7 @@ start:
 	}
 	// new-goroutine sort on the longer range only when
 	// both ranges are big and max goroutines is not exceeded
-	go glong(lsw, lo, hi, sv)
+	go gLong(lsw, lo, hi, sv)
 	lo, hi = l, h
 	goto start
 }
@@ -310,7 +320,7 @@ start:
 // comparator, r!=s check, swap and returns are all necessary.
 func Sort(n int, lsw Lesswap) {
 
-	n-- // high indice
+	n-- // high index
 	if n <= 2*MaxLenRec || MaxGor <= 1 {
 
 		if n >= MaxLenRec { // single-goroutine sorting
@@ -345,7 +355,7 @@ func Sort(n int, lsw Lesswap) {
 			if atomic.AddUint32(&sv.ngr, 1) == 0 { // increase goroutine counter
 				panic("sorty: Sort: counter overflow")
 			}
-			go glong(lsw, l, h, &sv)
+			go gLong(lsw, l, h, &sv)
 
 		} else if n >= MaxLenInsFC {
 			short(lsw, l, h)
