@@ -483,11 +483,14 @@ func mfcLenB(tn string, srt func([][]byte), ar, ap []uint32) float64 {
 	return printSec(tn, d1)
 }
 
+// for regular testing, whether we have the cores or not
+var maxMaxGor uint64 = 4
+
 // return sum of sortU4() times for 1..4 goroutines
 // compare with ap and among themselves
 func sumtU4(ar, ap []uint32) float64 {
 	s := .0
-	for MaxGor = 1; MaxGor < 5; MaxGor++ {
+	for MaxGor = 1; MaxGor <= maxMaxGor; MaxGor++ {
 		s += mfcU4(fmt.Sprintf("sorty-%d", MaxGor), sortU4, ar, ap)
 		ap, ar = ar, ap[:cap(ap)]
 	}
@@ -498,7 +501,7 @@ func sumtU4(ar, ap []uint32) float64 {
 // compare with ap and among themselves
 func sumtF4(ar, ap []float32) float64 {
 	s := .0
-	for MaxGor = 1; MaxGor < 5; MaxGor++ {
+	for MaxGor = 1; MaxGor <= maxMaxGor; MaxGor++ {
 		s += mfcF4(fmt.Sprintf("sorty-%d", MaxGor), sortF4, ar, ap)
 		ap, ar = ar, ap[:cap(ap)]
 	}
@@ -509,7 +512,7 @@ func sumtF4(ar, ap []float32) float64 {
 // compare with ap and among themselves
 func sumtS(ar, ap []uint32) float64 {
 	s := .0
-	for MaxGor = 1; MaxGor < 5; MaxGor++ {
+	for MaxGor = 1; MaxGor <= maxMaxGor; MaxGor++ {
 		s += mfcS(fmt.Sprintf("sorty-%d", MaxGor), sortS, ar, ap)
 		ap, ar = ar, ap[:cap(ap)]
 	}
@@ -520,7 +523,7 @@ func sumtS(ar, ap []uint32) float64 {
 // compare with ap and among themselves
 func sumtB(ar, ap []uint32) float64 {
 	s := .0
-	for MaxGor = 1; MaxGor < 5; MaxGor++ {
+	for MaxGor = 1; MaxGor <= maxMaxGor; MaxGor++ {
 		s += mfcB(fmt.Sprintf("sorty-%d", MaxGor), sortB, ar, ap)
 		ap, ar = ar, ap[:cap(ap)]
 	}
@@ -531,7 +534,7 @@ func sumtB(ar, ap []uint32) float64 {
 // compare with ap and among themselves
 func sumtLenS(ar, ap []uint32) float64 {
 	s := .0
-	for MaxGor = 1; MaxGor < 5; MaxGor++ {
+	for MaxGor = 1; MaxGor <= maxMaxGor; MaxGor++ {
 		s += mfcLenS(fmt.Sprintf("sorty-%d", MaxGor), func(al []string) { SortLen(al) }, ar, ap)
 		ap, ar = ar, ap[:cap(ap)]
 	}
@@ -542,7 +545,7 @@ func sumtLenS(ar, ap []uint32) float64 {
 // compare with ap and among themselves
 func sumtLenB(ar, ap []uint32) float64 {
 	s := .0
-	for MaxGor = 1; MaxGor < 5; MaxGor++ {
+	for MaxGor = 1; MaxGor <= maxMaxGor; MaxGor++ {
 		s += mfcLenB(fmt.Sprintf("sorty-%d", MaxGor), func(al [][]byte) { SortLen(al) }, ar, ap)
 		ap, ar = ar, ap[:cap(ap)]
 	}
@@ -567,7 +570,7 @@ func sort3i(aq []uint32) {
 // compare with ap and among themselves
 func sumtLswU4(ar, ap []uint32) float64 {
 	s := .0
-	for MaxGor = 1; MaxGor < 5; MaxGor++ {
+	for MaxGor = 1; MaxGor <= maxMaxGor; MaxGor++ {
 		s += mfcU4(fmt.Sprintf("sortyLsw-%d", MaxGor), sort3i, ar, ap)
 		ap, ar = ar, ap[:cap(ap)]
 	}
@@ -592,7 +595,7 @@ func sort3f(aq []float32) {
 // compare with ap and among themselves
 func sumtLswF4(ar, ap []float32) float64 {
 	s := .0
-	for MaxGor = 1; MaxGor < 5; MaxGor++ {
+	for MaxGor = 1; MaxGor <= maxMaxGor; MaxGor++ {
 		s += mfcF4(fmt.Sprintf("sortyLsw-%d", MaxGor), sort3f, ar, ap)
 		ap, ar = ar, ap[:cap(ap)]
 	}
@@ -617,7 +620,7 @@ func sort3s(aq []string) {
 // compare with ap and among themselves
 func sumtLswS(ar, ap []uint32) float64 {
 	s := .0
-	for MaxGor = 1; MaxGor < 5; MaxGor++ {
+	for MaxGor = 1; MaxGor <= maxMaxGor; MaxGor++ {
 		s += mfcS(fmt.Sprintf("sortyLsw-%d", MaxGor), sort3s, ar, ap)
 		ap, ar = ar, ap[:cap(ap)]
 	}
