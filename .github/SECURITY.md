@@ -3,11 +3,12 @@
 The latest tagged version is supported.
 
 ### Security Reports
-**Do not create an issue** to report a security problem. Instead please send email to
-`jfcgaussATgmail`.
+**Do not disclose** security vulnerabilities in issues or pull requests. Instead please
+send email to [the author](mailto:jfcgauss@gmail.com) or report the problem
+[here](https://github.com/jfcg/sorty/security/advisories/new).
 
 ### Incident Response Process
-In case an incident is discovered or reported, the author will, as much as resources permit:
+In case an incident is discovered and reported, in at most 15 days the author will:
 - identify the root cause
 - fix the problem
 - take actions to prevent similar problems
