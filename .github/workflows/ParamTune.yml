@@ -1,0 +1,25 @@
+name: "Parameter"
+
+on:
+  push:
+    branches: [ dev ]
+
+permissions:
+  contents: read
+
+jobs:
+  tuning:
+    name: Tuning
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repo
+      uses: actions/checkout@v3
+
+    - name: Setup Go
+      uses: actions/setup-go@v3
+      with:
+        go-version: '1.19'
+
+    - name: Tune Params
+      run: go test -timeout 2h -tags tuneparam
