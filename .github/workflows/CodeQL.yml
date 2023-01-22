@@ -2,16 +2,17 @@ name: "CodeQL"
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, dev ]
+
+permissions:
+  actions: read
+  contents: read
+  security-events: write
 
 jobs:
-  analize:
-    name: Analize
+  analysis:
+    name: Analysis
     runs-on: ubuntu-latest
-    permissions:
-      actions: read
-      contents: read
-      security-events: write
 
     steps:
     - name: Checkout Repo
@@ -22,10 +23,10 @@ jobs:
       with:
         go-version: '1.19'
 
-    - name: Initialize CodeQL
+    - name: Initialize
       uses: github/codeql-action/init@v2
       with:
         languages: 'go'
 
-    - name: CodeQL Analysis
+    - name: Analyze
       uses: github/codeql-action/analyze@v2

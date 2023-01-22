@@ -1,11 +1,14 @@
-name: "Go"
+name: "Golang"
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, dev ]
+
+permissions:
+  contents: read
 
 jobs:
-  test:
+  tests:
     name: Tests
     runs-on: ubuntu-latest
 
@@ -20,6 +23,3 @@ jobs:
 
     - name: Run Tests
       run: go test -timeout 20m -v
-
-    - name: Run Benchmarks
-      run: go test -timeout 20m -v -run ^$ -bench . -benchmem
