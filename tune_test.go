@@ -21,7 +21,7 @@ func printSec(_ string, d time.Duration) float64 {
 	return d.Seconds()
 }
 
-func printOpt(x, y int, v float64) {
+func optPrint(x, y int, v float64) {
 	fmt.Printf("%3d %3d %5.2fs\n", x, y, v)
 }
 
@@ -44,28 +44,33 @@ var (
 		// optimize for function-based sort (string key)
 		// carry over bufap for further comparison
 		func() float64 { return sumtLswS(bufau, bufap) }}
+
+	optInd int
 )
+
+func optStep(x, y int) float64 {
+	if x <= 2*nsShort || y <= 2*x {
+		return 9e9 // keep parameters feasible
+	}
+	MaxLenIns, MaxLenInsFC, MaxLenRec = x, x, y
+	return optFn[optInd]()
+}
+
+func optRun(name string, ins0, rec0 int) {
+	fmt.Printf("\n%s\n%s MaxLenRec:\n", optName[optInd], name)
+
+	_, _, _, n := opt.FindMinTri(2, ins0, rec0, ins0>>2, rec0>>2, optStep, optPrint)
+	fmt.Println(n, "calls")
+}
 
 // Optimize max slice lengths for insertion sort/recursion
 // Takes a long time, run with -tags tuneparam
 func TestOptimize(t *testing.T) {
 	tsPtr = t
 
-	s1, s2 := "MaxLenIns", 96
+	optRun("MaxLenIns", 96, 480)
 
-	for i := 0; i < len(optFn); i++ {
-		fmt.Printf("\n%s\n%s MaxLenRec:\n", optName[i], s1)
-
-		_, _, _, n := opt.FindMinTri(2, s2, 480, 16, 120,
-			func(x, y int) float64 {
-				if x < 10 || y <= 2*x {
-					return 9e9 // keep parameters feasible
-				}
-				MaxLenIns, MaxLenInsFC, MaxLenRec = x, x, y
-				return optFn[i]()
-			}, printOpt)
-		fmt.Println(n, "calls")
-
-		s1, s2 = "MaxLenInsFC", 48
+	for optInd = 1; optInd < len(optFn); optInd++ {
+		optRun("MaxLenInsFC", 48, 240)
 	}
 }
