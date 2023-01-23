@@ -53,12 +53,12 @@ func optStep(x, y int) float64 {
 	if x <= 2*nsShort || y <= 2*x {
 		return 9e9 // keep parameters feasible
 	}
-	MaxLenIns, MaxLenInsFC, MaxLenRec = x, x, y
+	MaxLenIns, MaxLenInsFC, MaxLenRec, MaxLenRecFC = x, x, y, y
 	return optFn[optInd]()
 }
 
-func optRun(name string, ins0, rec0 int) {
-	fmt.Printf("\n%s\n%s MaxLenRec:\n", optName[optInd], name)
+func optRun(suffix string, ins0, rec0 int) {
+	fmt.Printf("\n%s\nMaxLenIns%s MaxLenRec%s:\n", optName[optInd], suffix, suffix)
 
 	_, _, _, n := opt.FindMinTri(2, ins0, rec0, ins0>>2, rec0>>2, optStep, optPrint)
 	fmt.Println(n, "calls")
@@ -78,9 +78,9 @@ func TestOptimize(t *testing.T) {
 	}
 	fmt.Println("max MaxGor:", maxMaxGor)
 
-	optRun("MaxLenIns", 96, 480)
+	optRun("", 80, 600)
 
 	for optInd = 1; optInd < len(optFn); optInd++ {
-		optRun("MaxLenInsFC", 48, 240)
+		optRun("FC", 40, 300)
 	}
 }

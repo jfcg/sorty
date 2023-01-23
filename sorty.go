@@ -31,8 +31,8 @@ import (
 var MaxGor uint64 = 3
 
 func init() {
-	if !(4097 > MaxGor && MaxGor > 0 && MaxLenRec > 2*MaxLenIns &&
-		MaxLenIns > MaxLenInsFC && MaxLenInsFC > 2*nsShort) {
+	if !(4097 > MaxGor && MaxGor > 0 && MaxLenRec > MaxLenRecFC && MaxLenRecFC >
+		2*MaxLenIns && MaxLenIns > MaxLenInsFC && MaxLenInsFC > 2*nsShort) {
 		panic("sorty: check your MaxGor/MaxLen* values")
 	}
 }

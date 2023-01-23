@@ -205,7 +205,7 @@ func partCon(lsw Lesswap, lo, hi int, ch chan int) int {
 	return k
 }
 
-// short range sort function, assumes MaxLenInsFC <= hi-lo < MaxLenRec, recursive
+// short range sort function, assumes MaxLenInsFC <= hi-lo < MaxLenRecFC, recursive
 func short(lsw Lesswap, lo, hi int) {
 start:
 	fr, step, _ := minMaxSample(uint(hi+1-lo), 3)
@@ -268,7 +268,7 @@ func gLong(lsw Lesswap, lo, hi int, sv *syncVar) {
 	}
 }
 
-// long range sort function, assumes hi-lo >= MaxLenRec, recursive
+// long range sort function, assumes hi-lo >= MaxLenRecFC, recursive
 func long(lsw Lesswap, lo, hi int, sv *syncVar) {
 start:
 	pv := pivot(lsw, lo, hi, nsLong-1) // median-of-n pivot
@@ -284,7 +284,7 @@ start:
 	}
 
 	// branches below are optimal for fewer total jumps
-	if n < MaxLenRec { // at least one not-long range?
+	if n < MaxLenRecFC { // at least one not-long range?
 
 		if n >= MaxLenInsFC {
 			short(lsw, l, h)
@@ -292,7 +292,7 @@ start:
 			insertion(lsw, l, h)
 		}
 
-		if no >= MaxLenRec { // two not-long ranges?
+		if no >= MaxLenRecFC { // two not-long ranges?
 			goto start
 		}
 		short(lsw, lo, hi) // we know no >= MaxLenInsFC
@@ -337,9 +337,9 @@ start:
 func Sort(n int, lsw Lesswap) {
 
 	n-- // high index
-	if n <= 2*MaxLenRec || MaxGor <= 1 {
+	if n <= 2*MaxLenRecFC || MaxGor <= 1 {
 
-		if n >= MaxLenRec { // single-goroutine sorting
+		if n >= MaxLenRecFC { // single-goroutine sorting
 			long(lsw, 0, n, nil)
 		} else if n >= MaxLenInsFC {
 			short(lsw, 0, n)
@@ -367,7 +367,7 @@ func Sort(n int, lsw Lesswap) {
 		}
 
 		// handle shorter range
-		if n >= MaxLenRec {
+		if n >= MaxLenRecFC {
 			atomic.AddUint64(&sv.nGor, 1) // increase goroutine counter
 			go gLong(lsw, l, h, &sv)
 
@@ -378,13 +378,13 @@ func Sort(n int, lsw Lesswap) {
 		}
 
 		// longer range big enough? max goroutines?
-		if no <= 2*MaxLenRec || gorFull(&sv) {
+		if no <= 2*MaxLenRecFC || gorFull(&sv) {
 			break
 		}
 		// dual partition longer range
 	}
 
-	long(lsw, lo, hi, &sv) // we know hi-lo >= MaxLenRec
+	long(lsw, lo, hi, &sv) // we know hi-lo >= MaxLenRecFC
 
 	if atomic.AddUint64(&sv.nGor, ^uint64(0)) != 0 { // decrease goroutine counter
 		<-sv.done // we are not the last, wait

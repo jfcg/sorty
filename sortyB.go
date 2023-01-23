@@ -212,7 +212,7 @@ func partConB(slc [][]byte, ch chan int) int {
 	return k
 }
 
-// short range sort function, assumes MaxLenInsFC < len(ar) <= MaxLenRec, recursive
+// short range sort function, assumes MaxLenInsFC < len(ar) <= MaxLenRecFC, recursive
 func shortB(ar [][]byte) {
 start:
 	first, step, last := minMaxSample(uint(len(ar)), 3)
@@ -267,7 +267,7 @@ func gLongB(ar [][]byte, sv *syncVar) {
 	}
 }
 
-// long range sort function, assumes len(ar) > MaxLenRec, recursive
+// long range sort function, assumes len(ar) > MaxLenRecFC, recursive
 func longB(ar [][]byte, sv *syncVar) {
 start:
 	pv := pivotB(ar, nsLong-1) // median-of-n pivot
@@ -283,7 +283,7 @@ start:
 	}
 
 	// branches below are optimal for fewer total jumps
-	if len(aq) <= MaxLenRec { // at least one not-long range?
+	if len(aq) <= MaxLenRecFC { // at least one not-long range?
 
 		if len(aq) > MaxLenInsFC {
 			shortB(aq)
@@ -291,7 +291,7 @@ start:
 			insertionB(aq)
 		}
 
-		if len(ar) > MaxLenRec { // two not-long ranges?
+		if len(ar) > MaxLenRecFC { // two not-long ranges?
 			goto start
 		}
 		shortB(ar) // we know len(ar) > MaxLenInsFC
@@ -315,9 +315,9 @@ start:
 // sortB concurrently sorts ar in ascending lexicographic order.
 func sortB(ar [][]byte) {
 
-	if len(ar) < 2*(MaxLenRec+1) || MaxGor <= 1 {
+	if len(ar) < 2*(MaxLenRecFC+1) || MaxGor <= 1 {
 
-		if len(ar) > MaxLenRec { // single-goroutine sorting
+		if len(ar) > MaxLenRecFC { // single-goroutine sorting
 			longB(ar, nil)
 		} else if len(ar) > MaxLenInsFC {
 			shortB(ar)
@@ -344,7 +344,7 @@ func sortB(ar [][]byte) {
 		}
 
 		// handle shorter range
-		if len(aq) > MaxLenRec {
+		if len(aq) > MaxLenRecFC {
 			atomic.AddUint64(&sv.nGor, 1) // increase goroutine counter
 			go gLongB(aq, &sv)
 
@@ -355,13 +355,13 @@ func sortB(ar [][]byte) {
 		}
 
 		// longer range big enough? max goroutines?
-		if len(ar) < 2*(MaxLenRec+1) || gorFull(&sv) {
+		if len(ar) < 2*(MaxLenRecFC+1) || gorFull(&sv) {
 			break
 		}
 		// dual partition longer range
 	}
 
-	longB(ar, &sv) // we know len(ar) > MaxLenRec
+	longB(ar, &sv) // we know len(ar) > MaxLenRecFC
 
 	if atomic.AddUint64(&sv.nGor, ^uint64(0)) != 0 { // decrease goroutine counter
 		<-sv.done // we are not the last, wait
