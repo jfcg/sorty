@@ -37,6 +37,23 @@ func init() {
 	}
 }
 
+type FloatOption int32
+
+const (
+	NaNsmall FloatOption = iota - 1
+	NaNignore
+	NaNlarge
+)
+
+// NaNoption determines how sorty handles [NaNs] in [SortSlice]() and [IsSortedSlice]().
+// NaNs can be treated as smaller than, ignored or larger than other float values.
+// By default NaNs will end up at the end of your ascending-sorted slice. If your slice
+// contains NaNs and you choose to ignore them, the result is undefined behavior, and
+// almost always not sorted properly. sorty is only tested with small/large options.
+//
+// [NaNs]: https://en.wikipedia.org/wiki/NaN
+var NaNoption = NaNlarge
+
 // Search returns lowest integer k in [0,n) where fn(k) is true, assuming:
 //
 //	fn(k) implies fn(k+1)

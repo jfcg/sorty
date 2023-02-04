@@ -12,11 +12,26 @@ import (
 	"github.com/jfcg/sixb"
 )
 
-// isSortedF8 returns 0 if ar is sorted in ascending
-// order, otherwise it returns i > 0 with ar[i] < ar[i-1], inlined
-func isSortedF8(ar []float64) int {
-	for i := len(ar) - 1; i > 0; i-- {
-		if ar[i] < ar[i-1] {
+// isSortedF8 returns 0 if slc is sorted in ascending order, otherwise it returns i > 0
+// with slc[i] < slc[i-1] or either one is a NaN. NaNoption is taken into account.
+func isSortedF8(slc []float64) int {
+	l, h := 0, len(slc)-1
+	if NaNoption == NaNlarge { // ignore NaNs at the end
+		for ; l <= h; h-- {
+			if x := slc[h]; x == x {
+				break
+			}
+		}
+	} else if NaNoption == NaNsmall { // ignore NaNs at the start
+		for ; l <= h; l++ {
+			if x := slc[l]; x == x {
+				break
+			}
+		}
+	}
+
+	for i := h; i > l; i-- {
+		if !(slc[i] >= slc[i-1]) {
 			return i
 		}
 	}
@@ -320,6 +335,38 @@ start:
 //
 //go:nosplit
 func sortF8(ar []float64) {
+	l, h := 0, len(ar)-1
+	if NaNoption == NaNlarge { // move NaNs to the end
+		for l <= h {
+			x := ar[h]
+			if x != x {
+				h--
+				continue
+			}
+			y := ar[l]
+			if y != y {
+				ar[l], ar[h] = x, y
+				h--
+			}
+			l++
+		}
+		ar = ar[:h+1]
+	} else if NaNoption == NaNsmall { // move NaNs to the start
+		for l <= h {
+			y := ar[l]
+			if y != y {
+				l++
+				continue
+			}
+			x := ar[h]
+			if x != x {
+				ar[l], ar[h] = x, y
+				l++
+			}
+			h--
+		}
+		ar = ar[l:]
+	}
 
 	if len(ar) < 2*(MaxLenRec+1) || MaxGor <= 1 {
 
