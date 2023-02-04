@@ -65,22 +65,21 @@ func insertionF8(slc []float64) {
 
 // pivotF8 selects n equidistant samples from slc that minimizes max distance
 // to non-selected members, then calculates median-of-n pivot from samples.
-// Assumes even n, nsConc ≥ n ≥ 2, len(slc) ≥ 2n. Returns pivot for partitioning.
+// Assumes odd n, nsConc > n ≥ 3, len(slc) ≥ 2n. Returns pivot for partitioning.
 //
 //go:nosplit
 func pivotF8(slc []float64, n uint) float64 {
 
 	first, step, _ := minMaxSample(uint(len(slc)), n)
 
-	var sample [nsConc]float64
+	var sample [nsConc - 1]float64
 	for i := int(n - 1); i >= 0; i-- {
 		sample[i] = slc[first]
 		first += step
 	}
 	insertionF8(sample[:n]) // sort n samples
 
-	n >>= 1 // return mean of middle two samples
-	return (sample[n-1] + sample[n]) / 2
+	return sample[n>>1] // return middle sample
 }
 
 // partition slc, returns k with slc[:k] ≤ pivot ≤ slc[k:]
@@ -199,7 +198,7 @@ func gPartOneF8(ar []float64, pv float64, ch chan int) {
 //go:nosplit
 func partConF8(slc []float64, ch chan int) int {
 
-	pv := pivotF8(slc, nsConc) // median-of-n pivot
+	pv := pivotF8(slc, nsConc-1) // median-of-n pivot
 	mid := len(slc) >> 1
 	l, h := mid>>1, sixb.MeanI(mid, len(slc))
 
@@ -231,22 +230,19 @@ func partConF8(slc []float64, ch chan int) int {
 // short range sort function, assumes MaxLenIns < len(ar) <= MaxLenRec, recursive
 func shortF8(ar []float64) {
 start:
-	first, step := minMaxFour(uint32(len(ar)))
-	a, b, c, d := ar[first], ar[first+step], ar[first+2*step], ar[first+3*step]
+	first, step, last := minMaxSample(uint(len(ar)), 3)
+	f, pv, l := ar[first], ar[first+step], ar[last]
 
-	if d < b {
-		d, b = b, d
+	if pv < f {
+		pv, f = f, pv
 	}
-	if c < a {
-		c, a = a, c
+	if l < pv {
+		if l < f {
+			pv = f
+		} else {
+			pv = l // median-of-3 pivot
+		}
 	}
-	if d < c {
-		c = d
-	}
-	if b < a {
-		b = a
-	}
-	pv := (b + c) / 2 // median-of-4 pivot
 
 	k := partOneF8(ar, pv)
 	var aq []float64
@@ -289,7 +285,7 @@ func gLongF8(ar []float64, sv *syncVar) {
 // long range sort function, assumes len(ar) > MaxLenRec, recursive
 func longF8(ar []float64, sv *syncVar) {
 start:
-	pv := pivotF8(ar, nsLong) // median-of-n pivot
+	pv := pivotF8(ar, nsLong-1) // median-of-n pivot
 	k := partOneF8(ar, pv)
 	var aq []float64
 
