@@ -27,24 +27,20 @@ func optPrint(x, y int, v float64) {
 }
 
 var (
-	optName = [...]string{"SortU4/F4", "Lsw-U4/F4", "SortS", "Lsw-S"}
-
-	bufap = make([]uint32, bufN)
+	optName = [...]string{"sortU4/F4", "lsw-U4/F4", "sortS", "lsw-S"}
 
 	optFn = [...]func() float64{
-		// optimize for native arithmetic types
-		func() float64 { return sumtU4(bufau, bufap[:0]) + sumtF4(bufaf, bufbf[:0]) },
+		// optimize for arithmetic types
+		func() float64 { return sumDurU4(false) + sumDurF4(false) },
 
-		// optimize for function-based sort
-		// carry over bufap,bufbf for further comparison
-		func() float64 { return sumtLswU4(bufau, bufap) + sumtLswF4(bufaf, bufbf) },
+		// optimize for lesswap sort
+		func() float64 { return sumDurLswU4(false) + sumDurLswF4(false) },
 
-		// optimize for native string
-		func() float64 { return sumtS(bufau, bufap[:0]) },
+		// optimize for string
+		func() float64 { return sumDurS(false) },
 
-		// optimize for function-based sort (string key)
-		// carry over bufap for further comparison
-		func() float64 { return sumtLswS(bufau, bufap) }}
+		// optimize for lesswap sort (string key)
+		func() float64 { return sumDurLswS(false) }}
 
 	optInd int
 )
@@ -60,7 +56,7 @@ func optStep(x, y int) float64 {
 func optRun(suffix string, ins0, rec0 int) {
 	fmt.Printf("\n%s\nMaxLenIns%s MaxLenRec%s:\n", optName[optInd], suffix, suffix)
 
-	_, _, _, n := opt.FindMinTri(2, ins0, rec0, ins0>>2, rec0>>2, optStep, optPrint)
+	_, _, _, n := opt.FindMinTri(2, ins0, rec0, ins0/4, rec0/4, optStep, optPrint)
 	fmt.Println(n, "calls")
 }
 

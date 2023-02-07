@@ -1,4 +1,6 @@
 github.com/jfcg/opt v0.3.1 h1:6zgKvv3fR5OlX2nxUYJC4wtosY30N4vypILgXmRNr34=
 github.com/jfcg/opt v0.3.1/go.mod h1:3ZUYQhiqKM6vVjMRYV1fVZ9a91EQ47b5kg7KsnfRClk=
+github.com/jfcg/rng v1.0.3 h1:Xz1c2v+Fuc2pc1r0uynzDQ9pBkTS98ioRcidfQMw218=
+github.com/jfcg/rng v1.0.3/go.mod h1:cdKevmMSKlDLbOsBK5OKaQ3/a0IwnSr7wJsj83zKB7Y=
 github.com/jfcg/sixb v1.3.7 h1:YYH5/VZvetHUTuAOfSvh9wjWMJpNQpvVp7Cjl9A4tdo=
 github.com/jfcg/sixb v1.3.7/go.mod h1:UWrAr1q9s7pSPPqZNccmQM4N75p8GvuBYdFuq+09Qns=

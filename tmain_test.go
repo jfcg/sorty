@@ -11,9 +11,9 @@ package sorty
 
 import (
 	"fmt"
-	"sort"
 	"testing"
 	"time"
+	"unsafe"
 
 	"github.com/jfcg/sixb"
 )
@@ -60,136 +60,134 @@ func TestMinMax(t *testing.T) {
 	}
 }
 
-func printSec(tn string, d time.Duration) float64 {
+func printSec(testName string, d time.Duration) float64 {
 	sec := d.Seconds()
-	fmt.Printf("%10s %5.2fs\n", tn, sec)
+	fmt.Printf("%10s %5.2fs\n", testName, sec)
 	return sec
 }
 
-// sort and signal
-func sasU8(sd int64, al []uint64, ch chan struct{}) {
-	fstU8(sd, al, sortU8)
-	ch <- struct{}{}
-}
-
-func sasF8(sd int64, al []float64, ch chan struct{}) {
-	fstF8(sd, al, sortF8)
-	ch <- struct{}{}
-}
-
-func sasI4(sd int64, al []int32, ch chan struct{}) {
-	fstI4(sd, al, sortI4)
-	ch <- struct{}{}
-}
-
-func sasI8(sd int64, al []int64, ch chan struct{}) {
-	fstI8(sd, al, sortI8)
-	ch <- struct{}{}
-}
-
-// test & time sorting uint32 slices, compare their results
+// test & time sorting uint32 slices
+// compare each result with standard sort.Slice
 func TestUint(t *testing.T) {
 	tsPtr = t
 
-	mfcU4("sort.Slice", func(al []uint32) {
-		sort.Slice(al, func(i, k int) bool { return al[i] < al[k] })
-	}, bufbu, nil)
-	sumtU4(bufau, bufbu) // sorty
-	sumtLswU4(bufau, bufbu)
-
-	if IsSorted(len(bufau), func(i, k, r, s int) bool { return bufau[i] < bufau[k] }) != 0 {
-		t.Fatal("IsSorted() does not work")
-	}
+	medianCpstCompare("sort.Slice", nil, stdSort, false)
+	sumDurU4(true) // sorty
+	sumDurLswU4(true)
 }
 
-// test & time sorting float32 slices, compare their results
-func TestFloat(t *testing.T) {
+// test & time sorting float32 slices (NaNsmall)
+// compare each result with standard sort.Slice
+func TestFloatNaNsmall(t *testing.T) {
 	tsPtr = t
+	NaNoption = NaNsmall
 
-	mfcF4("sort.Slice", func(al []float32) {
-		sort.Slice(al, func(i, k int) bool { return al[i] < al[k] })
-	}, bufbf, nil)
-	sumtF4(bufaf, bufbf) // sorty
-	sumtLswF4(bufaf, bufbf)
-
-	if IsSorted(len(bufaf), func(i, k, r, s int) bool { return bufaf[i] < bufaf[k] }) != 0 {
-		t.Fatal("IsSorted() does not work")
-	}
+	medianCpstCompare("sort.Slice", U4toF4, stdSort, false)
+	sumDurF4(true) // sorty
+	sumDurLswF4(true)
 }
 
-// test & time sorting string slices, compare their results
+// test & time sorting float32 slices (NaNlarge)
+// compare each result with standard sort.Slice
+func TestFloatNaNlarge(t *testing.T) {
+	tsPtr = t
+	NaNoption = NaNlarge
+
+	medianCpstCompare("sort.Slice", U4toF4, stdSort, false)
+	sumDurF4(true) // sorty
+	sumDurLswF4(true)
+}
+
+// test & time sorting string slices
+// compare each result with standard sort.Slice
 func TestString(t *testing.T) {
 	tsPtr = t
 
-	mfcS("sort.Slice", func(al []string) {
-		sort.Slice(al, func(i, k int) bool { return al[i] < al[k] })
-	}, bufbu, nil)
-	sumtS(bufau, bufbu) // sorty
-	sumtLswS(bufau, bufbu)
+	medianCpstCompare("sort.Slice", implantS, stdSort, false)
+	sumDurS(true) // sorty
+	sumDurLswS(true)
 }
 
-// test & time sorting []byte slices, compare their results
+// test & time sorting []byte slices
+// compare each result with standard sort.Slice
 func TestByteSlice(t *testing.T) {
 	tsPtr = t
 
-	mfcB("sort.Slice", func(al [][]byte) {
-		sort.Slice(al, func(i, k int) bool { return sixb.BtoS(al[i]) < sixb.BtoS(al[k]) })
-	}, bufbu, nil)
-	sumtB(bufau, bufbu) // sorty
+	medianCpstCompare("sort.Slice", implantB, stdSort, false)
+	sumDurB(true) // sorty
+	sumDurLswB(true)
 }
 
-// test & time sorting string slices 'by length', compare their results
+// test & time sorting string slices by length
+// compare each result with standard sort.Slice
 func TestStringByLen(t *testing.T) {
 	tsPtr = t
 
-	mfcLenS("sort.Slice", func(al []string) {
-		sort.Slice(al, func(i, k int) bool { return len(al[i]) < len(al[k]) })
-	}, bufbu, nil)
-	sumtLenS(bufau, bufbu) // sorty
+	medianCpstCompare("sort.Slice", implantLenS, stdSortLen, false)
+	sumDurLenS(true) // sorty
 }
 
-// test & time sorting []byte slices 'by length', compare their results
+// test & time sorting []byte slices by length
+// compare each result with standard sort.Slice
 func TestByteSliceByLen(t *testing.T) {
 	tsPtr = t
 
-	mfcLenB("sort.Slice", func(al [][]byte) {
-		sort.Slice(al, func(i, k int) bool { return len(al[i]) < len(al[k]) })
-	}, bufbu, nil)
-	sumtLenB(bufau, bufbu) // sorty
+	medianCpstCompare("sort.Slice", implantLenB, stdSortLen, false)
+	sumDurLenB(true) // sorty
 }
 
-// Is Sort*() multi-goroutine safe?
+func U4toU8(buf []uint32) interface{} {
+	return sixb.U4toU8(buf)
+}
+
+func U4toI4(buf []uint32) interface{} {
+	return *(*[]int32)(unsafe.Pointer(&buf))
+}
+
+func U4toI8(buf []uint32) interface{} {
+	slc := sixb.U4toU8(buf)
+	return *(*[]int64)(unsafe.Pointer(&slc))
+}
+
+func U4toF8(buf []uint32) interface{} {
+	slc := sixb.U4toU8(buf)
+	return *(*[]float64)(unsafe.Pointer(&slc))
+}
+
+func sortSignal(buf []uint32, prepare func([]uint32) interface{}, ch chan struct{}) {
+	copyPrepSortTest(buf, prepare, SortSlice)
+	if ch != nil {
+		ch <- struct{}{}
+	}
+}
+
+// is sorty multi-goroutine safe?
 func TestConcurrent(t *testing.T) {
 	tsPtr = t
 
-	bufK, bufL, tch := bufN/2, bufN/4, make(chan struct{})
-	MaxGor = 2
+	// buf1 & buf3 will get same random data in copyPrepSortTest, similarly buf2 & buf4
+	buf1, buf2 := aaBuf[:bufHalf], aaBuf[bufHalf:]
+	buf3, buf4 := bbBuf[:bufHalf], bbBuf[bufHalf:]
 
-	// two concurrent calls to sortU8() & sortF8() each
-	// up to 8 goroutines total
-	go sasU8(96, bufbu2[:bufL:bufL], tch)
-	go sasF8(97, bufaf2[:bufL:bufL], tch)
-	go sasU8(96, bufbu2[bufL:], tch)
-	fstF8(97, bufaf2[bufL:], sortF8)
+	lsPrep := [4]func([]uint32) interface{}{U4toU8, U4toI4, U4toI8, U4toF8}
+	tch := make(chan struct{})
 
-	for i := 3; i > 0; i-- {
-		<-tch // wait others
+	for MaxGor = 2; MaxGor <= maxMaxGor; MaxGor++ {
+		for i := 0; i < len(lsPrep); i += 2 {
+
+			fillSrc()
+			go sortSignal(buf1, lsPrep[i], tch)
+			go sortSignal(buf3, lsPrep[i], tch)
+			go sortSignal(buf2, lsPrep[i+1], tch)
+			sortSignal(buf4, lsPrep[i+1], nil)
+
+			for k := 3; k > 0; k-- {
+				<-tch // wait goroutines
+			}
+			compare(lsPrep[i](buf1), lsPrep[i](buf3))
+			compare(lsPrep[i+1](buf2), lsPrep[i+1](buf4))
+		}
 	}
-	compareU4(bufbu[:bufK:bufK], bufbu[bufK:]) // same buffers
-	compareU4(bufau[:bufK:bufK], bufau[bufK:])
-
-	// two concurrent calls to sortI4() & sortI8() each
-	// up to 8 goroutines total
-	go sasI4(98, bufai[:bufK:bufK], tch)
-	go sasI8(99, bufbi2[:bufL:bufL], tch)
-	go sasI4(98, bufai[bufK:], tch)
-	fstI8(99, bufbi2[bufL:], sortI8)
-
-	for i := 3; i > 0; i-- {
-		<-tch // wait others
-	}
-	compareU4(bufbu[:bufK:bufK], bufbu[bufK:]) // same buffers
-	compareU4(bufau[:bufK:bufK], bufau[bufK:])
 }
 
 // Sort()ing short slices
@@ -221,7 +219,7 @@ func TestShort(t *testing.T) {
 	n := len(iArr)
 	k := Search(n, func(i int) bool { return iArr[i] >= 5 })
 	l := Search(n, func(i int) bool { return iArr[i] >= 10 })
-	if k <= 0 || k >= n || iArr[k] != 5 || iArr[k-1] != 4 || l != n {
+	if iArr[k-1] != 4 || iArr[k] != 5 || l != n {
 		t.Fatal("Search() does not work")
 	}
 }

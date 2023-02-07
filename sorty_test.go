@@ -7,361 +7,241 @@
 package sorty
 
 import (
-	"fmt"
-	"math/rand"
+	"reflect"
+	"sort"
 	"testing"
 	"time"
 	"unsafe"
 
+	"github.com/jfcg/rng"
 	"github.com/jfcg/sixb"
 )
 
-const bufN = 1 << 25
+const (
+	bufFull = 1 << 25
+	bufHalf = bufFull / 2
+)
 
 var (
-	// a & b buffers will hold all slices to sort
-	bufaf = make([]float32, bufN)
-	bufbf = make([]float32, bufN)
+	// A & B buffers will hold all slices to sort
+	aaBuf = make([]uint32, bufFull)
+	bbBuf = make([]uint32, bufFull)
 
-	// different type views of the same buffers
-	bufau  = F4toU4(&bufaf) // uint32
-	bufbu  = F4toU4(&bufbf)
-	bufai  = F4toI4(&bufaf)     // int32
-	bufau2 = sixb.U4toU8(bufau) // uint64
-	bufbu2 = sixb.U4toU8(bufbu)
-	bufaf2 = U8toF8(&bufau2) // float64
-	bufbi2 = U8toI8(&bufbu2) // int64
+	// source buffer
+	srcBuf = make([]uint32, bufFull)
 
 	tsPtr *testing.T
 )
 
-// fill sort test for uint32
-func fstU4(sd int64, ar []uint32, srt func([]uint32)) time.Duration {
-	rn := rand.New(rand.NewSource(sd))
-	for i := len(ar) - 1; i >= 0; i-- {
-		ar[i] = rn.Uint32()
-	}
-
-	now := time.Now()
-	srt(ar)
-	dur := time.Since(now)
-
-	if isSortedU4(ar) != 0 {
-		tsPtr.Fatal("not sorted")
-	}
-	return dur
+// fill source buffer with random bytes
+func fillSrc() {
+	rng.Fill(sixb.U4toB(srcBuf))
 }
 
-// fill sort test for uint64
-func fstU8(sd int64, ar []uint64, srt func([]uint64)) time.Duration {
-	rn := rand.New(rand.NewSource(sd))
-	for i := len(ar) - 1; i >= 0; i-- {
-		ar[i] = rn.Uint64()
+// copy, prepare, sort, test
+func copyPrepSortTest(buf []uint32, prepare func([]uint32) interface{},
+	srf func(interface{})) (time.Duration, interface{}) {
+
+	// copy from srcBuf into buf
+	if p := &buf[0]; p == &aaBuf[0] || p == &bbBuf[0] {
+		copy(buf, srcBuf)
+	} else {
+		copy(buf, srcBuf[bufHalf:]) // initialize from second half
 	}
 
+	// prepare input if given
+	// its output type determines the sort type
+	var ar interface{}
+	if prepare != nil {
+		ar = prepare(buf)
+	} else {
+		ar = buf
+	}
+
+	// measure duration of sorting
 	now := time.Now()
-	srt(ar)
+	srf(ar)
 	dur := time.Since(now)
 
-	if isSortedU8(ar) != 0 {
-		tsPtr.Fatal("not sorted")
+	isSorted := IsSortedSlice // by value
+	if !isValueSort(srf) {
+		isSorted = IsSortedLen // by length
 	}
-	return dur
+	// check if result is sorted
+	if isSorted(ar) != 0 {
+		_, kind := extractSK(ar)
+		tsPtr.Fatal("not sorted, kind:", kind)
+	}
+	return dur, ar
 }
 
-// fill sort test for int32
-func fstI4(sd int64, ar []int32, srt func([]int32)) time.Duration {
-	rn := rand.New(rand.NewSource(sd))
-	for i := len(ar) - 1; i >= 0; i-- {
-		ar[i] = int32(rn.Uint32())
-	}
-
-	now := time.Now()
-	srt(ar)
-	dur := time.Since(now)
-
-	if isSortedI4(ar) != 0 {
-		tsPtr.Fatal("not sorted")
-	}
-	return dur
+func isValueSort(srf func(interface{})) bool {
+	sPtr := reflect.ValueOf(srf).Pointer()
+	return sPtr == stdSortPtr || sPtr == sortSlcPtr || sPtr == sortLswPtr
 }
 
-// fill sort test for int64
-func fstI8(sd int64, ar []int64, srt func([]int64)) time.Duration {
-	rn := rand.New(rand.NewSource(sd))
-	for i := len(ar) - 1; i >= 0; i-- {
-		ar[i] = int64(rn.Uint64())
-	}
+var (
+	stdSortPtr = reflect.ValueOf(stdSort).Pointer()   // standard sort.Slice
+	sortSlcPtr = reflect.ValueOf(SortSlice).Pointer() // sorty
+	sortLswPtr = reflect.ValueOf(sortLsw).Pointer()   // sorty
+)
 
-	now := time.Now()
-	srt(ar)
-	dur := time.Since(now)
+func stdSort(ar interface{}) {
+	slc, kind := extractSK(ar)
 
-	if isSortedI8(ar) != 0 {
-		tsPtr.Fatal("not sorted")
+	switch kind {
+	case reflect.Float32:
+		buf := *(*[]float32)(unsafe.Pointer(&slc))
+		sort.Slice(buf, func(i, k int) bool {
+			x, y := buf[i], buf[k]
+			return x < y || NaNoption == NaNlarge && x == x && y != y ||
+				NaNoption == NaNsmall && x != x && y == y
+		})
+	case reflect.Float64:
+		buf := *(*[]float64)(unsafe.Pointer(&slc))
+		sort.Slice(buf, func(i, k int) bool {
+			x, y := buf[i], buf[k]
+			return x < y || NaNoption == NaNlarge && x == x && y != y ||
+				NaNoption == NaNsmall && x != x && y == y
+		})
+	case reflect.Int32:
+		buf := *(*[]int32)(unsafe.Pointer(&slc))
+		sort.Slice(buf, func(i, k int) bool { return buf[i] < buf[k] })
+	case reflect.Int64:
+		buf := *(*[]int64)(unsafe.Pointer(&slc))
+		sort.Slice(buf, func(i, k int) bool { return buf[i] < buf[k] })
+	case reflect.Uint32:
+		buf := *(*[]uint32)(unsafe.Pointer(&slc))
+		sort.Slice(buf, func(i, k int) bool { return buf[i] < buf[k] })
+	case reflect.Uint64:
+		buf := *(*[]uint64)(unsafe.Pointer(&slc))
+		sort.Slice(buf, func(i, k int) bool { return buf[i] < buf[k] })
+	case reflect.String:
+		buf := *(*[]string)(unsafe.Pointer(&slc))
+		sort.Slice(buf, func(i, k int) bool { return buf[i] < buf[k] })
+	case sliceBias + reflect.Uint8:
+		buf := *(*[][]byte)(unsafe.Pointer(&slc))
+		sort.Slice(buf, func(i, k int) bool { return sixb.BtoS(buf[i]) < sixb.BtoS(buf[k]) })
+	default:
+		tsPtr.Fatal("unrecognized kind:", kind)
 	}
-	return dur
 }
 
-// fill sort test for float32
-func fstF4(sd int64, ar []float32, srt func([]float32)) time.Duration {
-	rn := rand.New(rand.NewSource(sd))
-	for i := len(ar) - 1; i >= 0; i-- {
-		ar[i] = float32(rn.NormFloat64())
-	}
+//go:nosplit
+func stdSortLen(ar interface{}) {
+	slc, kind := extractSK(ar)
 
-	now := time.Now()
-	srt(ar)
-	dur := time.Since(now)
-
-	if isSortedF4(ar) != 0 {
-		tsPtr.Fatal("not sorted")
+	switch {
+	case kind == reflect.String:
+		buf := *(*[]string)(unsafe.Pointer(&slc))
+		sort.Slice(buf, func(i, k int) bool { return len(buf[i]) < len(buf[k]) })
+	case kind >= sliceBias:
+		buf := *(*[][]byte)(unsafe.Pointer(&slc))
+		sort.Slice(buf, func(i, k int) bool { return len(buf[i]) < len(buf[k]) })
+	default:
+		tsPtr.Fatal("unrecognized kind:", kind)
 	}
-	return dur
 }
 
-// fill sort test for float64
-func fstF8(sd int64, ar []float64, srt func([]float64)) time.Duration {
-	rn := rand.New(rand.NewSource(sd))
-	for i := len(ar) - 1; i >= 0; i-- {
-		ar[i] = rn.NormFloat64()
+func basicCheck(ar, ap interface{}) (slc1, slc2 sixb.Slice, kind reflect.Kind) {
+	slc1, kind = extractSK(ar)
+	slc2, kind2 := extractSK(ap)
+	if kind != kind2 {
+		tsPtr.Fatal("different kinds:", kind, kind2)
 	}
-
-	now := time.Now()
-	srt(ar)
-	dur := time.Since(now)
-
-	if isSortedF8(ar) != 0 {
-		tsPtr.Fatal("not sorted")
+	if slc1.Len != slc2.Len {
+		tsPtr.Fatal("length mismatch:", kind, slc1.Len, slc2.Len)
 	}
-	return dur
+	if slc1.Data == slc2.Data {
+		tsPtr.Fatal("same slice data:", kind, slc1.Data)
+	}
+	return
 }
 
-// implant strings into ar
-func implantS(ar []uint32, fill bool) ([]string, []uint32) {
-	// string size is 4*t bytes
-	t := sixb.StrSize >> 2
+func compare(ar, ap interface{}) { // by value
+	slc1, slc2, kind := basicCheck(ar, ap)
+	var buf1, buf2 []uint64
 
-	// ar will hold n strings (headers followed by 4-byte bodies)
-	n := len(ar) / (t + 1)
-
-	t *= n // total string headers space
-	ss := sixb.U4toStrs(ar[:t:t])
-
-	if fill {
-		for k := len(ar); n > 0; {
-			n--
-			k--
-			ss[n].Data = unsafe.Pointer(&ar[k])
-			ss[n].Len = 4
+	switch kind {
+	case reflect.String:
+		buf1 := *(*[]string)(unsafe.Pointer(&slc1))
+		buf2 := *(*[]string)(unsafe.Pointer(&slc2))
+		for i := len(buf1) - 1; i >= 0; i-- {
+			if buf1[i] != buf2[i] {
+				tsPtr.Fatal("values mismatch:", kind, i, buf1[i], buf2[i])
+			}
 		}
-	}
-	return *(*[]string)(unsafe.Pointer(&ss)), ar[t:]
-}
-
-// fill sort test for string
-func fstS(sd int64, ar []uint32, srt func([]string)) time.Duration {
-	as, ar := implantS(ar, true)
-
-	rn := rand.New(rand.NewSource(sd))
-	for i := len(ar) - 1; i >= 0; i-- {
-		ar[i] = rn.Uint32()
-	}
-
-	now := time.Now()
-	srt(as)
-	dur := time.Since(now)
-
-	if isSortedS(as) != 0 {
-		tsPtr.Fatal("not sorted")
-	}
-	return dur
-}
-
-// implant []byte's into ar
-func implantB(ar []uint32, fill bool) ([][]byte, []uint32) {
-	// []byte size is 4*t bytes
-	t := sixb.SliceSize >> 2
-
-	// ar will hold n []byte's (headers followed by 4-byte bodies)
-	n := len(ar) / (t + 1)
-
-	t *= n // total []byte headers space
-	bs := sixb.U4toSlcs(ar[:t:t])
-
-	if fill {
-		for k := len(ar); n > 0; {
-			n--
-			k--
-			bs[n].Data = unsafe.Pointer(&ar[k])
-			bs[n].Len = 4
-			bs[n].Cap = 4
-		}
-	}
-	return *(*[][]byte)(unsafe.Pointer(&bs)), ar[t:]
-}
-
-// fill sort test for []byte
-func fstB(sd int64, ar []uint32, srt func([][]byte)) time.Duration {
-	ab, ar := implantB(ar, true)
-
-	rn := rand.New(rand.NewSource(sd))
-	for i := len(ar) - 1; i >= 0; i-- {
-		ar[i] = rn.Uint32()
-	}
-
-	now := time.Now()
-	srt(ab)
-	dur := time.Since(now)
-
-	if isSortedB(ab) != 0 {
-		tsPtr.Fatal("not sorted")
-	}
-	return dur
-}
-
-// implant strings into ar (SortLen)
-func implantLenS(sd int64, ar []uint32, fill bool) []string {
-	// string size is 4*t bytes
-	t := sixb.StrSize >> 2
-
-	// ar will hold n string headers
-	n := len(ar) / t
-
-	t *= n // total string headers space
-	ss := sixb.U4toStrs(ar[:t:t])
-
-	if fill {
-		rn := rand.New(rand.NewSource(sd))
-
-		for L := 4*len(ar) + 1; n > 0; {
-			n--
-			// string bodies start at &ar[0] with random lengths up to 4*len(ar) bytes
-			ss[n].Data = unsafe.Pointer(&ar[0])
-			ss[n].Len = rn.Intn(L)
-		}
-	}
-	return *(*[]string)(unsafe.Pointer(&ss))
-}
-
-// fill sort test for string (SortLen)
-func fstLenS(sd int64, ar []uint32, srt func([]string)) time.Duration {
-	as := implantLenS(sd, ar, true)
-
-	now := time.Now()
-	srt(as)
-	dur := time.Since(now)
-
-	if IsSortedLen(as) != 0 {
-		tsPtr.Fatal("not sorted")
-	}
-	return dur
-}
-
-// implant []byte's into ar (SortLen)
-func implantLenB(sd int64, ar []uint32, fill bool) [][]byte {
-	// []byte size is 4*t bytes
-	t := sixb.SliceSize >> 2
-
-	// ar will hold n []byte headers
-	n := len(ar) / t
-
-	t *= n // total []byte headers space
-	bs := sixb.U4toSlcs(ar[:t:t])
-
-	if fill {
-		rn := rand.New(rand.NewSource(sd))
-
-		for L := 4*len(ar) + 1; n > 0; {
-			n--
-			// []byte bodies start at &ar[0] with random lengths up to 4*len(ar) bytes
-			bs[n].Data = unsafe.Pointer(&ar[0])
-			bs[n].Len = rn.Intn(L)
-			bs[n].Cap = bs[n].Len
-		}
-	}
-	return *(*[][]byte)(unsafe.Pointer(&bs))
-}
-
-// fill sort test for []byte (SortLen)
-func fstLenB(sd int64, ar []uint32, srt func([][]byte)) time.Duration {
-	ab := implantLenB(sd, ar, true)
-
-	now := time.Now()
-	srt(ab)
-	dur := time.Since(now)
-
-	if IsSortedLen(ab) != 0 {
-		tsPtr.Fatal("not sorted")
-	}
-	return dur
-}
-
-func compareU4(ar, ap []uint32) {
-	l := len(ap)
-	if l <= 0 {
 		return
-	}
-	if len(ar) != l {
-		tsPtr.Fatal("length mismatch:", len(ar), l)
+	case sliceBias + reflect.Uint8:
+		buf1 := *(*[][]byte)(unsafe.Pointer(&slc1))
+		buf2 := *(*[][]byte)(unsafe.Pointer(&slc2))
+		for i := len(buf1) - 1; i >= 0; i-- {
+			if a, b := sixb.BtoS(buf1[i]), sixb.BtoS(buf2[i]); a != b {
+				tsPtr.Fatal("values mismatch:", kind, i, a, b)
+			}
+		}
+		return
+	case reflect.Float32:
+		buf1 := *(*[]float32)(unsafe.Pointer(&slc1))
+		buf2 := *(*[]float32)(unsafe.Pointer(&slc2))
+		for i := len(buf1) - 1; i >= 0; i-- {
+			a, b := buf1[i], buf2[i]
+			if a != b && (a == a || b == b) { // consider NaNs equal
+				tsPtr.Fatal("values mismatch:", kind, i, a, b)
+			}
+		}
+		return
+	case reflect.Float64:
+		buf1 := *(*[]float64)(unsafe.Pointer(&slc1))
+		buf2 := *(*[]float64)(unsafe.Pointer(&slc2))
+		for i := len(buf1) - 1; i >= 0; i-- {
+			a, b := buf1[i], buf2[i]
+			if a != b && (a == a || b == b) { // consider NaNs equal
+				tsPtr.Fatal("values mismatch:", kind, i, a, b)
+			}
+		}
+		return
+	case reflect.Int32, reflect.Uint32:
+		b1 := *(*[]uint32)(unsafe.Pointer(&slc1))
+		b2 := *(*[]uint32)(unsafe.Pointer(&slc2))
+		buf1 = sixb.U4toU8(b1)
+		buf2 = sixb.U4toU8(b2)
+	case reflect.Int64, reflect.Uint64:
+		buf1 = *(*[]uint64)(unsafe.Pointer(&slc1))
+		buf2 = *(*[]uint64)(unsafe.Pointer(&slc2))
+	default:
+		tsPtr.Fatal("unrecognized kind:", kind)
 	}
 
-	for i := l - 1; i >= 0; i-- {
-		if ar[i] != ap[i] {
-			tsPtr.Fatal("values mismatch:", i, ar[i], ap[i])
+	for i := len(buf1) - 1; i >= 0; i-- {
+		if buf1[i] != buf2[i] {
+			tsPtr.Fatal("values mismatch:", kind, i, buf1[i], buf2[i])
 		}
 	}
 }
 
-func compareS(ar, ap []string) {
-	l := len(ap)
-	if len(ar) != l {
-		tsPtr.Fatal("length mismatch:", len(ar), l)
-	}
+func compareLen(ar, ap interface{}) { // by length
+	slc1, slc2, kind := basicCheck(ar, ap)
 
-	for i := l - 1; i >= 0; i-- {
-		if ar[i] != ap[i] {
-			tsPtr.Fatal("values mismatch:", i, ar[i], ap[i])
+	switch {
+	case kind == reflect.String:
+		buf1 := *(*[]string)(unsafe.Pointer(&slc1))
+		buf2 := *(*[]string)(unsafe.Pointer(&slc2))
+		for i := len(buf1) - 1; i >= 0; i-- {
+			if a, b := len(buf1[i]), len(buf2[i]); a != b {
+				tsPtr.Fatal("len values mismatch:", kind, i, a, b)
+			}
 		}
-	}
-}
-
-func compareB(ar, ap [][]byte) {
-	l := len(ap)
-	if len(ar) != l {
-		tsPtr.Fatal("length mismatch:", len(ar), l)
-	}
-
-	for i := l - 1; i >= 0; i-- {
-		if sixb.BtoS(ar[i]) != sixb.BtoS(ap[i]) {
-			tsPtr.Fatal("values mismatch:", i, ar[i], ap[i])
+	case kind >= sliceBias:
+		buf1 := *(*[][]byte)(unsafe.Pointer(&slc1))
+		buf2 := *(*[][]byte)(unsafe.Pointer(&slc2))
+		for i := len(buf1) - 1; i >= 0; i-- {
+			if a, b := len(buf1[i]), len(buf2[i]); a != b {
+				tsPtr.Fatal("len values mismatch:", kind, i, a, b)
+			}
 		}
-	}
-}
-
-func compareLenS(ar, ap []string) {
-	l := len(ap)
-	if len(ar) != l {
-		tsPtr.Fatal("length mismatch:", len(ar), l)
-	}
-
-	for i := l - 1; i >= 0; i-- {
-		if len(ar[i]) != len(ap[i]) {
-			tsPtr.Fatal("lengths mismatch:", i, len(ar[i]), len(ap[i]))
-		}
-	}
-}
-
-func compareLenB(ar, ap [][]byte) {
-	l := len(ap)
-	if len(ar) != l {
-		tsPtr.Fatal("length mismatch:", len(ar), l)
-	}
-
-	for i := l - 1; i >= 0; i-- {
-		if len(ar[i]) != len(ap[i]) {
-			tsPtr.Fatal("lengths mismatch:", i, len(ar[i]), len(ap[i]))
-		}
+	default:
+		tsPtr.Fatal("unrecognized kind:", kind)
 	}
 }
 
@@ -379,250 +259,285 @@ func medur(a, b, c, d time.Duration) time.Duration {
 	if b < a {
 		b = a
 	}
-	return (b + c) >> 1
+	return time.Duration(sixb.MeanI8(int64(b), int64(c)))
 }
 
-// median fst & compare for uint32
-func mfcU4(tn string, srt func([]uint32), ar, ap []uint32) float64 {
-	d1 := fstU4(1, ar, srt) // median of four different sorts
-	d2 := fstU4(2, ar, srt)
-	d3 := fstU4(3, ar, srt)
-	d1 = medur(fstU4(4, ar, srt), d1, d2, d3)
+// Calculate median duration of four distinct calls with random inputs to srf().
+// Optionally compare each result with standard sort.Slice.
+// prepare()'s output type determines the sort type.
+func medianCpstCompare(testName string, prepare func([]uint32) interface{},
+	srf func(interface{}), compStd bool) float64 {
 
-	compareU4(ar, ap)
-	return printSec(tn, d1)
-}
+	var std func(interface{})
+	var cmp func(interface{}, interface{})
 
-// slice conversions
-func F4toU4(p *[]float32) []uint32 {
-	return *(*[]uint32)(unsafe.Pointer(p))
-}
-
-func F4toI4(p *[]float32) []int32 {
-	return *(*[]int32)(unsafe.Pointer(p))
-}
-
-func U8toF8(p *[]uint64) []float64 {
-	return *(*[]float64)(unsafe.Pointer(p))
-}
-
-func U8toI8(p *[]uint64) []int64 {
-	return *(*[]int64)(unsafe.Pointer(p))
-}
-
-// median fst & compare for float32
-func mfcF4(tn string, srt func([]float32), ar, ap []float32) float64 {
-	d1 := fstF4(5, ar, srt) // median of four different sorts
-	d2 := fstF4(6, ar, srt)
-	d3 := fstF4(7, ar, srt)
-	d1 = medur(fstF4(8, ar, srt), d1, d2, d3)
-
-	compareU4(F4toU4(&ar), F4toU4(&ap))
-	return printSec(tn, d1)
-}
-
-// median fst & compare for string
-func mfcS(tn string, srt func([]string), ar, ap []uint32) float64 {
-	d1 := fstS(9, ar, srt) // median of four different sorts
-	d2 := fstS(10, ar, srt)
-	d3 := fstS(11, ar, srt)
-	d1 = medur(fstS(12, ar, srt), d1, d2, d3)
-
-	if len(ap) > 0 {
-		as, ar := implantS(ar, false)
-		aq, ap := implantS(ap, false)
-		compareS(as, aq)
-		compareU4(ar, ap)
+	if compStd {
+		if isValueSort(srf) {
+			std = stdSort
+			cmp = compare // by value
+		} else {
+			std = stdSortLen
+			cmp = compareLen // by length
+		}
 	}
-	return printSec(tn, d1)
-}
 
-// median fst & compare for []byte
-func mfcB(tn string, srt func([][]byte), ar, ap []uint32) float64 {
-	d1 := fstB(13, ar, srt) // median of four different sorts
-	d2 := fstB(14, ar, srt)
-	d3 := fstB(15, ar, srt)
-	d1 = medur(fstB(16, ar, srt), d1, d2, d3)
+	dur := [4]time.Duration{}
+	var ar interface{}
 
-	if len(ap) > 0 {
-		as, ar := implantB(ar, false)
-		aq, ap := implantB(ap, false)
-		compareB(as, aq)
-		compareU4(ar, ap)
+	for i := 0; i < len(dur); i++ {
+		fillSrc()
+		dur[i], ar = copyPrepSortTest(aaBuf, prepare, srf)
+		if compStd {
+			_, ap := copyPrepSortTest(bbBuf, prepare, std)
+			cmp(ar, ap)
+		}
 	}
-	return printSec(tn, d1)
-}
 
-// median fst & compare for string (SortLen)
-func mfcLenS(tn string, srt func([]string), ar, ap []uint32) float64 {
-	d1 := fstLenS(17, ar, srt) // median of four different sorts
-	d2 := fstLenS(18, ar, srt)
-	d3 := fstLenS(19, ar, srt)
-	d1 = medur(fstLenS(20, ar, srt), d1, d2, d3)
+	dur[0] = medur(dur[0], dur[1], dur[2], dur[3])
 
-	if len(ap) > 0 {
-		as := implantLenS(0, ar, false)
-		aq := implantLenS(0, ap, false)
-		compareLenS(as, aq)
-	}
-	return printSec(tn, d1)
-}
-
-// median fst & compare for []byte (SortLen)
-func mfcLenB(tn string, srt func([][]byte), ar, ap []uint32) float64 {
-	d1 := fstLenB(21, ar, srt) // median of four different sorts
-	d2 := fstLenB(22, ar, srt)
-	d3 := fstLenB(23, ar, srt)
-	d1 = medur(fstLenB(24, ar, srt), d1, d2, d3)
-
-	if len(ap) > 0 {
-		as := implantLenB(0, ar, false)
-		aq := implantLenB(0, ap, false)
-		compareLenB(as, aq)
-	}
-	return printSec(tn, d1)
+	return printSec(testName, dur[0])
 }
 
 // for regular testing, whether we have the cores or not
 var maxMaxGor uint64 = 4
+var stNames = [4]string{"sorty-1", "sorty-2", "sorty-3", "sorty-4"}
 
-// return sum of sortU4() times for 1..4 goroutines
-// compare with ap and among themselves
-func sumtU4(ar, ap []uint32) float64 {
-	s := .0
+// return sum of sortU4() durations for 1..maxMaxGor goroutines
+// optionally compare with standard sort.Slice
+func sumDurU4(compStd bool) (sum float64) {
 	for MaxGor = 1; MaxGor <= maxMaxGor; MaxGor++ {
-		s += mfcU4(fmt.Sprintf("sorty-%d", MaxGor), sortU4, ar, ap)
-		ap, ar = ar, ap[:cap(ap)]
+		sum += medianCpstCompare(stNames[MaxGor-1], nil, SortSlice, compStd)
 	}
-	return s
+	return
 }
 
-// return sum of sortF4() times for 1..4 goroutines
-// compare with ap and among themselves
-func sumtF4(ar, ap []float32) float64 {
-	s := .0
-	for MaxGor = 1; MaxGor <= maxMaxGor; MaxGor++ {
-		s += mfcF4(fmt.Sprintf("sorty-%d", MaxGor), sortF4, ar, ap)
-		ap, ar = ar, ap[:cap(ap)]
-	}
-	return s
+func U4toF4(buf []uint32) interface{} {
+	return *(*[]float32)(unsafe.Pointer(&buf))
 }
 
-// return sum of sortS() times for 1..4 goroutines
-// compare with ap and among themselves
-func sumtS(ar, ap []uint32) float64 {
-	s := .0
+// return sum of sortF4() durations for 1..maxMaxGor goroutines
+// optionally compare with standard sort.Slice
+func sumDurF4(compStd bool) (sum float64) {
 	for MaxGor = 1; MaxGor <= maxMaxGor; MaxGor++ {
-		s += mfcS(fmt.Sprintf("sorty-%d", MaxGor), sortS, ar, ap)
-		ap, ar = ar, ap[:cap(ap)]
+		sum += medianCpstCompare(stNames[MaxGor-1], U4toF4, SortSlice, compStd)
 	}
-	return s
+	return
 }
 
-// return sum of sortB() times for 1..4 goroutines
-// compare with ap and among themselves
-func sumtB(ar, ap []uint32) float64 {
-	s := .0
-	for MaxGor = 1; MaxGor <= maxMaxGor; MaxGor++ {
-		s += mfcB(fmt.Sprintf("sorty-%d", MaxGor), sortB, ar, ap)
-		ap, ar = ar, ap[:cap(ap)]
+// implant strings into buf
+func implantS(buf []uint32) interface{} {
+	// string size is 4*t bytes
+	t := sixb.StrSize >> 2
+
+	// buf will hold n strings (headers followed by overlapping 12-bytes bodies)
+	n := (len(buf) - 2) / (t + 1)
+
+	t *= n // total string headers space
+	ss := sixb.U4toStrs(buf[:t:t])
+
+	for k := len(buf) - 2; n > 0; {
+		n--
+		k--
+		ss[n].Data = unsafe.Pointer(&buf[k])
+		ss[n].Len = 12
 	}
-	return s
+	return *(*[]string)(unsafe.Pointer(&ss))
 }
 
-// return sum of SortLen([]string) times for 1..4 goroutines
-// compare with ap and among themselves
-func sumtLenS(ar, ap []uint32) float64 {
-	s := .0
+// return sum of sortS() durations for 1..maxMaxGor goroutines
+// optionally compare with standard sort.Slice
+func sumDurS(compStd bool) (sum float64) {
 	for MaxGor = 1; MaxGor <= maxMaxGor; MaxGor++ {
-		s += mfcLenS(fmt.Sprintf("sorty-%d", MaxGor), func(al []string) { SortLen(al) }, ar, ap)
-		ap, ar = ar, ap[:cap(ap)]
+		sum += medianCpstCompare(stNames[MaxGor-1], implantS, SortSlice, compStd)
 	}
-	return s
+	return
 }
 
-// return sum of SortLen([][]byte) times for 1..4 goroutines
-// compare with ap and among themselves
-func sumtLenB(ar, ap []uint32) float64 {
-	s := .0
-	for MaxGor = 1; MaxGor <= maxMaxGor; MaxGor++ {
-		s += mfcLenB(fmt.Sprintf("sorty-%d", MaxGor), func(al [][]byte) { SortLen(al) }, ar, ap)
-		ap, ar = ar, ap[:cap(ap)]
+// implant []byte's into buf
+func implantB(buf []uint32) interface{} {
+	// []byte size is 4*t bytes
+	t := sixb.SliceSize >> 2
+
+	// buf will hold n []byte's (headers followed by overlapping 12-bytes bodies)
+	n := (len(buf) - 2) / (t + 1)
+
+	t *= n // total []byte headers space
+	bs := sixb.U4toSlcs(buf[:t:t])
+
+	for k := len(buf) - 2; n > 0; {
+		n--
+		k--
+		bs[n].Data = unsafe.Pointer(&buf[k])
+		bs[n].Len = 12
+		bs[n].Cap = 12
 	}
-	return s
+	return *(*[][]byte)(unsafe.Pointer(&bs))
 }
 
-// sort uint32 slice with Sort()
-func sort3i(aq []uint32) {
-	lsw := func(i, k, r, s int) bool {
-		if aq[i] < aq[k] {
-			if r != s {
-				aq[r], aq[s] = aq[s], aq[r]
+// return sum of sortB() durations for 1..maxMaxGor goroutines
+// optionally compare with standard sort.Slice
+func sumDurB(compStd bool) (sum float64) {
+	for MaxGor = 1; MaxGor <= maxMaxGor; MaxGor++ {
+		sum += medianCpstCompare(stNames[MaxGor-1], implantB, SortSlice, compStd)
+	}
+	return
+}
+
+// implant strings into buf for SortLen
+func implantLenS(buf []uint32) interface{} {
+	// string size is 4*t bytes
+	t := sixb.StrSize >> 2
+
+	// buf will hold n string headers
+	n := len(buf) / t
+
+	t *= n // total string headers space
+	ss := sixb.U4toStrs(buf[:t:t])
+
+	for L := 4*uint(len(buf)) + 1; n > 0; {
+		n--
+		// string bodies start at &buf[0] with random lengths up to 4*len(buf) bytes
+		ss[n].Data = unsafe.Pointer(&buf[0])
+		l := uint(ss[n].Len) // random number from srcBuf
+		ss[n].Len = int(l % L)
+	}
+	return *(*[]string)(unsafe.Pointer(&ss))
+}
+
+// return sum of sortLenS() durations for 1..maxMaxGor goroutines
+// optionally compare with standard sort.Slice
+func sumDurLenS(compStd bool) (sum float64) {
+	for MaxGor = 1; MaxGor <= maxMaxGor; MaxGor++ {
+		sum += medianCpstCompare(stNames[MaxGor-1], implantLenS, SortLen, compStd)
+	}
+	return
+}
+
+// implant []byte's into buf
+func implantLenB(buf []uint32) interface{} {
+	// []byte size is 4*t bytes
+	t := sixb.SliceSize >> 2
+
+	// buf will hold n []byte headers
+	n := len(buf) / t
+
+	t *= n // total []byte headers space
+	bs := sixb.U4toSlcs(buf[:t:t])
+
+	for L := 4*uint(len(buf)) + 1; n > 0; {
+		n--
+		// []byte bodies start at &buf[0] with random lengths up to 4*len(buf) bytes
+		bs[n].Data = unsafe.Pointer(&buf[0])
+		l := uint(bs[n].Len) % L // random number from srcBuf
+		bs[n].Len = int(l)
+		bs[n].Cap = int(l)
+	}
+	return *(*[][]byte)(unsafe.Pointer(&bs))
+}
+
+// return sum of sortLenB() durations for 1..maxMaxGor goroutines
+// optionally compare with standard sort.Slice
+func sumDurLenB(compStd bool) (sum float64) {
+	for MaxGor = 1; MaxGor <= maxMaxGor; MaxGor++ {
+		sum += medianCpstCompare(stNames[MaxGor-1], implantLenB, SortLen, compStd)
+	}
+	return
+}
+
+//go:nosplit
+func sortLsw(ar interface{}) {
+	slc, kind := extractSK(ar)
+
+	switch kind {
+	case reflect.Uint32:
+		buf := *(*[]uint32)(unsafe.Pointer(&slc))
+		lsw := func(i, k, r, s int) bool {
+			if buf[i] < buf[k] {
+				if r != s {
+					buf[r], buf[s] = buf[s], buf[r]
+				}
+				return true
 			}
-			return true
+			return false
 		}
-		return false
-	}
-	Sort(len(aq), lsw)
-}
-
-// return sum of sort3i() times for 1..4 goroutines
-// compare with ap and among themselves
-func sumtLswU4(ar, ap []uint32) float64 {
-	s := .0
-	for MaxGor = 1; MaxGor <= maxMaxGor; MaxGor++ {
-		s += mfcU4(fmt.Sprintf("sortyLsw-%d", MaxGor), sort3i, ar, ap)
-		ap, ar = ar, ap[:cap(ap)]
-	}
-	return s
-}
-
-// sort float32 slice with Sort()
-func sort3f(aq []float32) {
-	lsw := func(i, k, r, s int) bool {
-		if aq[i] < aq[k] {
-			if r != s {
-				aq[r], aq[s] = aq[s], aq[r]
+		Sort(len(buf), lsw)
+	case reflect.Float32:
+		buf := *(*[]float32)(unsafe.Pointer(&slc))
+		lsw := func(i, k, r, s int) bool {
+			x, y := buf[i], buf[k]
+			if x < y || NaNoption == NaNlarge && x == x && y != y ||
+				NaNoption == NaNsmall && x != x && y == y {
+				if r != s {
+					buf[r], buf[s] = buf[s], buf[r]
+				}
+				return true
 			}
-			return true
+			return false
 		}
-		return false
-	}
-	Sort(len(aq), lsw)
-}
-
-// return sum of sort3f() times for 1..4 goroutines
-// compare with ap and among themselves
-func sumtLswF4(ar, ap []float32) float64 {
-	s := .0
-	for MaxGor = 1; MaxGor <= maxMaxGor; MaxGor++ {
-		s += mfcF4(fmt.Sprintf("sortyLsw-%d", MaxGor), sort3f, ar, ap)
-		ap, ar = ar, ap[:cap(ap)]
-	}
-	return s
-}
-
-// sort string slice with Sort()
-func sort3s(aq []string) {
-	lsw := func(i, k, r, s int) bool {
-		if aq[i] < aq[k] {
-			if r != s {
-				aq[r], aq[s] = aq[s], aq[r]
+		Sort(len(buf), lsw)
+	case reflect.String:
+		buf := *(*[]string)(unsafe.Pointer(&slc))
+		lsw := func(i, k, r, s int) bool {
+			if buf[i] < buf[k] {
+				if r != s {
+					buf[r], buf[s] = buf[s], buf[r]
+				}
+				return true
 			}
-			return true
+			return false
 		}
-		return false
+		Sort(len(buf), lsw)
+	case sliceBias + reflect.Uint8:
+		buf := *(*[][]byte)(unsafe.Pointer(&slc))
+		lsw := func(i, k, r, s int) bool {
+			if sixb.BtoS(buf[i]) < sixb.BtoS(buf[k]) {
+				if r != s {
+					buf[r], buf[s] = buf[s], buf[r]
+				}
+				return true
+			}
+			return false
+		}
+		Sort(len(buf), lsw)
+	default:
+		tsPtr.Fatal("unrecognized kind:", kind)
 	}
-	Sort(len(aq), lsw)
 }
 
-// return sum of sort3s() times for 1..4 goroutines
-// compare with ap and among themselves
-func sumtLswS(ar, ap []uint32) float64 {
-	s := .0
+var sLswNames = [4]string{"sortyLsw-1", "sortyLsw-2", "sortyLsw-3", "sortyLsw-4"}
+
+// return sum of Sort([]uint32) durations for 1..maxMaxGor goroutines
+// optionally compare with standard sort.Slice
+func sumDurLswU4(compStd bool) (sum float64) {
 	for MaxGor = 1; MaxGor <= maxMaxGor; MaxGor++ {
-		s += mfcS(fmt.Sprintf("sortyLsw-%d", MaxGor), sort3s, ar, ap)
-		ap, ar = ar, ap[:cap(ap)]
+		sum += medianCpstCompare(sLswNames[MaxGor-1], nil, sortLsw, compStd)
 	}
-	return s
+	return
+}
+
+// return sum of Sort([]float32) durations for 1..maxMaxGor goroutines
+// optionally compare with standard sort.Slice
+func sumDurLswF4(compStd bool) (sum float64) {
+	for MaxGor = 1; MaxGor <= maxMaxGor; MaxGor++ {
+		sum += medianCpstCompare(sLswNames[MaxGor-1], U4toF4, sortLsw, compStd)
+	}
+	return
+}
+
+// return sum of Sort([]string) durations for 1..maxMaxGor goroutines
+// optionally compare with standard sort.Slice
+func sumDurLswS(compStd bool) (sum float64) {
+	for MaxGor = 1; MaxGor <= maxMaxGor; MaxGor++ {
+		sum += medianCpstCompare(sLswNames[MaxGor-1], implantS, sortLsw, compStd)
+	}
+	return
+}
+
+// return sum of Sort([][]byte) durations for 1..maxMaxGor goroutines
+// optionally compare with standard sort.Slice
+func sumDurLswB(compStd bool) (sum float64) {
+	for MaxGor = 1; MaxGor <= maxMaxGor; MaxGor++ {
+		sum += medianCpstCompare(sLswNames[MaxGor-1], implantB, sortLsw, compStd)
+	}
+	return
 }
