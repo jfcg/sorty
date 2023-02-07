@@ -129,21 +129,16 @@ sort.Slice| 3.09| 3.47
 ### Testing & Parameter Tuning
 <details><summary>Show testing & tuning</summary>
 
-First, make sure everything is fine:
+Run tests with:
 ```
-go test -timeout 1h
+go test -timeout 20m -v
 ```
-You can tune `MaxLen*` for your platform/CPU with (optimization flags):
+You can tune `MaxLen*` for your platform/CPU with:
 ```
-go test -timeout 4h -gcflags '-dwarf=0 -B' -ldflags '-s -w' -tags tuneparam
+go test -timeout 2h -tags tuneparam
 ```
-Now update `MaxLen*` in `maxc.go`, uncomment imports & respective `mfc*()`
-calls in `tmain_test.go` and compare your tuned sorty with other libraries:
-```
-go test -timeout 1h -gcflags '-dwarf=0 -B' -ldflags '-s -w'
-```
-Remember to build sorty (and your functions like [`SortObjAsc()`](https://pkg.go.dev/github.com/jfcg/sorty/v2#Sort))
-with the same optimization flags you used for tuning. `-B` flag is especially helpful.
+Now you can update `MaxLen*` in `maxc.go` and run tests again to see the improvements.
+The parameters are already set to give good performance over different CPUs.
 </details>
 
 ### Support
