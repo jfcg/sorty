@@ -172,7 +172,7 @@ func TestConcurrent(t *testing.T) {
 	lsPrep := [4]func([]uint32) interface{}{U4toU8, U4toI4, U4toI8, U4toF8}
 	tch := make(chan struct{})
 
-	for MaxGor = 2; MaxGor <= maxMaxGor; MaxGor++ {
+	for MaxGor = 2; MaxGor <= 4; MaxGor++ {
 		for i := 0; i < len(lsPrep); i += 2 {
 
 			fillSrc()

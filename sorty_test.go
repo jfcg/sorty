@@ -8,6 +8,7 @@ package sorty
 
 import (
 	"reflect"
+	"runtime"
 	"sort"
 	"testing"
 	"time"
@@ -298,9 +299,17 @@ func medianCpstCompare(testName string, prepare func([]uint32) interface{},
 	return printSec(testName, dur[0])
 }
 
-// for regular testing, whether we have the cores or not
-var maxMaxGor uint64 = 4
+var maxMaxGor uint64
 var stNames = [4]string{"sorty-1", "sorty-2", "sorty-3", "sorty-4"}
+
+func init() {
+	maxMaxGor = uint64(runtime.NumCPU())
+	if maxMaxGor == 0 {
+		maxMaxGor = 1
+	} else if maxMaxGor > 4 {
+		maxMaxGor = 4
+	}
+}
 
 // return sum of sortU4() durations for 1..maxMaxGor goroutines
 // optionally compare with standard sort.Slice

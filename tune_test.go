@@ -11,7 +11,6 @@ package sorty
 
 import (
 	"fmt"
-	"runtime"
 	"testing"
 	"time"
 
@@ -64,15 +63,6 @@ func optRun(suffix string, ins0, rec0 int) {
 // Takes a long time, run with -tags tuneparam
 func TestOptimize(t *testing.T) {
 	tsPtr = t
-
-	maxMaxGor = uint64(runtime.NumCPU())
-	if maxMaxGor <= 1 {
-		t.Fatal("need multiple cores to tune")
-	}
-	if maxMaxGor > 4 {
-		maxMaxGor = 4
-	}
-	fmt.Println("max MaxGor:", maxMaxGor)
 
 	optRun("", 80, 600)
 
