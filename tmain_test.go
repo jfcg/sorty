@@ -176,7 +176,7 @@ func TestConcurrent(t *testing.T) {
 		for i := 0; i < len(lsPrep); i += 2 {
 
 			fillSrc()
-			go sortSignal(buf1, lsPrep[i], tch)
+			go sortSignal(buf1, lsPrep[i], tch) // spawn four sorts
 			go sortSignal(buf3, lsPrep[i], tch)
 			go sortSignal(buf2, lsPrep[i+1], tch)
 			sortSignal(buf4, lsPrep[i+1], nil)
@@ -184,7 +184,13 @@ func TestConcurrent(t *testing.T) {
 			for k := 3; k > 0; k-- {
 				<-tch // wait goroutines
 			}
-			compare(lsPrep[i](buf1), lsPrep[i](buf3))
+			compare(lsPrep[i](buf1), lsPrep[i](buf3)) // compare with themselves
+			compare(lsPrep[i+1](buf2), lsPrep[i+1](buf4))
+
+			copyPrepSortTest(buf3, lsPrep[i], stdSort)
+			copyPrepSortTest(buf4, lsPrep[i+1], stdSort)
+
+			compare(lsPrep[i](buf1), lsPrep[i](buf3)) // compare with standard sort.Slice
 			compare(lsPrep[i+1](buf2), lsPrep[i+1](buf4))
 		}
 	}
