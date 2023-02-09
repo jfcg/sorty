@@ -40,8 +40,8 @@ func fillSrc() {
 }
 
 // copy, prepare, sort, test
-func copyPrepSortTest(buf []uint32, prepare func([]uint32) interface{},
-	srf func(interface{})) (time.Duration, interface{}) {
+func copyPrepSortTest(buf []uint32, prepare func([]uint32) any,
+	srf func(any)) (time.Duration, any) {
 
 	// copy from srcBuf into buf
 	if p := &buf[0]; p == &aaBuf[0] || p == &bbBuf[0] {
@@ -52,7 +52,7 @@ func copyPrepSortTest(buf []uint32, prepare func([]uint32) interface{},
 
 	// prepare input if given
 	// its output type determines the sort type
-	var ar interface{}
+	var ar any
 	if prepare != nil {
 		ar = prepare(buf)
 	} else {
@@ -76,7 +76,7 @@ func copyPrepSortTest(buf []uint32, prepare func([]uint32) interface{},
 	return dur, ar
 }
 
-func isValueSort(srf func(interface{})) bool {
+func isValueSort(srf func(any)) bool {
 	sPtr := reflect.ValueOf(srf).Pointer()
 	return sPtr == stdSortPtr || sPtr == sortSlcPtr || sPtr == sortLswPtr
 }
@@ -87,7 +87,7 @@ var (
 	sortLswPtr = reflect.ValueOf(sortLsw).Pointer()   // sorty
 )
 
-func stdSort(ar interface{}) {
+func stdSort(ar any) {
 	slc, kind := extractSK(ar)
 
 	switch kind {
@@ -129,7 +129,7 @@ func stdSort(ar interface{}) {
 }
 
 //go:nosplit
-func stdSortLen(ar interface{}) {
+func stdSortLen(ar any) {
 	slc, kind := extractSK(ar)
 
 	switch {
@@ -144,7 +144,7 @@ func stdSortLen(ar interface{}) {
 	}
 }
 
-func basicCheck(ar, ap interface{}) (slc1, slc2 sixb.Slice, kind reflect.Kind) {
+func basicCheck(ar, ap any) (slc1, slc2 sixb.Slice, kind reflect.Kind) {
 	slc1, kind = extractSK(ar)
 	slc2, kind2 := extractSK(ap)
 	if kind != kind2 {
@@ -159,7 +159,7 @@ func basicCheck(ar, ap interface{}) (slc1, slc2 sixb.Slice, kind reflect.Kind) {
 	return
 }
 
-func compare(ar, ap interface{}) { // by value
+func compare(ar, ap any) { // by value
 	slc1, slc2, kind := basicCheck(ar, ap)
 	var buf1, buf2 []uint64
 
@@ -221,7 +221,7 @@ func compare(ar, ap interface{}) { // by value
 	}
 }
 
-func compareLen(ar, ap interface{}) { // by length
+func compareLen(ar, ap any) { // by length
 	slc1, slc2, kind := basicCheck(ar, ap)
 
 	switch {
@@ -266,11 +266,11 @@ func medur(a, b, c, d time.Duration) time.Duration {
 // Calculate median duration of four distinct calls with random inputs to srf().
 // Optionally compare each result with standard sort.Slice.
 // prepare()'s output type determines the sort type.
-func medianCpstCompare(testName string, prepare func([]uint32) interface{},
-	srf func(interface{}), compStd bool) float64 {
+func medianCpstCompare(testName string, prepare func([]uint32) any,
+	srf func(any), compStd bool) float64 {
 
-	var std func(interface{})
-	var cmp func(interface{}, interface{})
+	var std func(any)
+	var cmp func(any, any)
 
 	if compStd {
 		if isValueSort(srf) {
@@ -283,7 +283,7 @@ func medianCpstCompare(testName string, prepare func([]uint32) interface{},
 	}
 
 	dur := [4]time.Duration{}
-	var ar interface{}
+	var ar any
 
 	for i := 0; i < len(dur); i++ {
 		fillSrc()
@@ -320,7 +320,7 @@ func sumDurU4(compStd bool) (sum float64) {
 	return
 }
 
-func U4toF4(buf []uint32) interface{} {
+func U4toF4(buf []uint32) any {
 	return *(*[]float32)(unsafe.Pointer(&buf))
 }
 
@@ -334,7 +334,7 @@ func sumDurF4(compStd bool) (sum float64) {
 }
 
 // implant strings into buf
-func implantS(buf []uint32) interface{} {
+func implantS(buf []uint32) any {
 	// string size is 4*t bytes
 	t := sixb.StrSize >> 2
 
@@ -363,7 +363,7 @@ func sumDurS(compStd bool) (sum float64) {
 }
 
 // implant []byte's into buf
-func implantB(buf []uint32) interface{} {
+func implantB(buf []uint32) any {
 	// []byte size is 4*t bytes
 	t := sixb.SliceSize >> 2
 
@@ -393,7 +393,7 @@ func sumDurB(compStd bool) (sum float64) {
 }
 
 // implant strings into buf for SortLen
-func implantLenS(buf []uint32) interface{} {
+func implantLenS(buf []uint32) any {
 	// string size is 4*t bytes
 	t := sixb.StrSize >> 2
 
@@ -423,7 +423,7 @@ func sumDurLenS(compStd bool) (sum float64) {
 }
 
 // implant []byte's into buf
-func implantLenB(buf []uint32) interface{} {
+func implantLenB(buf []uint32) any {
 	// []byte size is 4*t bytes
 	t := sixb.SliceSize >> 2
 
@@ -454,7 +454,7 @@ func sumDurLenB(compStd bool) (sum float64) {
 }
 
 //go:nosplit
-func sortLsw(ar interface{}) {
+func sortLsw(ar any) {
 	slc, kind := extractSK(ar)
 
 	switch kind {

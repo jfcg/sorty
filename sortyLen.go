@@ -19,7 +19,7 @@ import (
 // otherwise it panics.
 //
 //go:nosplit
-func IsSortedLen(ar interface{}) int {
+func IsSortedLen(ar any) int {
 	slc, kind := extractSK(ar)
 	switch {
 	case kind == reflect.String:
@@ -40,7 +40,7 @@ func IsSortedLen(ar interface{}) int {
 // otherwise it panics.
 //
 //go:nosplit
-func SortLen(ar interface{}) {
+func SortLen(ar any) {
 	slc, kind := extractSK(ar)
 	switch {
 	case kind == reflect.String:

@@ -21,7 +21,7 @@ import (
 // otherwise it panics.
 //
 //go:nosplit
-func IsSortedSlice(ar interface{}) int {
+func IsSortedSlice(ar any) int {
 	slc, kind := extractSK(ar)
 	switch kind {
 	case reflect.Int32:
@@ -61,7 +61,7 @@ func IsSortedSlice(ar interface{}) int {
 // otherwise it panics.
 //
 //go:nosplit
-func SortSlice(ar interface{}) {
+func SortSlice(ar any) {
 	slc, kind := extractSK(ar)
 	switch kind {
 	case reflect.Int32:

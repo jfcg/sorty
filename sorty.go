@@ -140,7 +140,7 @@ const sliceBias reflect.Kind = 100
 // extracts slice and element kind from ar
 //
 //go:nosplit
-func extractSK(ar interface{}) (slc sixb.Slice, kind reflect.Kind) {
+func extractSK(ar any) (slc sixb.Slice, kind reflect.Kind) {
 	tipe := reflect.TypeOf(ar)
 	if tipe.Kind() != reflect.Slice {
 		return

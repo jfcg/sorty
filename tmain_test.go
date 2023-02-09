@@ -18,6 +18,12 @@ import (
 	"github.com/jfcg/sixb"
 )
 
+func printSec(testName string, d time.Duration) float64 {
+	sec := d.Seconds()
+	fmt.Printf("%10s %5.2fs\n", testName, sec)
+	return sec
+}
+
 func TestMinMax(t *testing.T) {
 	for n := uint(2); n <= 3*nsConc; n++ {
 		for slen := 2 * n; slen <= 3*MaxLenRec; slen++ {
@@ -58,12 +64,6 @@ func TestMinMax(t *testing.T) {
 			t.Fatal("minMaxFour != minMaxSample")
 		}
 	}
-}
-
-func printSec(testName string, d time.Duration) float64 {
-	sec := d.Seconds()
-	fmt.Printf("%10s %5.2fs\n", testName, sec)
-	return sec
 }
 
 // test & time sorting uint32 slices
@@ -136,25 +136,25 @@ func TestByteSliceByLen(t *testing.T) {
 	sumDurLenB(true) // sorty
 }
 
-func U4toU8(buf []uint32) interface{} {
+func U4toU8(buf []uint32) any {
 	return sixb.U4toU8(buf)
 }
 
-func U4toI4(buf []uint32) interface{} {
+func U4toI4(buf []uint32) any {
 	return *(*[]int32)(unsafe.Pointer(&buf))
 }
 
-func U4toI8(buf []uint32) interface{} {
+func U4toI8(buf []uint32) any {
 	slc := sixb.U4toU8(buf)
 	return *(*[]int64)(unsafe.Pointer(&slc))
 }
 
-func U4toF8(buf []uint32) interface{} {
+func U4toF8(buf []uint32) any {
 	slc := sixb.U4toU8(buf)
 	return *(*[]float64)(unsafe.Pointer(&slc))
 }
 
-func sortSignal(buf []uint32, prepare func([]uint32) interface{}, ch chan struct{}) {
+func sortSignal(buf []uint32, prepare func([]uint32) any, ch chan struct{}) {
 	copyPrepSortTest(buf, prepare, SortSlice)
 	if ch != nil {
 		ch <- struct{}{}
@@ -169,7 +169,7 @@ func TestConcurrent(t *testing.T) {
 	buf1, buf2 := aaBuf[:bufHalf], aaBuf[bufHalf:]
 	buf3, buf4 := bbBuf[:bufHalf], bbBuf[bufHalf:]
 
-	lsPrep := [4]func([]uint32) interface{}{U4toU8, U4toI4, U4toI8, U4toF8}
+	lsPrep := [4]func([]uint32) any{U4toU8, U4toI4, U4toI8, U4toF8}
 	tch := make(chan struct{})
 
 	for MaxGor = 2; MaxGor <= 4; MaxGor++ {
