@@ -35,111 +35,24 @@ than [`sort.Interface`](https://pkg.go.dev/sort#Interface) on generic collection
 tuned to get the best performance, see below.
 - sorty API adheres to [semantic](https://semver.org) versioning.
 
+sorty does not yet recognize partially sorted (sub-)slices to sort them faster (like pdqsort).
+
 ### Benchmarks
-<details><summary>Show benchmarks</summary>
-
-Comparing against [sort.Slice](https://pkg.go.dev/sort#Slice), [sortutil](https://github.com/twotwotwo/sorts),
-[zermelo](https://github.com/shawnsmithdev/zermelo) and [radix](https://github.com/yourbasic/radix) with Go
-version `1.17.8` on:
-
-Machine|CPU|OS|Kernel
-:---|:---|:---|:---
-R6|Ryzen 1600   |Manjaro|5.10.105
-i5|Core i5 4210M|Manjaro|5.10.105
-
-Sorting uniformly distributed random uint32 slice (in seconds):
-
-Library(-MaxGor)|R6|i5
-:---|---:|---:
-sort.Slice|12.06|14.01
-  sortutil| 1.42| 3.12
-   zermelo| 1.93| 1.12
-   sorty-1| 6.18| 6.06
-   sorty-2| 3.21| 3.18
-   sorty-3| 2.17| 2.56
-   sorty-4| 1.78| 2.26
-sortyLsw-1|11.47|13.00
-sortyLsw-2| 5.99| 6.80
-sortyLsw-3| 4.08| 5.50
-sortyLsw-4| 3.32| 4.78
-
-Sorting normally distributed random float32 slice (in seconds):
-
-Library(-MaxGor)|R6|i5
-:---|---:|---:
-sort.Slice|13.13|14.46
-  sortutil| 1.99| 3.50
-   zermelo| 4.51| 3.18
-   sorty-1| 7.32| 6.86
-   sorty-2| 3.89| 3.59
-   sorty-3| 2.63| 2.78
-   sorty-4| 2.29| 2.49
-sortyLsw-1|12.83|13.60
-sortyLsw-2| 6.76| 7.13
-sortyLsw-3| 4.67| 5.63
-sortyLsw-4| 3.88| 4.96
-
-Sorting uniformly distributed random string slice (in seconds):
-
-Library(-MaxGor)|R6|i5
-:---|---:|---:
-sort.Slice| 6.06| 7.05
-  sortutil| 1.35| 1.94
-   radix  | 4.26| 3.35
-   sorty-1| 4.62| 5.30
-   sorty-2| 2.41| 2.95
-   sorty-3| 1.65| 2.73
-   sorty-4| 1.50| 2.55
-sortyLsw-1| 5.90| 6.77
-sortyLsw-2| 3.12| 3.74
-sortyLsw-3| 2.23| 3.37
-sortyLsw-4| 1.98| 3.19
-
-Sorting uniformly distributed random []byte slice (in seconds):
-
-Library(-MaxGor)|R6|i5
-:---|---:|---:
-sort.Slice| 5.19| 6.20
-   sorty-1| 3.32| 3.76
-   sorty-2| 1.71| 2.05
-   sorty-3| 1.25| 1.94
-   sorty-4| 1.09| 1.80
-
-Sorting uniformly distributed random string slice by length (in seconds):
-
-Library(-MaxGor)|R6|i5
-:---|---:|---:
-sort.Slice| 2.99| 3.40
-   sorty-1| 1.71| 1.91
-   sorty-2| 0.95| 1.01
-   sorty-3| 0.68| 0.86
-   sorty-4| 0.57| 0.80
-
-Sorting uniformly distributed random []byte slice by length (in seconds):
-
-Library(-MaxGor)|R6|i5
-:---|---:|---:
-sort.Slice| 3.09| 3.47
-   sorty-1| 1.18| 1.25
-   sorty-2| 0.67| 0.67
-   sorty-3| 0.47| 0.57
-   sorty-4| 0.43| 0.54
-</details>
+See `Green tick > QA / Tests > Details`. Testing and benchmarks are done with random inputs
+via [jfcg/rng](https://github.com/jfcg/rng) library.
 
 ### Testing & Parameter Tuning
-<details><summary>Show testing & tuning</summary>
-
 Run tests with:
 ```
-go test -timeout 20m -v
+go test -timeout 1h -v
 ```
 You can tune `MaxLen*` for your platform/CPU with:
 ```
-go test -timeout 2h -tags tuneparam
+go test -timeout 3h -tags tuneparam
 ```
 Now you can update `MaxLen*` in `maxc.go` and run tests again to see the improvements.
 The parameters are already set to give good performance over different CPUs.
-</details>
+Also see `Green tick > QA / Tuning > Details`.
 
 ### Support
 See [Contributing](./.github/CONTRIBUTING.md), [Security](./.github/SECURITY.md) and [Support](./.github/SUPPORT.md) guides. Also if you use sorty and like it, please support via [Github Sponsors](https://github.com/sponsors/jfcg) or:
