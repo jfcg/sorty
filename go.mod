@@ -4,6 +4,6 @@ go 1.18
 
 require (
 	github.com/jfcg/opt v0.3.1
-	github.com/jfcg/rng v1.0.3
-	github.com/jfcg/sixb v1.3.7
+	github.com/jfcg/rng v1.0.4
+	github.com/jfcg/sixb v1.3.8
 )
