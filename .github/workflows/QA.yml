@@ -16,61 +16,51 @@ env:
 jobs:
   Tests:
     strategy:
-      max-parallel: 1
+      max-parallel: 2
       matrix:
         os: [ ubuntu-latest, windows-latest, macos-latest ]
-        go: [ '1.19', '1.20' ]
+        go: [ oldstable, stable ]
     runs-on: ${{ matrix.os }}
-
     steps:
     - name: Checkout Repo
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     - name: Setup Go
-      uses: actions/setup-go@v3
+      uses: actions/setup-go@v5
       with:
         go-version: ${{ matrix.go }}
-    - name: Run Tests
-      run: go test -timeout 1h -v
+    - name: Run Tests with Coverage
+      run: go test -timeout 1h -v -cover
 
   Analysis:
     needs: Tests
     permissions:
       actions: read
       security-events: write
-    strategy:
-      matrix:
-        go: [ '1.19', '1.20' ]
     runs-on: ubuntu-latest
-
     steps:
     - name: Checkout Repo
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     - name: Setup Go
-      uses: actions/setup-go@v3
+      uses: actions/setup-go@v5
       with:
-        go-version: ${{ matrix.go }}
+        go-version: stable
     - name: Initialize
-      uses: github/codeql-action/init@v2
+      uses: github/codeql-action/init@v3
       with:
         languages: go
     - name: Analyze
-      uses: github/codeql-action/analyze@v2
+      uses: github/codeql-action/analyze@v3
 
   Tuning:
     needs: Analysis
     if: github.ref_name == 'dev'
-    strategy:
-      max-parallel: 1
-      matrix:
-        go: [ '1.19', '1.20' ]
     runs-on: ubuntu-latest
-
     steps:
     - name: Checkout Repo
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     - name: Setup Go
-      uses: actions/setup-go@v3
+      uses: actions/setup-go@v5
       with:
-        go-version: ${{ matrix.go }}
+        go-version: stable
     - name: Tune Params
       run: go test -timeout 3h -tags tuneparam
