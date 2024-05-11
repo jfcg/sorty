@@ -1,4 +1,4 @@
-## sorty [![go report card](https://goreportcard.com/badge/github.com/jfcg/sorty/v2)](https://goreportcard.com/report/github.com/jfcg/sorty/v2) [![go.dev ref](https://pkg.go.dev/static/frontend/badge/badge.svg)](https://pkg.go.dev/github.com/jfcg/sorty/v2#pkg-overview)
+## sorty [![go.dev ref](https://pkg.go.dev/static/frontend/badge/badge.svg)](https://pkg.go.dev/github.com/jfcg/sorty/v2#pkg-overview) [![report card](https://goreportcard.com/badge/github.com/jfcg/sorty/v2)](https://goreportcard.com/report/github.com/jfcg/sorty/v2) [![coverage](./.github/cover.svg)](https://github.com/jfcg/sorty/actions/workflows/QA.yml)
 
 sorty is a type-specific, fast, efficient, concurrent / parallel sorting
 library. It is an innovative [QuickSort](https://en.wikipedia.org/wiki/Quicksort)
@@ -27,12 +27,13 @@ sorty is stable (as in version), well-tested and pretty careful with resources &
 - `lesswap()` operates [**faster**](https://github.com/lynxkite/lynxkite/pull/141#issuecomment-779673635)
 than [`sort.Interface`](https://pkg.go.dev/sort#Interface) on generic collections.
 - For each `Sort*()` call, sorty uses up to [`MaxGor`](https://pkg.go.dev/github.com/jfcg/sorty/v2#pkg-variables)
-(3 by default, including caller) concurrent goroutines and up to one channel.
+concurrent goroutines (3 by default including caller) and up to one channel.
 - Goroutines and channel are created/used **only when necessary**.
-- `MaxGor=1` (or a short input) yields single-goroutine sorting: no goroutines or channel will be created.
-- `MaxGor` can be changed live, even during an ongoing `Sort*()` call.
+- `MaxGor ≤ 1` (or a short input) yields single-goroutine sorting: no goroutines or channel will be created.
+- `MaxGor` can be changed live, even during ongoing `Sort*()` calls.
 - [`MaxLen*`](https://pkg.go.dev/github.com/jfcg/sorty/v2#pkg-constants) parameters are
 tuned to get the best performance, see below.
+- sorty can handle [NaNs](https://en.wikipedia.org/wiki/NaN) with [`NaNoption`](https://pkg.go.dev/github.com/jfcg/sorty/v2#pkg-variables).
 - sorty API adheres to [semantic](https://semver.org) versioning.
 
 sorty does not yet recognize partially sorted (sub-)slices to sort them faster (like pdqsort).
