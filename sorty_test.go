@@ -8,7 +8,6 @@ package sorty
 
 import (
 	"reflect"
-	"runtime"
 	"sort"
 	"testing"
 	"time"
@@ -19,8 +18,11 @@ import (
 )
 
 const (
-	bufFull = 1 << 25
+	// will have many equal & distinct elements in buffers
+	bufFull = 10_000_000
 	bufHalf = bufFull / 2
+
+	maxMaxGor = 3
 )
 
 var (
@@ -299,17 +301,7 @@ func medianCpstCompare(testName string, prepare func([]uint32) any,
 	return printSec(testName, dur[0])
 }
 
-var maxMaxGor uint64
 var stNames = [4]string{"sorty-1", "sorty-2", "sorty-3", "sorty-4"}
-
-func init() {
-	maxMaxGor = uint64(runtime.NumCPU())
-	if maxMaxGor == 0 {
-		maxMaxGor = 1
-	} else if maxMaxGor > 4 {
-		maxMaxGor = 4
-	}
-}
 
 // return sum of sortU4() durations for 1..maxMaxGor goroutines
 // optionally compare with standard sort.Slice
