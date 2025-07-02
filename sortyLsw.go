@@ -9,7 +9,7 @@ package sorty
 import (
 	"sync/atomic"
 
-	"github.com/jfcg/sixb"
+	"github.com/jfcg/sixb/v2"
 )
 
 // Lesswap function operates on an underlying collection to be sorted as:
@@ -77,7 +77,7 @@ func pivot(lsw Lesswap, lo, hi int, n uint) int {
 	lsw(first, lo, first, lo)
 	lsw(hi, last, hi, last)
 
-	return sixb.MeanI(first, last)
+	return sixb.Mean(first, last)
 }
 
 // partition slc, returns k with slc[:k] ≤ pivot ≤ slc[k:]
@@ -174,7 +174,7 @@ func partCon(lsw Lesswap, lo, hi int, ch chan int) int {
 	pv := pivot(lsw, lo, hi, nsConc-1) // median-of-n pivot
 	lo++
 	hi--
-	l, h := sixb.MeanI(lo, pv), sixb.MeanI(pv, hi)
+	l, h := sixb.Mean(lo, pv), sixb.Mean(pv, hi)
 
 	go gPartOne(lsw, l+1, pv, h-1, ch) // mid half range
 

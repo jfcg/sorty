@@ -1,6 +1,6 @@
 github.com/jfcg/opt v0.3.1 h1:6zgKvv3fR5OlX2nxUYJC4wtosY30N4vypILgXmRNr34=
 github.com/jfcg/opt v0.3.1/go.mod h1:3ZUYQhiqKM6vVjMRYV1fVZ9a91EQ47b5kg7KsnfRClk=
-github.com/jfcg/rng v1.0.6 h1:JCYvI/GaSSd3lL0zl15J7FNHqMZYNosPmNKDrysKhH0=
-github.com/jfcg/rng v1.0.6/go.mod h1:UqYFfcn9XCugyejaC+8cXQgrWtHQtvlWGiLQXu/7Cnw=
-github.com/jfcg/sixb v1.4.1 h1:lb/fWXTn7G+Om2K2/NhZByppgPyQ7mWyQ5XOHu9PAfU=
-github.com/jfcg/sixb v1.4.1/go.mod h1:hofNeC6Ua8uwQ7X14L2/byXF1xJyUyX4lk53SmeAopI=
+github.com/jfcg/rng v1.1.2 h1:YlRqNMuGe6KblBQDkdn/GzzhtrXjC0u1g0FgP1xEa2Q=
+github.com/jfcg/rng v1.1.2/go.mod h1:lNCxixYdl8e8Z6KtBkKJ2hX4LGyRIz2YOhVr2rUoLec=
+github.com/jfcg/sixb/v2 v2.3.0 h1:3V8vz4iDDPLhFpav98I4VOSB9fp8YkCGe/ZzDO2udT4=
+github.com/jfcg/sixb/v2 v2.3.0/go.mod h1:LONY39vRt9MEU1Ou6WolEpQ6rogdgZ3HWya9Jzp2hUM=

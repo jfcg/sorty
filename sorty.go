@@ -21,7 +21,7 @@ import (
 	"reflect"
 	"unsafe"
 
-	"github.com/jfcg/sixb"
+	"github.com/jfcg/sixb/v2"
 )
 
 // MaxGor is the maximum number of goroutines (including caller) that can be
@@ -66,7 +66,7 @@ func Search(n int, fn func(int) bool) int {
 	l, h := 0, n
 
 	for l < h {
-		m := sixb.MeanI(l, h)
+		m := sixb.Mean(l, h)
 
 		if fn(m) {
 			h = m
@@ -128,10 +128,10 @@ func minMaxFour(slen uint32) (first, step uint32) {
 
 // inlined
 func insertionI(slc []int) {
-	if unsafe.Sizeof(int(0)) == 8 {
-		insertionI8(*(*[]int64)(unsafe.Pointer(&slc)))
+	if uint(unsafe.Sizeof(int(0))) == 8 {
+		insertionI8(sixb.Slice[int64](slc))
 	} else {
-		insertionI4(*(*[]int32)(unsafe.Pointer(&slc)))
+		insertionI4(sixb.Slice[int32](slc))
 	}
 }
 
@@ -140,7 +140,7 @@ const sliceBias reflect.Kind = 100
 // extracts slice and element kind from ar
 //
 //go:nosplit
-func extractSK(ar any) (slc sixb.Slice, kind reflect.Kind) {
+func extractSK(ar any) (slc sixb.InSlice, kind reflect.Kind) {
 	tipe := reflect.TypeOf(ar)
 	if tipe.Kind() != reflect.Slice {
 		return
@@ -168,7 +168,7 @@ func extractSK(ar any) (slc sixb.Slice, kind reflect.Kind) {
 	}
 
 	v := reflect.ValueOf(ar)
-	p, l := v.Pointer(), v.Len()
-	slc = sixb.Slice{Data: unsafe.Pointer(p), Len: l, Cap: l}
+	p, l := unsafe.Pointer(v.Pointer()), uint(v.Len())
+	slc = sixb.InSlice{Data: p, Len: l, Cap: l}
 	return
 }

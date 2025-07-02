@@ -9,7 +9,7 @@ package sorty
 import (
 	"sync/atomic"
 
-	"github.com/jfcg/sixb"
+	"github.com/jfcg/sixb/v2"
 )
 
 // isSortedF4 returns 0 if slc is sorted in ascending order, otherwise it returns i > 0
@@ -200,7 +200,7 @@ func partConF4(slc []float32, ch chan int) int {
 
 	pv := pivotF4(slc, nsConc-1) // median-of-n pivot
 	mid := len(slc) >> 1
-	l, h := mid>>1, sixb.MeanI(mid, len(slc))
+	l, h := mid>>1, sixb.Mean(mid, len(slc))
 
 	go gPartOneF4(slc[l:h:h], pv, ch) // mid half range
 
@@ -231,18 +231,7 @@ func partConF4(slc []float32, ch chan int) int {
 func shortF4(ar []float32) {
 start:
 	first, step, last := minMaxSample(uint(len(ar)), 3)
-	f, pv, l := ar[first], ar[first+step], ar[last]
-
-	if pv < f {
-		pv, f = f, pv
-	}
-	if l < pv {
-		if l < f {
-			pv = f
-		} else {
-			pv = l // median-of-3 pivot
-		}
-	}
+	pv := sixb.Median3(ar[first], ar[first+step], ar[last])
 
 	k := partOneF4(ar, pv)
 	var aq []float32

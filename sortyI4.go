@@ -9,7 +9,7 @@ package sorty
 import (
 	"sync/atomic"
 
-	"github.com/jfcg/sixb"
+	"github.com/jfcg/sixb/v2"
 )
 
 // isSortedI4 returns 0 if ar is sorted in ascending
@@ -65,7 +65,7 @@ func pivotI4(slc []int32, n uint) int32 {
 	insertionI4(sample[:n]) // sort n samples
 
 	n >>= 1 // return mean of middle two samples
-	return sixb.MeanI4(sample[n-1], sample[n])
+	return sixb.Mean(sample[n-1], sample[n])
 }
 
 // partition slc, returns k with slc[:k] ≤ pivot ≤ slc[k:]
@@ -186,7 +186,7 @@ func partConI4(slc []int32, ch chan int) int {
 
 	pv := pivotI4(slc, nsConc) // median-of-n pivot
 	mid := len(slc) >> 1
-	l, h := mid>>1, sixb.MeanI(mid, len(slc))
+	l, h := mid>>1, sixb.Mean(mid, len(slc))
 
 	go gPartOneI4(slc[l:h:h], pv, ch) // mid half range
 
@@ -217,21 +217,7 @@ func partConI4(slc []int32, ch chan int) int {
 func shortI4(ar []int32) {
 start:
 	first, step := minMaxFour(uint32(len(ar)))
-	a, b, c, d := ar[first], ar[first+step], ar[first+2*step], ar[first+3*step]
-
-	if d < b {
-		d, b = b, d
-	}
-	if c < a {
-		c, a = a, c
-	}
-	if d < c {
-		c = d
-	}
-	if b < a {
-		b = a
-	}
-	pv := sixb.MeanI4(b, c) // median-of-4 pivot
+	pv := sixb.Median4(ar[first], ar[first+step], ar[first+2*step], ar[first+3*step])
 
 	k := partOneI4(ar, pv)
 	var aq []int32

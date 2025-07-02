@@ -9,7 +9,7 @@ package sorty
 import (
 	"sync/atomic"
 
-	"github.com/jfcg/sixb"
+	"github.com/jfcg/sixb/v2"
 )
 
 // isSortedS returns 0 if ar is sorted in ascending lexicographic
@@ -185,7 +185,7 @@ func partConS(slc []string, ch chan int) int {
 
 	pv := pivotS(slc, nsConc-1) // median-of-n pivot
 	mid := len(slc) >> 1
-	l, h := mid>>1, sixb.MeanI(mid, len(slc))
+	l, h := mid>>1, sixb.Mean(mid, len(slc))
 
 	go gPartOneS(slc[l:h:h], pv, ch) // mid half range
 
@@ -216,18 +216,7 @@ func partConS(slc []string, ch chan int) int {
 func shortS(ar []string) {
 start:
 	first, step, last := minMaxSample(uint(len(ar)), 3)
-	f, pv, l := ar[first], ar[first+step], ar[last]
-
-	if pv < f {
-		pv, f = f, pv
-	}
-	if l < pv {
-		if l < f {
-			pv = f
-		} else {
-			pv = l // median-of-3 pivot
-		}
-	}
+	pv := sixb.Median3(ar[first], ar[first+step], ar[last])
 
 	k := partOneS(ar, pv)
 	var aq []string

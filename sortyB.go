@@ -9,14 +9,14 @@ package sorty
 import (
 	"sync/atomic"
 
-	"github.com/jfcg/sixb"
+	sb "github.com/jfcg/sixb/v2"
 )
 
 // isSortedB returns 0 if ar is sorted in ascending lexicographic
-// order, otherwise it returns i > 0 with sixb.BtoS(ar[i]) < sixb.BtoS(ar[i-1]), inlined
+// order, otherwise it returns i > 0 with string(ar[i]) < string(ar[i-1]), inlined
 func isSortedB(ar [][]byte) int {
 	for i := len(ar) - 1; i > 0; i-- {
-		if sixb.BtoS(ar[i]) < sixb.BtoS(ar[i-1]) {
+		if sb.String(ar[i]) < sb.String(ar[i-1]) {
 			return i
 		}
 	}
@@ -37,7 +37,7 @@ func insertionB(slc [][]byte) {
 		}
 	start:
 		pre = slc[l-1]
-		if sixb.BtoS(val) < sixb.BtoS(pre) {
+		if sb.String(val) < sb.String(pre) {
 			goto loop
 		}
 		if l == h {
@@ -59,7 +59,7 @@ func pivotB(slc [][]byte, n uint) string {
 
 	var sample [nsConc - 1]string
 	for i := int(n - 1); i >= 0; i-- {
-		sample[i] = sixb.BtoS(slc[first])
+		sample[i] = sb.String(slc[first])
 		first += step
 	}
 	insertionS(sample[:n]) // sort n samples
@@ -82,7 +82,7 @@ second:
 		if h <= l {
 			return l
 		}
-		if sixb.BtoS(slc[h]) <= pv {
+		if sb.String(slc[h]) <= pv {
 			break
 		}
 	}
@@ -96,14 +96,14 @@ start:
 		goto last
 	}
 
-	if pv <= sixb.BtoS(slc[h]) { // avoid unnecessary comparisons
-		if pv < sixb.BtoS(slc[l]) { // extend ranges in balance
+	if pv <= sb.String(slc[h]) { // avoid unnecessary comparisons
+		if pv < sb.String(slc[l]) { // extend ranges in balance
 			goto second
 		}
 		goto next
 	}
 	for {
-		if pv <= sixb.BtoS(slc[l]) {
+		if pv <= sb.String(slc[l]) {
 			goto swap
 		}
 		l++
@@ -112,7 +112,7 @@ start:
 		}
 	}
 last:
-	if l == h && sixb.BtoS(slc[h]) < pv { // classify mid element
+	if l == h && sb.String(slc[h]) < pv { // classify mid element
 		l++
 	}
 	return l
@@ -137,7 +137,7 @@ second:
 		if h >= len(slc) {
 			return l
 		}
-		if sixb.BtoS(slc[h]) <= pv {
+		if sb.String(slc[h]) <= pv {
 			break
 		}
 	}
@@ -154,14 +154,14 @@ start:
 		return l
 	}
 
-	if pv <= sixb.BtoS(slc[h]) { // avoid unnecessary comparisons
-		if pv < sixb.BtoS(slc[l]) { // extend ranges in balance
+	if pv <= sb.String(slc[h]) { // avoid unnecessary comparisons
+		if pv < sb.String(slc[l]) { // extend ranges in balance
 			goto second
 		}
 		goto next
 	}
 	for {
-		if pv <= sixb.BtoS(slc[l]) {
+		if pv <= sb.String(slc[l]) {
 			goto swap
 		}
 		l--
@@ -185,7 +185,7 @@ func partConB(slc [][]byte, ch chan int) int {
 
 	pv := pivotB(slc, nsConc-1) // median-of-n pivot
 	mid := len(slc) >> 1
-	l, h := mid>>1, sixb.MeanI(mid, len(slc))
+	l, h := mid>>1, sb.Mean(mid, len(slc))
 
 	go gPartOneB(slc[l:h:h], pv, ch) // mid half range
 
@@ -196,14 +196,14 @@ func partConB(slc [][]byte, ch chan int) int {
 	// only one gap is possible
 	if r < mid {
 		for ; 0 <= r; r-- { // gap left in low range?
-			if pv < sixb.BtoS(slc[r]) {
+			if pv < sb.String(slc[r]) {
 				k--
 				slc[r], slc[k] = slc[k], slc[r]
 			}
 		}
 	} else {
 		for ; r < len(slc); r++ { // gap left in high range?
-			if sixb.BtoS(slc[r]) < pv {
+			if sb.String(slc[r]) < pv {
 				slc[r], slc[k] = slc[k], slc[r]
 				k++
 			}
@@ -216,18 +216,7 @@ func partConB(slc [][]byte, ch chan int) int {
 func shortB(ar [][]byte) {
 start:
 	first, step, last := minMaxSample(uint(len(ar)), 3)
-	f, pv, l := sixb.BtoS(ar[first]), sixb.BtoS(ar[first+step]), sixb.BtoS(ar[last])
-
-	if pv < f {
-		pv, f = f, pv
-	}
-	if l < pv {
-		if l < f {
-			pv = f
-		} else {
-			pv = l // median-of-3 pivot
-		}
-	}
+	pv := sb.Median3(sb.String(ar[first]), sb.String(ar[first+step]), sb.String(ar[last]))
 
 	k := partOneB(ar, pv)
 	var aq [][]byte

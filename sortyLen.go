@@ -8,7 +8,8 @@ package sorty
 
 import (
 	"reflect"
-	"unsafe"
+
+	"github.com/jfcg/sixb/v2"
 )
 
 // IsSortedLen returns 0 if ar is sorted 'by length' in ascending order, otherwise
@@ -23,11 +24,9 @@ func IsSortedLen(ar any) int {
 	slc, kind := extractSK(ar)
 	switch {
 	case kind == reflect.String:
-		s := *(*[]string)(unsafe.Pointer(&slc))
-		return isSortedLenS(s)
+		return isSortedLenS(sixb.Cast[string](slc))
 	case kind >= sliceBias:
-		b := *(*[][]byte)(unsafe.Pointer(&slc))
-		return isSortedLenB(b)
+		return isSortedLenB(sixb.Cast[[]byte](slc))
 	}
 	panic("sorty: IsSortedLen: invalid input type")
 }
@@ -44,11 +43,9 @@ func SortLen(ar any) {
 	slc, kind := extractSK(ar)
 	switch {
 	case kind == reflect.String:
-		s := *(*[]string)(unsafe.Pointer(&slc))
-		sortLenS(s)
+		sortLenS(sixb.Cast[string](slc))
 	case kind >= sliceBias:
-		b := *(*[][]byte)(unsafe.Pointer(&slc))
-		sortLenB(b)
+		sortLenB(sixb.Cast[[]byte](slc))
 	default:
 		panic("sorty: SortLen: invalid input type")
 	}

@@ -1,5 +1,4 @@
 //go:build tuneparam
-// +build tuneparam
 
 /*	Copyright (c) 2021, Serhat Şevki Dinçer.
 	This Source Code Form is subject to the terms of the Mozilla Public

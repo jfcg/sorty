@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/jfcg/sixb"
+	"github.com/jfcg/sixb/v2"
 )
 
 func BenchmarkSortB(b *testing.B) {
@@ -16,11 +16,11 @@ func BenchmarkSortB(b *testing.B) {
 		// fill slc
 		for i, r := 16, 0; i > 0; i-- {
 			for k := len(arg) - 1; k >= 0; k-- {
-				slc[r] = sixb.StoB(arg[k])
+				slc[r] = sixb.Bytes(arg[k])
 				r++
 			}
 			for k := len(env) - 1; k >= 0; k-- {
-				slc[r] = sixb.StoB(env[k])
+				slc[r] = sixb.Bytes(env[k])
 				r++
 			}
 		}

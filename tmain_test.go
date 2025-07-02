@@ -1,5 +1,4 @@
 //go:build !tuneparam
-// +build !tuneparam
 
 /*	Copyright (c) 2021, Serhat Şevki Dinçer.
 	This Source Code Form is subject to the terms of the Mozilla Public
@@ -13,9 +12,8 @@ import (
 	"fmt"
 	"testing"
 	"time"
-	"unsafe"
 
-	"github.com/jfcg/sixb"
+	"github.com/jfcg/sixb/v2"
 )
 
 func printSec(testName string, d time.Duration) float64 {
@@ -137,21 +135,19 @@ func TestByteSliceByLen(t *testing.T) {
 }
 
 func U4toU8(buf []uint32) any {
-	return sixb.U4toU8(buf)
+	return sixb.Slice[uint64](buf)
 }
 
 func U4toI4(buf []uint32) any {
-	return *(*[]int32)(unsafe.Pointer(&buf))
+	return sixb.Slice[int32](buf)
 }
 
 func U4toI8(buf []uint32) any {
-	slc := sixb.U4toU8(buf)
-	return *(*[]int64)(unsafe.Pointer(&slc))
+	return sixb.Slice[int64](buf)
 }
 
 func U4toF8(buf []uint32) any {
-	slc := sixb.U4toU8(buf)
-	return *(*[]float64)(unsafe.Pointer(&slc))
+	return sixb.Slice[float64](buf)
 }
 
 func sortSignal(buf []uint32, prepare func([]uint32) any, ch chan struct{}) {
