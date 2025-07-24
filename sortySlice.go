@@ -26,13 +26,13 @@ func IsSortedSlice(ar any) int {
 	slc, kind := extractSK(ar)
 	switch kind {
 	case reflect.Int32:
-		return isSortedI4(sb.Cast[int32](slc))
+		return isSortedI(sb.Cast[int32](slc))
 	case reflect.Int64:
-		return isSortedI8(sb.Cast[int64](slc))
+		return isSortedI(sb.Cast[int64](slc))
 	case reflect.Uint32:
-		return isSortedU4(sb.Cast[uint32](slc))
+		return isSortedI(sb.Cast[uint32](slc))
 	case reflect.Uint64:
-		return isSortedU8(sb.Cast[uint64](slc))
+		return isSortedI(sb.Cast[uint64](slc))
 	case reflect.Float32:
 		return isSortedF4(sb.Cast[float32](slc))
 	case reflect.Float64:
@@ -58,13 +58,13 @@ func SortSlice(ar any) {
 	slc, kind := extractSK(ar)
 	switch kind {
 	case reflect.Int32:
-		sortI4(sb.Cast[int32](slc))
+		sortI(sb.Cast[int32](slc))
 	case reflect.Int64:
-		sortI8(sb.Cast[int64](slc))
+		sortI(sb.Cast[int64](slc))
 	case reflect.Uint32:
-		sortU4(sb.Cast[uint32](slc))
+		sortI(sb.Cast[uint32](slc))
 	case reflect.Uint64:
-		sortU8(sb.Cast[uint64](slc))
+		sortI(sb.Cast[uint64](slc))
 	case reflect.Float32:
 		sortF4(sb.Cast[float32](slc))
 	case reflect.Float64:

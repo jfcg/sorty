@@ -9,14 +9,14 @@ package sorty
 import (
 	"sync/atomic"
 
-	"github.com/jfcg/sixb/v2"
+	sb "github.com/jfcg/sixb/v2"
 )
 
-// isSortedU8 returns 0 if ar is sorted in ascending
-// order, otherwise it returns i > 0 with ar[i] < ar[i-1], inlined
-func isSortedU8(ar []uint64) int {
-	for i := len(ar) - 1; i > 0; i-- {
-		if ar[i] < ar[i-1] {
+// isSortedI returns 0 if slc is sorted in ascending order
+// otherwise it returns i > 0 with slc[i] < slc[i-1], inlined
+func isSortedI[S ~[]T, T sb.Integer](slc S) int {
+	for i := len(slc) - 1; i > 0; i-- {
+		if slc[i] < slc[i-1] {
 			return i
 		}
 	}
@@ -24,10 +24,10 @@ func isSortedU8(ar []uint64) int {
 }
 
 // insertion sort, inlined
-func insertionU8(slc []uint64) {
+func insertionI[S ~[]T, T sb.Integer](slc S) {
 	for h := 1; h < len(slc); h++ {
 		l, val := h, slc[h]
-		var pre uint64
+		var pre T
 		goto start
 	loop:
 		slc[l] = pre
@@ -48,24 +48,24 @@ func insertionU8(slc []uint64) {
 	}
 }
 
-// pivotU8 selects n equidistant samples from slc that minimizes max distance
+// pivotI selects n equidistant samples from slc that minimizes max distance
 // to non-selected members, then calculates median-of-n pivot from samples.
 // Assumes even n, nsConc ≥ n ≥ 2, len(slc) ≥ 2n. Returns pivot for partitioning.
 //
 //go:nosplit
-func pivotU8(slc []uint64, n uint) uint64 {
+func pivotI[S ~[]T, T sb.Integer](slc S, n uint) T {
 
 	first, step, _ := minMaxSample(uint(len(slc)), n)
 
-	var sample [nsConc]uint64
+	var sample [nsConc]T
 	for i := int(n - 1); i >= 0; i-- {
 		sample[i] = slc[first]
 		first += step
 	}
-	insertionU8(sample[:n]) // sort n samples
+	insertionI(sample[:n]) // sort n samples
 
 	n >>= 1 // return mean of middle two samples
-	return sixb.Mean(sample[n-1], sample[n])
+	return sb.Mean(sample[n-1], sample[n])
 }
 
 // partition slc, returns k with slc[:k] ≤ pivot ≤ slc[k:]
@@ -74,7 +74,7 @@ func pivotU8(slc []uint64, n uint) uint64 {
 // next: slc[l] ≤ pv ≤ slc[h]
 //
 //go:nosplit
-func partOneU8(slc []uint64, pv uint64) int {
+func partOneI[S ~[]T, T sb.Integer](slc S, pv T) int {
 	l, h := 0, len(slc)-1
 	goto start
 second:
@@ -126,7 +126,7 @@ last:
 // next: slc[l] ≤ pv ≤ slc[h]
 //
 //go:nosplit
-func partTwoU8(slc []uint64, l, h int, pv uint64) int {
+func partTwoI[S ~[]T, T sb.Integer](slc S, l, h int, pv T) int {
 	l--
 	if h <= l {
 		return -1 // will not run
@@ -175,22 +175,22 @@ start:
 // new-goroutine partition
 //
 //go:nosplit
-func gPartOneU8(ar []uint64, pv uint64, ch chan int) {
-	ch <- partOneU8(ar, pv)
+func gPartOneI[S ~[]T, T sb.Integer](slc S, pv T, ch chan int) {
+	ch <- partOneI(slc, pv)
 }
 
 // partition slc in two goroutines, returns k with slc[:k] ≤ pivot ≤ slc[k:]
 //
 //go:nosplit
-func partConU8(slc []uint64, ch chan int) int {
+func partConI[S ~[]T, T sb.Integer](slc S, ch chan int) int {
 
-	pv := pivotU8(slc, nsConc) // median-of-n pivot
+	pv := pivotI(slc, nsConc) // median-of-n pivot
 	mid := len(slc) >> 1
-	l, h := mid>>1, sixb.Mean(mid, len(slc))
+	l, h := mid>>1, sb.Mean(mid, len(slc))
 
-	go gPartOneU8(slc[l:h:h], pv, ch) // mid half range
+	go gPartOneI(slc[l:h:h], pv, ch) // mid half range
 
-	r := partTwoU8(slc, l, h, pv) // left/right quarter ranges
+	r := partTwoI(slc, l, h, pv) // left/right quarter ranges
 
 	k := l + <-ch // convert returned index to slc
 
@@ -214,13 +214,13 @@ func partConU8(slc []uint64, ch chan int) int {
 }
 
 // short range sort function, assumes MaxLenIns < len(ar) <= MaxLenRec, recursive
-func shortU8(ar []uint64) {
+func shortI[S ~[]T, T sb.Integer](ar S) {
 start:
 	first, step := minMaxFour(uint32(len(ar)))
-	pv := sixb.Median4(ar[first], ar[first+step], ar[first+2*step], ar[first+3*step])
+	pv := sb.Median4(ar[first], ar[first+step], ar[first+2*step], ar[first+3*step])
 
-	k := partOneU8(ar, pv)
-	var aq []uint64
+	k := partOneI(ar, pv)
+	var aq S
 
 	if k < len(ar)-k {
 		aq = ar[:k:k]
@@ -231,11 +231,11 @@ start:
 	}
 
 	if len(aq) > MaxLenIns {
-		shortU8(aq) // recurse on the shorter range
+		shortI(aq) // recurse on the shorter range
 		goto start
 	}
 isort:
-	insertionU8(aq) // at least one insertion range
+	insertionI(aq) // at least one insertion range
 
 	if len(ar) > MaxLenIns {
 		goto start
@@ -249,8 +249,8 @@ isort:
 // new-goroutine sort function
 //
 //go:nosplit
-func gLongU8(ar []uint64, sv *syncVar) {
-	longU8(ar, sv)
+func gLongI[S ~[]T, T sb.Integer](ar S, sv *syncVar) {
+	longI(ar, sv)
 
 	if atomic.AddUint64(&sv.nGor, ^uint64(0)) == 0 { // decrease goroutine counter
 		sv.done <- 0 // we are the last, all done
@@ -258,11 +258,11 @@ func gLongU8(ar []uint64, sv *syncVar) {
 }
 
 // long range sort function, assumes len(ar) > MaxLenRec, recursive
-func longU8(ar []uint64, sv *syncVar) {
+func longI[S ~[]T, T sb.Integer](ar S, sv *syncVar) {
 start:
-	pv := pivotU8(ar, nsLong) // median-of-n pivot
-	k := partOneU8(ar, pv)
-	var aq []uint64
+	pv := pivotI(ar, nsLong) // median-of-n pivot
+	k := partOneI(ar, pv)
+	var aq S
 
 	if k < len(ar)-k {
 		aq = ar[:k:k]
@@ -276,45 +276,45 @@ start:
 	if len(aq) <= MaxLenRec { // at least one not-long range?
 
 		if len(aq) > MaxLenIns {
-			shortU8(aq)
+			shortI(aq)
 		} else {
-			insertionU8(aq)
+			insertionI(aq)
 		}
 
 		if len(ar) > MaxLenRec { // two not-long ranges?
 			goto start
 		}
-		shortU8(ar) // we know len(ar) > MaxLenIns
+		shortI(ar) // we know len(ar) > MaxLenIns
 		return
 	}
 
 	// max goroutines? not atomic but good enough
 	if sv == nil || gorFull(sv) {
-		longU8(aq, sv) // recurse on the shorter range
+		longI(aq, sv) // recurse on the shorter range
 		goto start
 	}
 
 	// new-goroutine sort on the longer range only when
 	// both ranges are big and max goroutines is not exceeded
 	atomic.AddUint64(&sv.nGor, 1) // increase goroutine counter
-	go gLongU8(ar, sv)
+	go gLongI(ar, sv)
 	ar = aq
 	goto start
 }
 
-// sortU8 concurrently sorts ar in ascending order.
+// sortI concurrently sorts ar in ascending order.
 //
 //go:nosplit
-func sortU8(ar []uint64) {
+func sortI[S ~[]T, T sb.Integer](ar S) {
 
 	if len(ar) < 2*(MaxLenRec+1) || MaxGor <= 1 {
 
 		if len(ar) > MaxLenRec { // single-goroutine sorting
-			longU8(ar, nil)
+			longI(ar, nil)
 		} else if len(ar) > MaxLenIns {
-			shortU8(ar)
+			shortI(ar)
 		} else {
-			insertionU8(ar)
+			insertionI(ar)
 		}
 		return
 	}
@@ -324,8 +324,8 @@ func sortU8(ar []uint64) {
 		make(chan int)} // end signal
 	for {
 		// concurrent dual partitioning with done
-		k := partConU8(ar, sv.done)
-		var aq []uint64
+		k := partConI(ar, sv.done)
+		var aq S
 
 		if k < len(ar)-k {
 			aq = ar[:k:k]
@@ -338,12 +338,12 @@ func sortU8(ar []uint64) {
 		// handle shorter range
 		if len(aq) > MaxLenRec {
 			atomic.AddUint64(&sv.nGor, 1) // increase goroutine counter
-			go gLongU8(aq, &sv)
+			go gLongI(aq, &sv)
 
 		} else if len(aq) > MaxLenIns {
-			shortU8(aq)
+			shortI(aq)
 		} else {
-			insertionU8(aq)
+			insertionI(aq)
 		}
 
 		// longer range big enough? max goroutines?
@@ -353,7 +353,7 @@ func sortU8(ar []uint64) {
 		// dual partition longer range
 	}
 
-	longU8(ar, &sv) // we know len(ar) > MaxLenRec
+	longI(ar, &sv) // we know len(ar) > MaxLenRec
 
 	if atomic.AddUint64(&sv.nGor, ^uint64(0)) != 0 { // decrease goroutine counter
 		<-sv.done // we are not the last, wait

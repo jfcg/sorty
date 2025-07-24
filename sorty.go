@@ -126,15 +126,6 @@ func minMaxFour(slen uint32) (first, step uint32) {
 	return
 }
 
-// inlined
-func insertionI(slc []int) {
-	if uint(unsafe.Sizeof(int(0))) == 8 {
-		insertionI8(sixb.Slice[int64](slc))
-	} else {
-		insertionI4(sixb.Slice[int32](slc))
-	}
-}
-
 const sliceBias reflect.Kind = 100
 
 // extracts slice and element kind from ar
