@@ -18,7 +18,7 @@ import (
 
 func printSec(testName string, d time.Duration) float64 {
 	sec := d.Seconds()
-	fmt.Printf("%10s %5.2fs\n", testName, sec)
+	fmt.Printf("%11s %5.2fs\n", testName, sec)
 	return sec
 }
 
@@ -69,7 +69,8 @@ func TestMinMax(t *testing.T) {
 func TestUint(t *testing.T) {
 	tsPtr = t
 
-	medianCpstCompare("sort.Slice", nil, stdSort, false)
+	medianCpstCompare("sort.Slice", nil, stdSort, true)
+	medianCpstCompare("slices.Sort", nil, stdSlice, false)
 	sumDurU4(true) // sorty
 	sumDurLswU4(true)
 }
@@ -80,7 +81,8 @@ func TestFloatNaNsmall(t *testing.T) {
 	tsPtr = t
 	NaNoption = NaNsmall
 
-	medianCpstCompare("sort.Slice", U4toF4, stdSort, false)
+	medianCpstCompare("sort.Slice", U4toF4, stdSort, true)
+	medianCpstCompare("slices.Sort", U4toF4, stdSlice, false)
 	sumDurF4(true) // sorty
 	sumDurLswF4(true)
 }
@@ -91,7 +93,8 @@ func TestFloatNaNlarge(t *testing.T) {
 	tsPtr = t
 	NaNoption = NaNlarge
 
-	medianCpstCompare("sort.Slice", U4toF4, stdSort, false)
+	medianCpstCompare("sort.Slice", U4toF4, stdSort, true)
+	medianCpstCompare("slices.Sort", U4toF4, stdSlice, false)
 	sumDurF4(true) // sorty
 	sumDurLswF4(true)
 }
@@ -101,7 +104,8 @@ func TestFloatNaNlarge(t *testing.T) {
 func TestString(t *testing.T) {
 	tsPtr = t
 
-	medianCpstCompare("sort.Slice", implantS, stdSort, false)
+	medianCpstCompare("sort.Slice", implantS, stdSort, true)
+	medianCpstCompare("slices.Sort", implantS, stdSlice, false)
 	sumDurS(true) // sorty
 	sumDurLswS(true)
 }
@@ -111,7 +115,8 @@ func TestString(t *testing.T) {
 func TestByteSlice(t *testing.T) {
 	tsPtr = t
 
-	medianCpstCompare("sort.Slice", implantB, stdSort, false)
+	medianCpstCompare("sort.Slice", implantB, stdSort, true)
+	medianCpstCompare("slices.Sort", implantB, stdSlice, false)
 	sumDurB(true) // sorty
 	sumDurLswB(true)
 }
@@ -121,7 +126,8 @@ func TestByteSlice(t *testing.T) {
 func TestStringByLen(t *testing.T) {
 	tsPtr = t
 
-	medianCpstCompare("sort.Slice", implantLenS, stdSortLen, false)
+	medianCpstCompare("sort.Slice", implantLenS, stdSortLen, true)
+	medianCpstCompare("slices.Sort", implantLenS, stdSliceLen, false)
 	sumDurLenS(true) // sorty
 }
 
@@ -130,7 +136,8 @@ func TestStringByLen(t *testing.T) {
 func TestByteSliceByLen(t *testing.T) {
 	tsPtr = t
 
-	medianCpstCompare("sort.Slice", implantLenB, stdSortLen, false)
+	medianCpstCompare("sort.Slice", implantLenB, stdSortLen, true)
+	medianCpstCompare("slices.Sort", implantLenB, stdSliceLen, false)
 	sumDurLenB(true) // sorty
 }
 

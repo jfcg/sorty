@@ -7,7 +7,9 @@
 package sorty
 
 import (
+	"bytes"
 	"reflect"
+	"slices"
 	"sort"
 	"testing"
 	"time"
@@ -79,14 +81,15 @@ func copyPrepSortTest(buf []uint32, prepare func([]uint32) any,
 }
 
 func isValueSort(srf func(any)) bool {
-	sPtr := reflect.ValueOf(srf).Pointer()
-	return sPtr == stdSortPtr || sPtr == sortSlcPtr || sPtr == sortLswPtr
+	p := reflect.ValueOf(srf).Pointer()
+	return p == stdSortPtr || p == stdSlicePtr || p == sortSlcPtr || p == sortLswPtr
 }
 
 var (
-	stdSortPtr = reflect.ValueOf(stdSort).Pointer()   // standard sort.Slice
-	sortSlcPtr = reflect.ValueOf(SortSlice).Pointer() // sorty
-	sortLswPtr = reflect.ValueOf(sortLsw).Pointer()   // sorty
+	stdSortPtr  = reflect.ValueOf(stdSort).Pointer()   // standard sort.Slice
+	stdSlicePtr = reflect.ValueOf(stdSlice).Pointer()  // standard slices.Sort
+	sortSlcPtr  = reflect.ValueOf(SortSlice).Pointer() // sorty
+	sortLswPtr  = reflect.ValueOf(sortLsw).Pointer()   // sorty
 )
 
 func stdSort(ar any) {
@@ -95,18 +98,30 @@ func stdSort(ar any) {
 	switch kind {
 	case reflect.Float32:
 		buf := sb.Cast[float32](slc)
-		sort.Slice(buf, func(i, k int) bool {
-			x, y := buf[i], buf[k]
-			return x < y || NaNoption == NaNlarge && x == x && y != y ||
-				NaNoption == NaNsmall && x != x && y == y
-		})
+		if NaNoption == NaNsmall {
+			sort.Slice(buf, func(i, k int) bool {
+				a, b := buf[i], buf[k]
+				return a < b || a != a && b == b
+			})
+		} else {
+			sort.Slice(buf, func(i, k int) bool {
+				a, b := buf[i], buf[k]
+				return a < b || a == a && b != b
+			})
+		}
 	case reflect.Float64:
 		buf := sb.Cast[float64](slc)
-		sort.Slice(buf, func(i, k int) bool {
-			x, y := buf[i], buf[k]
-			return x < y || NaNoption == NaNlarge && x == x && y != y ||
-				NaNoption == NaNsmall && x != x && y == y
-		})
+		if NaNoption == NaNsmall {
+			sort.Slice(buf, func(i, k int) bool {
+				a, b := buf[i], buf[k]
+				return a < b || a != a && b == b
+			})
+		} else {
+			sort.Slice(buf, func(i, k int) bool {
+				a, b := buf[i], buf[k]
+				return a < b || a == a && b != b
+			})
+		}
 	case reflect.Int32:
 		buf := sb.Cast[int32](slc)
 		sort.Slice(buf, func(i, k int) bool { return buf[i] < buf[k] })
@@ -132,6 +147,63 @@ func stdSort(ar any) {
 	}
 }
 
+func stdSlice(ar any) {
+	slc, kind := extractSK(ar)
+
+	switch kind {
+	case reflect.Float32:
+		buf := sb.Cast[float32](slc)
+		if NaNoption == NaNsmall {
+			slices.Sort(buf)
+		} else {
+			slices.SortFunc(buf, func(a, b float32) int {
+				if a < b || a == a && b != b {
+					return -1
+				}
+				if a > b || a != a && b == b {
+					return 1
+				}
+				return 0
+			})
+		}
+	case reflect.Float64:
+		buf := sb.Cast[float64](slc)
+		if NaNoption == NaNsmall {
+			slices.Sort(buf)
+		} else {
+			slices.SortFunc(buf, func(a, b float64) int {
+				if a < b || a == a && b != b {
+					return -1
+				}
+				if a > b || a != a && b == b {
+					return 1
+				}
+				return 0
+			})
+		}
+	case reflect.Int32:
+		buf := sb.Cast[int32](slc)
+		slices.Sort(buf)
+	case reflect.Int64:
+		buf := sb.Cast[int64](slc)
+		slices.Sort(buf)
+	case reflect.Uint32:
+		buf := sb.Cast[uint32](slc)
+		slices.Sort(buf)
+	case reflect.Uint64:
+		buf := sb.Cast[uint64](slc)
+		slices.Sort(buf)
+	case reflect.String:
+		buf := sb.Cast[string](slc)
+		slices.Sort(buf)
+	case sliceBias + reflect.Uint8:
+		buf := sb.Cast[[]byte](slc)
+		slices.SortFunc(buf, bytes.Compare)
+	default:
+		tsPtr.Fatal("unrecognized kind:", kind)
+	}
+}
+
 //go:nosplit
 func stdSortLen(ar any) {
 	slc, kind := extractSK(ar)
@@ -143,6 +215,22 @@ func stdSortLen(ar any) {
 	case kind >= sliceBias:
 		buf := sb.Cast[[]byte](slc)
 		sort.Slice(buf, func(i, k int) bool { return len(buf[i]) < len(buf[k]) })
+	default:
+		tsPtr.Fatal("unrecognized kind:", kind)
+	}
+}
+
+//go:nosplit
+func stdSliceLen(ar any) {
+	slc, kind := extractSK(ar)
+
+	switch {
+	case kind == reflect.String:
+		buf := sb.Cast[string](slc)
+		slices.SortFunc(buf, func(a, b string) int { return len(a) - len(b) })
+	case kind >= sliceBias:
+		buf := sb.Cast[[]byte](slc)
+		slices.SortFunc(buf, func(a, b []byte) int { return len(a) - len(b) })
 	default:
 		tsPtr.Fatal("unrecognized kind:", kind)
 	}
@@ -259,7 +347,7 @@ func medianCpstCompare(testName string, prepare func([]uint32) any,
 
 	if compStd {
 		if isValueSort(srf) {
-			std = stdSort
+			std = stdSlice
 			cmp = compare // by value
 		} else {
 			std = stdSortLen
@@ -435,11 +523,12 @@ func sumDurLenB(compStd bool) (sum float64) {
 
 func sortLsw(ar any) {
 	slc, kind := extractSK(ar)
+	var lsw Lesswap
 
 	switch kind {
 	case reflect.Uint32:
 		buf := sb.Cast[uint32](slc)
-		lsw := func(i, k, r, s int) bool {
+		lsw = func(i, k, r, s int) bool {
 			if buf[i] < buf[k] {
 				if r != s {
 					buf[r], buf[s] = buf[s], buf[r]
@@ -448,24 +537,34 @@ func sortLsw(ar any) {
 			}
 			return false
 		}
-		Sort(len(buf), lsw)
 	case reflect.Float32:
 		buf := sb.Cast[float32](slc)
-		lsw := func(i, k, r, s int) bool {
-			x, y := buf[i], buf[k]
-			if x < y || NaNoption == NaNlarge && x == x && y != y ||
-				NaNoption == NaNsmall && x != x && y == y {
-				if r != s {
-					buf[r], buf[s] = buf[s], buf[r]
+		if NaNoption == NaNsmall {
+			lsw = func(i, k, r, s int) bool {
+				a, b := buf[i], buf[k]
+				if a < b || a != a && b == b {
+					if r != s {
+						buf[r], buf[s] = buf[s], buf[r]
+					}
+					return true
 				}
-				return true
+				return false
 			}
-			return false
+		} else {
+			lsw = func(i, k, r, s int) bool {
+				a, b := buf[i], buf[k]
+				if a < b || a == a && b != b {
+					if r != s {
+						buf[r], buf[s] = buf[s], buf[r]
+					}
+					return true
+				}
+				return false
+			}
 		}
-		Sort(len(buf), lsw)
 	case reflect.String:
 		buf := sb.Cast[string](slc)
-		lsw := func(i, k, r, s int) bool {
+		lsw = func(i, k, r, s int) bool {
 			if buf[i] < buf[k] {
 				if r != s {
 					buf[r], buf[s] = buf[s], buf[r]
@@ -474,10 +573,9 @@ func sortLsw(ar any) {
 			}
 			return false
 		}
-		Sort(len(buf), lsw)
 	case sliceBias + reflect.Uint8:
 		buf := sb.Cast[[]byte](slc)
-		lsw := func(i, k, r, s int) bool {
+		lsw = func(i, k, r, s int) bool {
 			if sb.String(buf[i]) < sb.String(buf[k]) {
 				if r != s {
 					buf[r], buf[s] = buf[s], buf[r]
@@ -486,10 +584,11 @@ func sortLsw(ar any) {
 			}
 			return false
 		}
-		Sort(len(buf), lsw)
 	default:
 		tsPtr.Fatal("unrecognized kind:", kind)
 	}
+
+	Sort(int(slc.Len), lsw)
 }
 
 var sLswNames = [4]string{"sortyLsw-1", "sortyLsw-2", "sortyLsw-3", "sortyLsw-4"}
