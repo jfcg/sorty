@@ -24,9 +24,9 @@ func IsSortedLen(ar any) int {
 	slc, kind := extractSK(ar)
 	switch {
 	case kind == reflect.String:
-		return isSortedLenS(sixb.Cast[string](slc))
+		return isSortedHL(sixb.Cast[string](slc))
 	case kind >= sliceBias:
-		return isSortedLenB(sixb.Cast[[]byte](slc))
+		return isSortedHL(sixb.Cast[[]struct{}](slc))
 	}
 	panic("sorty: IsSortedLen: invalid input type")
 }
@@ -43,9 +43,9 @@ func SortLen(ar any) {
 	slc, kind := extractSK(ar)
 	switch {
 	case kind == reflect.String:
-		sortLenS(sixb.Cast[string](slc))
+		sortHL(sixb.Cast[string](slc))
 	case kind >= sliceBias:
-		sortLenB(sixb.Cast[[]byte](slc))
+		sortHL(sixb.Cast[[]struct{}](slc))
 	default:
 		panic("sorty: SortLen: invalid input type")
 	}
