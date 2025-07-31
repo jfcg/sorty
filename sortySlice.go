@@ -34,9 +34,9 @@ func IsSortedSlice(ar any) int {
 	case reflect.Uint64:
 		return isSortedI(sb.Cast[uint64](slc))
 	case reflect.Float32:
-		return isSortedF4(sb.Cast[float32](slc))
+		return isSortedF(sb.Cast[float32](slc))
 	case reflect.Float64:
-		return isSortedF8(sb.Cast[float64](slc))
+		return isSortedF(sb.Cast[float64](slc))
 	case sliceBias + reflect.Uint8: // [][]byte
 		return isSortedB(sb.Cast[[]byte](slc))
 	case reflect.String:
@@ -66,9 +66,9 @@ func SortSlice(ar any) {
 	case reflect.Uint64:
 		sortI(sb.Cast[uint64](slc))
 	case reflect.Float32:
-		sortF4(sb.Cast[float32](slc))
+		sortF(sb.Cast[float32](slc))
 	case reflect.Float64:
-		sortF8(sb.Cast[float64](slc))
+		sortF(sb.Cast[float64](slc))
 	case sliceBias + reflect.Uint8: // [][]byte
 		sortB(sb.Cast[[]byte](slc))
 	case reflect.String:

@@ -9,12 +9,12 @@ package sorty
 import (
 	"sync/atomic"
 
-	"github.com/jfcg/sixb/v2"
+	sb "github.com/jfcg/sixb/v2"
 )
 
-// isSortedF8 returns 0 if slc is sorted in ascending order, otherwise it returns i > 0
+// isSortedF returns 0 if slc is sorted in ascending order, otherwise it returns i > 0
 // with slc[i] < slc[i-1] or either one is a NaN. NaNoption is taken into account.
-func isSortedF8(slc []float64) int {
+func isSortedF[S ~[]T, T sb.Float](slc S) int {
 	l, h := 0, len(slc)-1
 	if NaNoption == NaNlarge { // ignore NaNs at the end
 		for ; l <= h; h-- {
@@ -39,10 +39,10 @@ func isSortedF8(slc []float64) int {
 }
 
 // insertion sort, inlined
-func insertionF8(slc []float64) {
+func insertionF[S ~[]T, T sb.Float](slc S) {
 	for h := 1; h < len(slc); h++ {
 		l, val := h, slc[h]
-		var pre float64
+		var pre T
 		goto start
 	loop:
 		slc[l] = pre
@@ -63,21 +63,21 @@ func insertionF8(slc []float64) {
 	}
 }
 
-// pivotF8 selects n equidistant samples from slc that minimizes max distance
+// pivotF selects n equidistant samples from slc that minimizes max distance
 // to non-selected members, then calculates median-of-n pivot from samples.
 // Assumes odd n, nsConc > n ≥ 3, len(slc) ≥ 2n. Returns pivot for partitioning.
 //
 //go:nosplit
-func pivotF8(slc []float64, n uint) float64 {
+func pivotF[S ~[]T, T sb.Float](slc S, n uint) T {
 
 	first, step, _ := minMaxSample(uint(len(slc)), n)
 
-	var sample [nsConc - 1]float64
+	var sample [nsConc - 1]T
 	for i := int(n - 1); i >= 0; i-- {
 		sample[i] = slc[first]
 		first += step
 	}
-	insertionF8(sample[:n]) // sort n samples
+	insertionF(sample[:n]) // sort n samples
 
 	return sample[n>>1] // return middle sample
 }
@@ -88,7 +88,7 @@ func pivotF8(slc []float64, n uint) float64 {
 // next: slc[l] ≤ pv ≤ slc[h]
 //
 //go:nosplit
-func partOneF8(slc []float64, pv float64) int {
+func partOneF[S ~[]T, T sb.Float](slc S, pv T) int {
 	l, h := 0, len(slc)-1
 	goto start
 second:
@@ -140,7 +140,7 @@ last:
 // next: slc[l] ≤ pv ≤ slc[h]
 //
 //go:nosplit
-func partTwoF8(slc []float64, l, h int, pv float64) int {
+func partTwoF[S ~[]T, T sb.Float](slc S, l, h int, pv T) int {
 	l--
 	if h <= l {
 		return -1 // will not run
@@ -189,22 +189,22 @@ start:
 // new-goroutine partition
 //
 //go:nosplit
-func gPartOneF8(ar []float64, pv float64, ch chan int) {
-	ch <- partOneF8(ar, pv)
+func gPartOneF[S ~[]T, T sb.Float](ar S, pv T, ch chan int) {
+	ch <- partOneF(ar, pv)
 }
 
 // partition slc in two goroutines, returns k with slc[:k] ≤ pivot ≤ slc[k:]
 //
 //go:nosplit
-func partConF8(slc []float64, ch chan int) int {
+func partConF[S ~[]T, T sb.Float](slc S, ch chan int) int {
 
-	pv := pivotF8(slc, nsConc-1) // median-of-n pivot
+	pv := pivotF(slc, nsConc-1) // median-of-n pivot
 	mid := len(slc) >> 1
-	l, h := mid>>1, sixb.Mean(mid, len(slc))
+	l, h := mid>>1, sb.Mean(mid, len(slc))
 
-	go gPartOneF8(slc[l:h:h], pv, ch) // mid half range
+	go gPartOneF(slc[l:h:h], pv, ch) // mid half range
 
-	r := partTwoF8(slc, l, h, pv) // left/right quarter ranges
+	r := partTwoF(slc, l, h, pv) // left/right quarter ranges
 
 	k := l + <-ch // convert returned index to slc
 
@@ -228,13 +228,13 @@ func partConF8(slc []float64, ch chan int) int {
 }
 
 // short range sort function, assumes MaxLenIns < len(ar) <= MaxLenRec, recursive
-func shortF8(ar []float64) {
+func shortF[S ~[]T, T sb.Float](ar S) {
 start:
 	first, step, last := minMaxSample(uint(len(ar)), 3)
-	pv := sixb.Median3(ar[first], ar[first+step], ar[last])
+	pv := sb.Median3(ar[first], ar[first+step], ar[last])
 
-	k := partOneF8(ar, pv)
-	var aq []float64
+	k := partOneF(ar, pv)
+	var aq S
 
 	if k < len(ar)-k {
 		aq = ar[:k:k]
@@ -245,11 +245,11 @@ start:
 	}
 
 	if len(aq) > MaxLenIns {
-		shortF8(aq) // recurse on the shorter range
+		shortF(aq) // recurse on the shorter range
 		goto start
 	}
 isort:
-	insertionF8(aq) // at least one insertion range
+	insertionF(aq) // at least one insertion range
 
 	if len(ar) > MaxLenIns {
 		goto start
@@ -263,8 +263,8 @@ isort:
 // new-goroutine sort function
 //
 //go:nosplit
-func gLongF8(ar []float64, sv *syncVar) {
-	longF8(ar, sv)
+func gLongF[S ~[]T, T sb.Float](ar S, sv *syncVar) {
+	longF(ar, sv)
 
 	if atomic.AddUint64(&sv.nGor, ^uint64(0)) == 0 { // decrease goroutine counter
 		sv.done <- 0 // we are the last, all done
@@ -272,11 +272,11 @@ func gLongF8(ar []float64, sv *syncVar) {
 }
 
 // long range sort function, assumes len(ar) > MaxLenRec, recursive
-func longF8(ar []float64, sv *syncVar) {
+func longF[S ~[]T, T sb.Float](ar S, sv *syncVar) {
 start:
-	pv := pivotF8(ar, nsLong-1) // median-of-n pivot
-	k := partOneF8(ar, pv)
-	var aq []float64
+	pv := pivotF(ar, nsLong-1) // median-of-n pivot
+	k := partOneF(ar, pv)
+	var aq S
 
 	if k < len(ar)-k {
 		aq = ar[:k:k]
@@ -290,36 +290,36 @@ start:
 	if len(aq) <= MaxLenRec { // at least one not-long range?
 
 		if len(aq) > MaxLenIns {
-			shortF8(aq)
+			shortF(aq)
 		} else {
-			insertionF8(aq)
+			insertionF(aq)
 		}
 
 		if len(ar) > MaxLenRec { // two not-long ranges?
 			goto start
 		}
-		shortF8(ar) // we know len(ar) > MaxLenIns
+		shortF(ar) // we know len(ar) > MaxLenIns
 		return
 	}
 
 	// max goroutines? not atomic but good enough
 	if sv == nil || gorFull(sv) {
-		longF8(aq, sv) // recurse on the shorter range
+		longF(aq, sv) // recurse on the shorter range
 		goto start
 	}
 
 	// new-goroutine sort on the longer range only when
 	// both ranges are big and max goroutines is not exceeded
 	atomic.AddUint64(&sv.nGor, 1) // increase goroutine counter
-	go gLongF8(ar, sv)
+	go gLongF(ar, sv)
 	ar = aq
 	goto start
 }
 
-// sortF8 concurrently sorts ar in ascending order.
+// sortF concurrently sorts ar in ascending order.
 //
 //go:nosplit
-func sortF8(ar []float64) {
+func sortF[S ~[]T, T sb.Float](ar S) {
 	l, h := 0, len(ar)-1
 	if NaNoption == NaNlarge { // move NaNs to the end
 		for l <= h {
@@ -356,11 +356,11 @@ func sortF8(ar []float64) {
 	if len(ar) < 2*(MaxLenRec+1) || MaxGor <= 1 {
 
 		if len(ar) > MaxLenRec { // single-goroutine sorting
-			longF8(ar, nil)
+			longF(ar, nil)
 		} else if len(ar) > MaxLenIns {
-			shortF8(ar)
+			shortF(ar)
 		} else {
-			insertionF8(ar)
+			insertionF(ar)
 		}
 		return
 	}
@@ -370,8 +370,8 @@ func sortF8(ar []float64) {
 		make(chan int)} // end signal
 	for {
 		// concurrent dual partitioning with done
-		k := partConF8(ar, sv.done)
-		var aq []float64
+		k := partConF(ar, sv.done)
+		var aq S
 
 		if k < len(ar)-k {
 			aq = ar[:k:k]
@@ -384,12 +384,12 @@ func sortF8(ar []float64) {
 		// handle shorter range
 		if len(aq) > MaxLenRec {
 			atomic.AddUint64(&sv.nGor, 1) // increase goroutine counter
-			go gLongF8(aq, &sv)
+			go gLongF(aq, &sv)
 
 		} else if len(aq) > MaxLenIns {
-			shortF8(aq)
+			shortF(aq)
 		} else {
-			insertionF8(aq)
+			insertionF(aq)
 		}
 
 		// longer range big enough? max goroutines?
@@ -399,7 +399,7 @@ func sortF8(ar []float64) {
 		// dual partition longer range
 	}
 
-	longF8(ar, &sv) // we know len(ar) > MaxLenRec
+	longF(ar, &sv) // we know len(ar) > MaxLenRec
 
 	if atomic.AddUint64(&sv.nGor, ^uint64(0)) != 0 { // decrease goroutine counter
 		<-sv.done // we are not the last, wait
