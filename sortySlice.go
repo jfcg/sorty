@@ -26,13 +26,13 @@ func IsSortedSlice(ar any) int {
 	slc, kind := extractSK(ar)
 	switch kind {
 	case reflect.Int32:
-		return isSortedI(sb.Cast[int32](slc))
+		return isSortedO(sb.Cast[int32](slc))
 	case reflect.Int64:
-		return isSortedI(sb.Cast[int64](slc))
+		return isSortedO(sb.Cast[int64](slc))
 	case reflect.Uint32:
-		return isSortedI(sb.Cast[uint32](slc))
+		return isSortedO(sb.Cast[uint32](slc))
 	case reflect.Uint64:
-		return isSortedI(sb.Cast[uint64](slc))
+		return isSortedO(sb.Cast[uint64](slc))
 	case reflect.Float32:
 		return isSortedF(sb.Cast[float32](slc))
 	case reflect.Float64:
@@ -40,7 +40,7 @@ func IsSortedSlice(ar any) int {
 	case sliceBias + reflect.Uint8: // [][]byte
 		return isSortedB(sb.Cast[[]byte](slc))
 	case reflect.String:
-		return isSortedS(sb.Cast[string](slc))
+		return isSortedO(sb.Cast[string](slc))
 	}
 	panic("sorty: IsSortedSlice: invalid input type")
 }

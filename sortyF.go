@@ -29,202 +29,7 @@ func isSortedF[S ~[]T, T sb.Float](slc S) int {
 			}
 		}
 	}
-
-	for i := h; i > l; i-- {
-		if !(slc[i] >= slc[i-1]) {
-			return i
-		}
-	}
-	return 0
-}
-
-// insertion sort, inlined
-func insertionF[S ~[]T, T sb.Float](slc S) {
-	for h := 1; h < len(slc); h++ {
-		l, val := h, slc[h]
-		var pre T
-		goto start
-	loop:
-		slc[l] = pre
-		l--
-		if l == 0 {
-			goto last
-		}
-	start:
-		pre = slc[l-1]
-		if val < pre {
-			goto loop
-		}
-		if l == h {
-			continue
-		}
-	last:
-		slc[l] = val
-	}
-}
-
-// pivotF selects n equidistant samples from slc that minimizes max distance
-// to non-selected members, then calculates median-of-n pivot from samples.
-// Assumes odd n, nsConc > n ≥ 3, len(slc) ≥ 2n. Returns pivot for partitioning.
-//
-//go:nosplit
-func pivotF[S ~[]T, T sb.Float](slc S, n uint) T {
-
-	first, step, _ := minMaxSample(uint(len(slc)), n)
-
-	var sample [nsConc - 1]T
-	for i := int(n - 1); i >= 0; i-- {
-		sample[i] = slc[first]
-		first += step
-	}
-	insertionF(sample[:n]) // sort n samples
-
-	return sample[n>>1] // return middle sample
-}
-
-// partition slc, returns k with slc[:k] ≤ pivot ≤ slc[k:]
-// swap: slc[h] < pv ≤ slc[l]
-// swap: slc[h] ≤ pv < slc[l]
-// next: slc[l] ≤ pv ≤ slc[h]
-//
-//go:nosplit
-func partOneF[S ~[]T, T sb.Float](slc S, pv T) int {
-	l, h := 0, len(slc)-1
-	goto start
-second:
-	for {
-		h--
-		if h <= l {
-			return l
-		}
-		if slc[h] <= pv {
-			break
-		}
-	}
-swap:
-	slc[l], slc[h] = slc[h], slc[l]
-next:
-	l++
-	h--
-start:
-	if h <= l {
-		goto last
-	}
-
-	if pv <= slc[h] { // avoid unnecessary comparisons
-		if pv < slc[l] { // extend ranges in balance
-			goto second
-		}
-		goto next
-	}
-	for {
-		if pv <= slc[l] {
-			goto swap
-		}
-		l++
-		if h <= l {
-			return l + 1
-		}
-	}
-last:
-	if l == h && slc[h] < pv { // classify mid element
-		l++
-	}
-	return l
-}
-
-// swaps elements to get slc[:l] ≤ pivot ≤ slc[h:]
-// Gap (l,h) expands until one of the intervals is fully consumed.
-// swap: slc[h] < pv ≤ slc[l]
-// swap: slc[h] ≤ pv < slc[l]
-// next: slc[l] ≤ pv ≤ slc[h]
-//
-//go:nosplit
-func partTwoF[S ~[]T, T sb.Float](slc S, l, h int, pv T) int {
-	l--
-	if h <= l {
-		return -1 // will not run
-	}
-	goto start
-second:
-	for {
-		h++
-		if h >= len(slc) {
-			return l
-		}
-		if slc[h] <= pv {
-			break
-		}
-	}
-swap:
-	slc[l], slc[h] = slc[h], slc[l]
-next:
-	l--
-	h++
-start:
-	if l < 0 {
-		return h
-	}
-	if h >= len(slc) {
-		return l
-	}
-
-	if pv <= slc[h] { // avoid unnecessary comparisons
-		if pv < slc[l] { // extend ranges in balance
-			goto second
-		}
-		goto next
-	}
-	for {
-		if pv <= slc[l] {
-			goto swap
-		}
-		l--
-		if l < 0 {
-			return h
-		}
-	}
-}
-
-// new-goroutine partition
-//
-//go:nosplit
-func gPartOneF[S ~[]T, T sb.Float](ar S, pv T, ch chan int) {
-	ch <- partOneF(ar, pv)
-}
-
-// partition slc in two goroutines, returns k with slc[:k] ≤ pivot ≤ slc[k:]
-//
-//go:nosplit
-func partConF[S ~[]T, T sb.Float](slc S, ch chan int) int {
-
-	pv := pivotF(slc, nsConc-1) // median-of-n pivot
-	mid := len(slc) >> 1
-	l, h := mid>>1, sb.Mean(mid, len(slc))
-
-	go gPartOneF(slc[l:h:h], pv, ch) // mid half range
-
-	r := partTwoF(slc, l, h, pv) // left/right quarter ranges
-
-	k := l + <-ch // convert returned index to slc
-
-	// only one gap is possible
-	if r < mid {
-		for ; 0 <= r; r-- { // gap left in low range?
-			if pv < slc[r] {
-				k--
-				slc[r], slc[k] = slc[k], slc[r]
-			}
-		}
-	} else {
-		for ; r < len(slc); r++ { // gap left in high range?
-			if slc[r] < pv {
-				slc[r], slc[k] = slc[k], slc[r]
-				k++
-			}
-		}
-	}
-	return k
+	return isSortedO(slc[l : h+1])
 }
 
 // short range sort function, assumes MaxLenIns < len(ar) <= MaxLenRec, recursive
@@ -233,7 +38,7 @@ start:
 	first, step, last := minMaxSample(uint(len(ar)), 3)
 	pv := sb.Median3(ar[first], ar[first+step], ar[last])
 
-	k := partOneF(ar, pv)
+	k := partOneO(ar, pv)
 	var aq S
 
 	if k < len(ar)-k {
@@ -249,7 +54,7 @@ start:
 		goto start
 	}
 isort:
-	insertionF(aq) // at least one insertion range
+	insertionO(aq) // at least one insertion range
 
 	if len(ar) > MaxLenIns {
 		goto start
@@ -274,8 +79,8 @@ func gLongF[S ~[]T, T sb.Float](ar S, sv *syncVar) {
 // long range sort function, assumes len(ar) > MaxLenRec, recursive
 func longF[S ~[]T, T sb.Float](ar S, sv *syncVar) {
 start:
-	pv := pivotF(ar, nsLong-1) // median-of-n pivot
-	k := partOneF(ar, pv)
+	_, pv := pivotO(ar, nsLong-1) // median-of-n pivot
+	k := partOneO(ar, pv)
 	var aq S
 
 	if k < len(ar)-k {
@@ -292,7 +97,7 @@ start:
 		if len(aq) > MaxLenIns {
 			shortF(aq)
 		} else {
-			insertionF(aq)
+			insertionO(aq)
 		}
 
 		if len(ar) > MaxLenRec { // two not-long ranges?
@@ -360,7 +165,7 @@ func sortF[S ~[]T, T sb.Float](ar S) {
 		} else if len(ar) > MaxLenIns {
 			shortF(ar)
 		} else {
-			insertionF(ar)
+			insertionO(ar)
 		}
 		return
 	}
@@ -370,7 +175,8 @@ func sortF[S ~[]T, T sb.Float](ar S) {
 		make(chan int)} // end signal
 	for {
 		// concurrent dual partitioning with done
-		k := partConF(ar, sv.done)
+		_, pv := pivotO(ar, nsConc-1) // median-of-n pivot
+		k := partConO(ar, pv, sv.done)
 		var aq S
 
 		if k < len(ar)-k {
@@ -389,7 +195,7 @@ func sortF[S ~[]T, T sb.Float](ar S) {
 		} else if len(aq) > MaxLenIns {
 			shortF(aq)
 		} else {
-			insertionF(aq)
+			insertionO(aq)
 		}
 
 		// longer range big enough? max goroutines?

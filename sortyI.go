@@ -12,205 +12,14 @@ import (
 	sb "github.com/jfcg/sixb/v2"
 )
 
-// isSortedI returns 0 if slc is sorted in ascending order
-// otherwise it returns i > 0 with slc[i] < slc[i-1], inlined
-func isSortedI[S ~[]T, T sb.Integer](slc S) int {
-	for i := len(slc) - 1; i > 0; i-- {
-		if slc[i] < slc[i-1] {
-			return i
-		}
-	}
-	return 0
-}
-
-// insertion sort, inlined
-func insertionI[S ~[]T, T sb.Integer](slc S) {
-	for h := 1; h < len(slc); h++ {
-		l, val := h, slc[h]
-		var pre T
-		goto start
-	loop:
-		slc[l] = pre
-		l--
-		if l == 0 {
-			goto last
-		}
-	start:
-		pre = slc[l-1]
-		if val < pre {
-			goto loop
-		}
-		if l == h {
-			continue
-		}
-	last:
-		slc[l] = val
-	}
-}
-
 // pivotI selects n equidistant samples from slc that minimizes max distance
-// to non-selected members, then calculates median-of-n pivot from samples.
-// Assumes even n, nsConc ≥ n ≥ 2, len(slc) ≥ 2n. Returns pivot for partitioning.
+// to non-selected members, then sorts the samples and returns the median.
+// Assumes even n with nsConc ≥ n ≥ 5, len(slc) ≥ 2n.
 //
 //go:nosplit
 func pivotI[S ~[]T, T sb.Integer](slc S, n uint) T {
-
-	first, step, _ := minMaxSample(uint(len(slc)), n)
-
-	var sample [nsConc]T
-	for i := int(n - 1); i >= 0; i-- {
-		sample[i] = slc[first]
-		first += step
-	}
-	insertionI(sample[:n]) // sort n samples
-
-	n >>= 1 // return mean of middle two samples
-	return sb.Mean(sample[n-1], sample[n])
-}
-
-// partition slc, returns k with slc[:k] ≤ pivot ≤ slc[k:]
-// swap: slc[h] < pv ≤ slc[l]
-// swap: slc[h] ≤ pv < slc[l]
-// next: slc[l] ≤ pv ≤ slc[h]
-//
-//go:nosplit
-func partOneI[S ~[]T, T sb.Integer](slc S, pv T) int {
-	l, h := 0, len(slc)-1
-	goto start
-second:
-	for {
-		h--
-		if h <= l {
-			return l
-		}
-		if slc[h] <= pv {
-			break
-		}
-	}
-swap:
-	slc[l], slc[h] = slc[h], slc[l]
-next:
-	l++
-	h--
-start:
-	if h <= l {
-		goto last
-	}
-
-	if pv <= slc[h] { // avoid unnecessary comparisons
-		if pv < slc[l] { // extend ranges in balance
-			goto second
-		}
-		goto next
-	}
-	for {
-		if pv <= slc[l] {
-			goto swap
-		}
-		l++
-		if h <= l {
-			return l + 1
-		}
-	}
-last:
-	if l == h && slc[h] < pv { // classify mid element
-		l++
-	}
-	return l
-}
-
-// swaps elements to get slc[:l] ≤ pivot ≤ slc[h:]
-// Gap (l,h) expands until one of the intervals is fully consumed.
-// swap: slc[h] < pv ≤ slc[l]
-// swap: slc[h] ≤ pv < slc[l]
-// next: slc[l] ≤ pv ≤ slc[h]
-//
-//go:nosplit
-func partTwoI[S ~[]T, T sb.Integer](slc S, l, h int, pv T) int {
-	l--
-	if h <= l {
-		return -1 // will not run
-	}
-	goto start
-second:
-	for {
-		h++
-		if h >= len(slc) {
-			return l
-		}
-		if slc[h] <= pv {
-			break
-		}
-	}
-swap:
-	slc[l], slc[h] = slc[h], slc[l]
-next:
-	l--
-	h++
-start:
-	if l < 0 {
-		return h
-	}
-	if h >= len(slc) {
-		return l
-	}
-
-	if pv <= slc[h] { // avoid unnecessary comparisons
-		if pv < slc[l] { // extend ranges in balance
-			goto second
-		}
-		goto next
-	}
-	for {
-		if pv <= slc[l] {
-			goto swap
-		}
-		l--
-		if l < 0 {
-			return h
-		}
-	}
-}
-
-// new-goroutine partition
-//
-//go:nosplit
-func gPartOneI[S ~[]T, T sb.Integer](slc S, pv T, ch chan int) {
-	ch <- partOneI(slc, pv)
-}
-
-// partition slc in two goroutines, returns k with slc[:k] ≤ pivot ≤ slc[k:]
-//
-//go:nosplit
-func partConI[S ~[]T, T sb.Integer](slc S, ch chan int) int {
-
-	pv := pivotI(slc, nsConc) // median-of-n pivot
-	mid := len(slc) >> 1
-	l, h := mid>>1, sb.Mean(mid, len(slc))
-
-	go gPartOneI(slc[l:h:h], pv, ch) // mid half range
-
-	r := partTwoI(slc, l, h, pv) // left/right quarter ranges
-
-	k := l + <-ch // convert returned index to slc
-
-	// only one gap is possible
-	if r < mid {
-		for ; 0 <= r; r-- { // gap left in low range?
-			if pv < slc[r] {
-				k--
-				slc[r], slc[k] = slc[k], slc[r]
-			}
-		}
-	} else {
-		for ; r < len(slc); r++ { // gap left in high range?
-			if slc[r] < pv {
-				slc[r], slc[k] = slc[k], slc[r]
-				k++
-			}
-		}
-	}
-	return k
+	a, b := pivotO(slc, n)
+	return sb.Mean(a, b)
 }
 
 // short range sort function, assumes MaxLenIns < len(ar) <= MaxLenRec, recursive
@@ -219,7 +28,7 @@ start:
 	first, step := minMaxFour(uint32(len(ar)))
 	pv := sb.Median4(ar[first], ar[first+step], ar[first+2*step], ar[first+3*step])
 
-	k := partOneI(ar, pv)
+	k := partOneO(ar, pv)
 	var aq S
 
 	if k < len(ar)-k {
@@ -235,7 +44,7 @@ start:
 		goto start
 	}
 isort:
-	insertionI(aq) // at least one insertion range
+	insertionO(aq) // at least one insertion range
 
 	if len(ar) > MaxLenIns {
 		goto start
@@ -261,7 +70,7 @@ func gLongI[S ~[]T, T sb.Integer](ar S, sv *syncVar) {
 func longI[S ~[]T, T sb.Integer](ar S, sv *syncVar) {
 start:
 	pv := pivotI(ar, nsLong) // median-of-n pivot
-	k := partOneI(ar, pv)
+	k := partOneO(ar, pv)
 	var aq S
 
 	if k < len(ar)-k {
@@ -278,7 +87,7 @@ start:
 		if len(aq) > MaxLenIns {
 			shortI(aq)
 		} else {
-			insertionI(aq)
+			insertionO(aq)
 		}
 
 		if len(ar) > MaxLenRec { // two not-long ranges?
@@ -314,7 +123,7 @@ func sortI[S ~[]T, T sb.Integer](ar S) {
 		} else if len(ar) > MaxLenIns {
 			shortI(ar)
 		} else {
-			insertionI(ar)
+			insertionO(ar)
 		}
 		return
 	}
@@ -324,7 +133,8 @@ func sortI[S ~[]T, T sb.Integer](ar S) {
 		make(chan int)} // end signal
 	for {
 		// concurrent dual partitioning with done
-		k := partConI(ar, sv.done)
+		pv := pivotI(ar, nsConc) // median-of-n pivot
+		k := partConO(ar, pv, sv.done)
 		var aq S
 
 		if k < len(ar)-k {
@@ -343,7 +153,7 @@ func sortI[S ~[]T, T sb.Integer](ar S) {
 		} else if len(aq) > MaxLenIns {
 			shortI(aq)
 		} else {
-			insertionI(aq)
+			insertionO(aq)
 		}
 
 		// longer range big enough? max goroutines?

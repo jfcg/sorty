@@ -66,7 +66,7 @@ func pivotHL[S ~[]T, T hasLen](slc S, n uint) int {
 		sample[i] = len(slc[first])
 		first += step
 	}
-	insertionI(sample[:n]) // sort n samples
+	insertionO(sample[:n]) // sort n samples
 
 	n >>= 1 // return mean of middle two samples
 	return sixb.Mean(sample[n-1], sample[n])

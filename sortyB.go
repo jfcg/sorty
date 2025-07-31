@@ -62,7 +62,7 @@ func pivotB(slc [][]byte, n uint) string {
 		sample[i] = sb.String(slc[first])
 		first += step
 	}
-	insertionS(sample[:n]) // sort n samples
+	insertionO(sample[:n]) // sort n samples
 
 	return sample[n>>1] // return middle sample
 }
