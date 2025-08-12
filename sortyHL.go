@@ -53,18 +53,24 @@ func insertionHL[S ~[]T, T hasLen](slc S) {
 }
 
 // pivotHL selects n equidistant samples from slc that minimizes max distance
-// to non-selected members, then calculates median-of-n pivot from samples.
+// to non-selected members, then sorts the samples and returns their median.
 // Assumes even n, nsConc ≥ n ≥ 2, len(slc) ≥ 2n. Returns pivot for partitioning.
 //
 //go:nosplit
 func pivotHL[S ~[]T, T hasLen](slc S, n uint) int {
 
-	first, step, _ := minMaxSample(uint(len(slc)), n)
+	first, step, last := minMaxSample(uint(len(slc)), n)
 
 	var sample [nsConc]int
-	for i := int(n - 1); i >= 0; i-- {
-		sample[i] = len(slc[first])
-		first += step
+	a, b := len(slc[first]), len(slc[last])
+	if b < a {
+		a, b = b, a
+	}
+	sample[0], sample[n-1] = a, b
+
+	for i := n - 2; i > 0; i-- {
+		last -= step
+		sample[i] = len(slc[last])
 	}
 	insertionO(sample[:n]) // sort n samples
 

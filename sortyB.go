@@ -49,18 +49,24 @@ func insertionB(slc [][]byte) {
 }
 
 // pivotB selects n equidistant samples from slc that minimizes max distance
-// to non-selected members, then calculates median-of-n pivot from samples.
+// to non-selected members, then sorts the samples and returns their median.
 // Assumes odd n, nsConc > n ≥ 3, len(slc) ≥ 2n. Returns pivot for partitioning.
 //
 //go:nosplit
 func pivotB(slc [][]byte, n uint) string {
 
-	first, step, _ := minMaxSample(uint(len(slc)), n)
+	first, step, last := minMaxSample(uint(len(slc)), n)
 
 	var sample [nsConc - 1]string
-	for i := int(n - 1); i >= 0; i-- {
-		sample[i] = sb.String(slc[first])
-		first += step
+	a, b := sb.String(slc[first]), sb.String(slc[last])
+	if b < a {
+		a, b = b, a
+	}
+	sample[0], sample[n-1] = a, b
+
+	for i := n - 2; i > 0; i-- {
+		last -= step
+		sample[i] = sb.String(slc[last])
 	}
 	insertionO(sample[:n]) // sort n samples
 
