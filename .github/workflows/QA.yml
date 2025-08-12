@@ -11,7 +11,8 @@ on:
 permissions:
   contents: read
 env:
-  GOAMD64: v2
+  GOAMD64: v3
+  GOARM64: v8.1,lse
 
 jobs:
   Tests:
@@ -29,7 +30,7 @@ jobs:
       with:
         go-version: ${{ matrix.go }}
     - name: Run Tests with Coverage
-      run: go test -timeout 1h -v -cover
+      run: go test -timeout 1h -v -cover -ldflags '-s -w' -trimpath
 
   Analysis:
     needs: Tests
@@ -63,4 +64,4 @@ jobs:
       with:
         go-version: stable
     - name: Tune Params
-      run: go test -timeout 3h -tags tuneparam
+      run: go test -timeout 3h -tags tuneparam -ldflags '-s -w' -trimpath
