@@ -52,8 +52,6 @@ func IsSortedSlice(ar any) int {
 //	[]unsafe.Pointer, []*T // for any type T
 //
 // otherwise it panics.
-//
-//go:nosplit
 func SortSlice(ar any) {
 	slc, kind := extractSK(ar)
 	switch kind {
