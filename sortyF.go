@@ -9,7 +9,7 @@ package sorty
 import (
 	"sync/atomic"
 
-	sb "github.com/jfcg/sixb/v2"
+	sb "github.com/jfcg/sixb/v3"
 )
 
 // isSortedF returns 0 if slc is sorted in ascending order, otherwise it returns i > 0

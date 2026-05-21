@@ -9,7 +9,7 @@ package sorty
 import (
 	"sync/atomic"
 
-	sb "github.com/jfcg/sixb/v2"
+	sb "github.com/jfcg/sixb/v3"
 )
 
 // pivotI selects n equidistant samples from slc that minimizes max distance

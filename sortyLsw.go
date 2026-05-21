@@ -9,7 +9,7 @@ package sorty
 import (
 	"sync/atomic"
 
-	"github.com/jfcg/sixb/v2"
+	"github.com/jfcg/sixb/v3"
 )
 
 // Lesswap function operates on an underlying collection to be sorted as:

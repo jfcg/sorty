@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jfcg/sixb/v2"
+	"github.com/jfcg/sixb/v3"
 )
 
 func printSec(testName string, d time.Duration) float64 {

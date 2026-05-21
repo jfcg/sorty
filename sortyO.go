@@ -9,7 +9,7 @@ package sorty
 import (
 	"cmp"
 
-	"github.com/jfcg/sixb/v2"
+	"github.com/jfcg/sixb/v3"
 )
 
 // isSortedO returns 0 if slc is sorted in ascending order, otherwise

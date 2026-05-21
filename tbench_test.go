@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/jfcg/sixb/v2"
+	"github.com/jfcg/sixb/v3"
 )
 
 func BenchmarkSortB(b *testing.B) {

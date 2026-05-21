@@ -9,7 +9,7 @@ package sorty
 import (
 	"sync/atomic"
 
-	"github.com/jfcg/sixb/v2"
+	"github.com/jfcg/sixb/v3"
 )
 
 // short range sort function, assumes MaxLenInsFC < len(ar) <= MaxLenRecFC, recursive

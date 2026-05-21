@@ -9,7 +9,7 @@ package sorty
 import (
 	"sync/atomic"
 
-	sb "github.com/jfcg/sixb/v2"
+	sb "github.com/jfcg/sixb/v3"
 )
 
 // isSortedB returns 0 if ar is sorted in ascending lexicographic
