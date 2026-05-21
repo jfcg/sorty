@@ -6,11 +6,7 @@
 
 package sorty
 
-import (
-	"reflect"
-
-	sb "github.com/jfcg/sixb/v2"
-)
+import "reflect"
 
 // IsSortedSlice returns 0 if ar is sorted in ascending order, otherwise
 // it returns i > 0 with ar[i] < ar[i-1]. ar's (underlying) type can be
@@ -23,24 +19,24 @@ import (
 //
 //go:nosplit
 func IsSortedSlice(ar any) int {
-	slc, kind := extractSK(ar)
+	ptr, len, kind := extractSK(ar)
 	switch kind {
 	case reflect.Int32:
-		return isSortedO(sb.Cast[int32](slc))
+		return isSortedO(toSlc[int32](ptr, len))
 	case reflect.Int64:
-		return isSortedO(sb.Cast[int64](slc))
+		return isSortedO(toSlc[int64](ptr, len))
 	case reflect.Uint32:
-		return isSortedO(sb.Cast[uint32](slc))
+		return isSortedO(toSlc[uint32](ptr, len))
 	case reflect.Uint64:
-		return isSortedO(sb.Cast[uint64](slc))
+		return isSortedO(toSlc[uint64](ptr, len))
 	case reflect.Float32:
-		return isSortedF(sb.Cast[float32](slc))
+		return isSortedF(toSlc[float32](ptr, len))
 	case reflect.Float64:
-		return isSortedF(sb.Cast[float64](slc))
+		return isSortedF(toSlc[float64](ptr, len))
 	case sliceBias + reflect.Uint8: // [][]byte
-		return isSortedB(sb.Cast[[]byte](slc))
+		return isSortedB(toSlc[[]byte](ptr, len))
 	case reflect.String:
-		return isSortedO(sb.Cast[string](slc))
+		return isSortedO(toSlc[string](ptr, len))
 	}
 	panic("sorty: IsSortedSlice: invalid input type")
 }
@@ -53,24 +49,24 @@ func IsSortedSlice(ar any) int {
 //
 // otherwise it panics.
 func SortSlice(ar any) {
-	slc, kind := extractSK(ar)
+	ptr, len, kind := extractSK(ar)
 	switch kind {
 	case reflect.Int32:
-		sortI(sb.Cast[int32](slc))
+		sortI(toSlc[int32](ptr, len))
 	case reflect.Int64:
-		sortI(sb.Cast[int64](slc))
+		sortI(toSlc[int64](ptr, len))
 	case reflect.Uint32:
-		sortI(sb.Cast[uint32](slc))
+		sortI(toSlc[uint32](ptr, len))
 	case reflect.Uint64:
-		sortI(sb.Cast[uint64](slc))
+		sortI(toSlc[uint64](ptr, len))
 	case reflect.Float32:
-		sortF(sb.Cast[float32](slc))
+		sortF(toSlc[float32](ptr, len))
 	case reflect.Float64:
-		sortF(sb.Cast[float64](slc))
+		sortF(toSlc[float64](ptr, len))
 	case sliceBias + reflect.Uint8: // [][]byte
-		sortB(sb.Cast[[]byte](slc))
+		sortB(toSlc[[]byte](ptr, len))
 	case reflect.String:
-		sortS(sb.Cast[string](slc))
+		sortS(toSlc[string](ptr, len))
 	default:
 		panic("sorty: SortSlice: invalid input type")
 	}

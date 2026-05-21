@@ -6,11 +6,7 @@
 
 package sorty
 
-import (
-	"reflect"
-
-	"github.com/jfcg/sixb/v2"
-)
+import "reflect"
 
 // IsSortedLen returns 0 if ar is sorted 'by length' in ascending order, otherwise
 // it returns i > 0 with len(ar[i]) < len(ar[i-1]). ar's (underlying) type can be
@@ -21,12 +17,12 @@ import (
 //
 //go:nosplit
 func IsSortedLen(ar any) int {
-	slc, kind := extractSK(ar)
+	ptr, len, kind := extractSK(ar)
 	switch {
 	case kind == reflect.String:
-		return isSortedHL(sixb.Cast[string](slc))
+		return isSortedHL(toSlc[string](ptr, len))
 	case kind >= sliceBias:
-		return isSortedHL(sixb.Cast[[]struct{}](slc))
+		return isSortedHL(toSlc[[]struct{}](ptr, len))
 	}
 	panic("sorty: IsSortedLen: invalid input type")
 }
@@ -40,12 +36,12 @@ func IsSortedLen(ar any) int {
 //
 //go:nosplit
 func SortLen(ar any) {
-	slc, kind := extractSK(ar)
+	ptr, len, kind := extractSK(ar)
 	switch {
 	case kind == reflect.String:
-		sortHL(sixb.Cast[string](slc))
+		sortHL(toSlc[string](ptr, len))
 	case kind >= sliceBias:
-		sortHL(sixb.Cast[[]struct{}](slc))
+		sortHL(toSlc[[]struct{}](ptr, len))
 	default:
 		panic("sorty: SortLen: invalid input type")
 	}

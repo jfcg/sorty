@@ -16,7 +16,7 @@ import (
 	"unsafe"
 
 	"github.com/jfcg/rng"
-	sb "github.com/jfcg/sixb/v2"
+	sb "github.com/jfcg/sixb/v3"
 )
 
 const (
@@ -74,7 +74,7 @@ func copyPrepSortTest(buf []uint32, prepare func([]uint32) any,
 	}
 	// check if result is sorted
 	if isSorted(ar) != 0 {
-		_, kind := extractSK(ar)
+		_, _, kind := extractSK(ar)
 		tsPtr.Fatal("not sorted, kind:", kind)
 	}
 	return dur, ar
@@ -93,11 +93,11 @@ var (
 )
 
 func stdSort(ar any) {
-	slc, kind := extractSK(ar)
+	ptr, len, kind := extractSK(ar)
 
 	switch kind {
 	case reflect.Float32:
-		buf := sb.Cast[float32](slc)
+		buf := toSlc[float32](ptr, len)
 		if NaNoption == NaNsmall {
 			sort.Slice(buf, func(i, k int) bool {
 				a, b := buf[i], buf[k]
@@ -110,7 +110,7 @@ func stdSort(ar any) {
 			})
 		}
 	case reflect.Float64:
-		buf := sb.Cast[float64](slc)
+		buf := toSlc[float64](ptr, len)
 		if NaNoption == NaNsmall {
 			sort.Slice(buf, func(i, k int) bool {
 				a, b := buf[i], buf[k]
@@ -123,22 +123,22 @@ func stdSort(ar any) {
 			})
 		}
 	case reflect.Int32:
-		buf := sb.Cast[int32](slc)
+		buf := toSlc[int32](ptr, len)
 		sort.Slice(buf, func(i, k int) bool { return buf[i] < buf[k] })
 	case reflect.Int64:
-		buf := sb.Cast[int64](slc)
+		buf := toSlc[int64](ptr, len)
 		sort.Slice(buf, func(i, k int) bool { return buf[i] < buf[k] })
 	case reflect.Uint32:
-		buf := sb.Cast[uint32](slc)
+		buf := toSlc[uint32](ptr, len)
 		sort.Slice(buf, func(i, k int) bool { return buf[i] < buf[k] })
 	case reflect.Uint64:
-		buf := sb.Cast[uint64](slc)
+		buf := toSlc[uint64](ptr, len)
 		sort.Slice(buf, func(i, k int) bool { return buf[i] < buf[k] })
 	case reflect.String:
-		buf := sb.Cast[string](slc)
+		buf := toSlc[string](ptr, len)
 		sort.Slice(buf, func(i, k int) bool { return buf[i] < buf[k] })
 	case sliceBias + reflect.Uint8:
-		buf := sb.Cast[[]byte](slc)
+		buf := toSlc[[]byte](ptr, len)
 		sort.Slice(buf, func(i, k int) bool {
 			return sb.String(buf[i]) < sb.String(buf[k])
 		})
@@ -148,11 +148,11 @@ func stdSort(ar any) {
 }
 
 func stdSlice(ar any) {
-	slc, kind := extractSK(ar)
+	ptr, len, kind := extractSK(ar)
 
 	switch kind {
 	case reflect.Float32:
-		buf := sb.Cast[float32](slc)
+		buf := toSlc[float32](ptr, len)
 		if NaNoption == NaNsmall {
 			slices.Sort(buf)
 		} else {
@@ -167,7 +167,7 @@ func stdSlice(ar any) {
 			})
 		}
 	case reflect.Float64:
-		buf := sb.Cast[float64](slc)
+		buf := toSlc[float64](ptr, len)
 		if NaNoption == NaNsmall {
 			slices.Sort(buf)
 		} else {
@@ -182,22 +182,22 @@ func stdSlice(ar any) {
 			})
 		}
 	case reflect.Int32:
-		buf := sb.Cast[int32](slc)
+		buf := toSlc[int32](ptr, len)
 		slices.Sort(buf)
 	case reflect.Int64:
-		buf := sb.Cast[int64](slc)
+		buf := toSlc[int64](ptr, len)
 		slices.Sort(buf)
 	case reflect.Uint32:
-		buf := sb.Cast[uint32](slc)
+		buf := toSlc[uint32](ptr, len)
 		slices.Sort(buf)
 	case reflect.Uint64:
-		buf := sb.Cast[uint64](slc)
+		buf := toSlc[uint64](ptr, len)
 		slices.Sort(buf)
 	case reflect.String:
-		buf := sb.Cast[string](slc)
+		buf := toSlc[string](ptr, len)
 		slices.Sort(buf)
 	case sliceBias + reflect.Uint8:
-		buf := sb.Cast[[]byte](slc)
+		buf := toSlc[[]byte](ptr, len)
 		slices.SortFunc(buf, bytes.Compare)
 	default:
 		tsPtr.Fatal("unrecognized kind:", kind)
@@ -206,14 +206,14 @@ func stdSlice(ar any) {
 
 //go:nosplit
 func stdSortLen(ar any) {
-	slc, kind := extractSK(ar)
+	ptr, Len, kind := extractSK(ar)
 
 	switch {
 	case kind == reflect.String:
-		buf := sb.Cast[string](slc)
+		buf := toSlc[string](ptr, Len)
 		sort.Slice(buf, func(i, k int) bool { return len(buf[i]) < len(buf[k]) })
 	case kind >= sliceBias:
-		buf := sb.Cast[[]byte](slc)
+		buf := toSlc[[]byte](ptr, Len)
 		sort.Slice(buf, func(i, k int) bool { return len(buf[i]) < len(buf[k]) })
 	default:
 		tsPtr.Fatal("unrecognized kind:", kind)
@@ -222,62 +222,62 @@ func stdSortLen(ar any) {
 
 //go:nosplit
 func stdSliceLen(ar any) {
-	slc, kind := extractSK(ar)
+	ptr, Len, kind := extractSK(ar)
 
 	switch {
 	case kind == reflect.String:
-		buf := sb.Cast[string](slc)
+		buf := toSlc[string](ptr, Len)
 		slices.SortFunc(buf, func(a, b string) int { return len(a) - len(b) })
 	case kind >= sliceBias:
-		buf := sb.Cast[[]byte](slc)
+		buf := toSlc[[]byte](ptr, Len)
 		slices.SortFunc(buf, func(a, b []byte) int { return len(a) - len(b) })
 	default:
 		tsPtr.Fatal("unrecognized kind:", kind)
 	}
 }
 
-func basicCheck(ar, ap any) (slc1, slc2 sb.InSlice, kind reflect.Kind) {
-	slc1, kind = extractSK(ar)
-	slc2, kind2 := extractSK(ap)
+func basicCheck(ar, ap any) (ptr1, ptr2 unsafe.Pointer, len int, kind reflect.Kind) {
+	ptr1, len, kind = extractSK(ar)
+	ptr2, len2, kind2 := extractSK(ap)
 	if kind != kind2 {
 		tsPtr.Fatal("different kinds:", kind, kind2)
 	}
-	if slc1.Len != slc2.Len {
-		tsPtr.Fatal("length mismatch:", kind, slc1.Len, slc2.Len)
+	if len != len2 {
+		tsPtr.Fatal("length mismatch:", kind, len, len2)
 	}
-	if slc1.Data == slc2.Data {
-		tsPtr.Fatal("same slice data:", kind, slc1.Data)
+	if ptr1 == ptr2 {
+		tsPtr.Fatal("same slice data:", kind, ptr1)
 	}
 	return
 }
 
 func compare(ar, ap any) { // by value
-	slc1, slc2, kind := basicCheck(ar, ap)
+	ptr1, ptr2, Len, kind := basicCheck(ar, ap)
 	var buf1, buf2 []uint64
 
 	switch kind {
 	case reflect.String:
-		buf1 := sb.Cast[string](slc1)
-		buf2 := sb.Cast[string](slc2)
-		for i := len(buf1) - 1; i >= 0; i-- {
+		buf1 := toSlc[string](ptr1, Len)
+		buf2 := toSlc[string](ptr2, Len)
+		for i := range buf1 {
 			if buf1[i] != buf2[i] {
 				tsPtr.Fatal("values mismatch:", kind, i, buf1[i], buf2[i])
 			}
 		}
 		return
 	case sliceBias + reflect.Uint8:
-		buf1 := sb.Cast[[]byte](slc1)
-		buf2 := sb.Cast[[]byte](slc2)
-		for i := len(buf1) - 1; i >= 0; i-- {
+		buf1 := toSlc[[]byte](ptr1, Len)
+		buf2 := toSlc[[]byte](ptr2, Len)
+		for i := range buf1 {
 			if a, b := sb.String(buf1[i]), sb.String(buf2[i]); a != b {
 				tsPtr.Fatal("values mismatch:", kind, i, a, b)
 			}
 		}
 		return
 	case reflect.Float32:
-		buf1 := sb.Cast[float32](slc1)
-		buf2 := sb.Cast[float32](slc2)
-		for i := len(buf1) - 1; i >= 0; i-- {
+		buf1 := toSlc[float32](ptr1, Len)
+		buf2 := toSlc[float32](ptr2, Len)
+		for i := range buf1 {
 			a, b := buf1[i], buf2[i]
 			if a != b && (a == a || b == b) { // consider NaNs equal
 				tsPtr.Fatal("values mismatch:", kind, i, a, b)
@@ -285,9 +285,9 @@ func compare(ar, ap any) { // by value
 		}
 		return
 	case reflect.Float64:
-		buf1 := sb.Cast[float64](slc1)
-		buf2 := sb.Cast[float64](slc2)
-		for i := len(buf1) - 1; i >= 0; i-- {
+		buf1 := toSlc[float64](ptr1, Len)
+		buf2 := toSlc[float64](ptr2, Len)
+		for i := range buf1 {
 			a, b := buf1[i], buf2[i]
 			if a != b && (a == a || b == b) { // consider NaNs equal
 				tsPtr.Fatal("values mismatch:", kind, i, a, b)
@@ -295,16 +295,16 @@ func compare(ar, ap any) { // by value
 		}
 		return
 	case reflect.Int32, reflect.Uint32:
-		buf1 = sb.Slice[uint64](sb.Cast[uint32](slc1))
-		buf2 = sb.Slice[uint64](sb.Cast[uint32](slc2))
+		buf1 = sb.Slice[uint64](toSlc[uint32](ptr1, Len))
+		buf2 = sb.Slice[uint64](toSlc[uint32](ptr2, Len))
 	case reflect.Int64, reflect.Uint64:
-		buf1 = sb.Cast[uint64](slc1)
-		buf2 = sb.Cast[uint64](slc2)
+		buf1 = toSlc[uint64](ptr1, Len)
+		buf2 = toSlc[uint64](ptr2, Len)
 	default:
 		tsPtr.Fatal("unrecognized kind:", kind)
 	}
 
-	for i := len(buf1) - 1; i >= 0; i-- {
+	for i := range buf1 {
 		if buf1[i] != buf2[i] {
 			tsPtr.Fatal("values mismatch:", kind, i, buf1[i], buf2[i])
 		}
@@ -312,21 +312,21 @@ func compare(ar, ap any) { // by value
 }
 
 func compareLen(ar, ap any) { // by length
-	slc1, slc2, kind := basicCheck(ar, ap)
+	ptr1, ptr2, Len, kind := basicCheck(ar, ap)
 
 	switch {
 	case kind == reflect.String:
-		buf1 := sb.Cast[string](slc1)
-		buf2 := sb.Cast[string](slc2)
-		for i := len(buf1) - 1; i >= 0; i-- {
+		buf1 := toSlc[string](ptr1, Len)
+		buf2 := toSlc[string](ptr2, Len)
+		for i := range buf1 {
 			if a, b := len(buf1[i]), len(buf2[i]); a != b {
 				tsPtr.Fatal("len values mismatch:", kind, i, a, b)
 			}
 		}
 	case kind >= sliceBias:
-		buf1 := sb.Cast[[]byte](slc1)
-		buf2 := sb.Cast[[]byte](slc2)
-		for i := len(buf1) - 1; i >= 0; i-- {
+		buf1 := toSlc[[]byte](ptr1, Len)
+		buf2 := toSlc[[]byte](ptr2, Len)
+		for i := range buf1 {
 			if a, b := len(buf1[i]), len(buf2[i]); a != b {
 				tsPtr.Fatal("len values mismatch:", kind, i, a, b)
 			}
@@ -358,7 +358,7 @@ func medianCpstCompare(testName string, prepare func([]uint32) any,
 	dur := [4]time.Duration{}
 	var ar any
 
-	for i := 0; i < len(dur); i++ {
+	for i := range dur {
 		fillSrc()
 		dur[i], ar = copyPrepSortTest(aaBuf, prepare, srf)
 		if compStd {
@@ -410,15 +410,14 @@ func implantS(buf []uint32) any {
 	n := uint(len(buf)-2) / (t + 1)
 
 	t *= n // total string headers space
-	ss := sb.Slice[sb.InString](buf[:t:t])
+	ss := sb.Slice[string](buf[:t:t])
 
 	for k := len(buf) - 2; n > 0; {
 		n--
 		k--
-		ss[n].Data = unsafe.Pointer(&buf[k])
-		ss[n].Len = 12
+		ss[n] = toStr(&buf[k], 12)
 	}
-	return sb.Slice[string](ss)
+	return ss
 }
 
 // return sum of sortS() durations for 1..maxMaxGor goroutines
@@ -439,16 +438,14 @@ func implantB(buf []uint32) any {
 	n := uint(len(buf)-2) / (t + 1)
 
 	t *= n // total []byte headers space
-	bs := sb.Slice[sb.InSlice](buf[:t:t])
+	bs := sb.Slice[[]byte](buf[:t:t])
 
 	for k := len(buf) - 2; n > 0; {
 		n--
 		k--
-		bs[n].Data = unsafe.Pointer(&buf[k])
-		bs[n].Len = 12
-		bs[n].Cap = 12
+		bs[n] = toSlc[byte](unsafe.Pointer(&buf[k]), 12)
 	}
-	return sb.Slice[[]byte](bs)
+	return bs
 }
 
 // return sum of sortB() durations for 1..maxMaxGor goroutines
@@ -469,16 +466,15 @@ func implantLenS(buf []uint32) any {
 	n := uint(len(buf)) / t
 
 	t *= n // total string headers space
-	ss := sb.Slice[sb.InString](buf[:t:t])
+	ss := sb.Slice[string](buf[:t:t])
 
 	for L := 4*uint(len(buf)) + 1; n > 0; {
 		n--
 		// string bodies start at &buf[0] with random lengths up to 4*len(buf) bytes
-		ss[n].Data = unsafe.Pointer(&buf[0])
-		// random number from srcBuf
-		ss[n].Len %= L
+		l := uint(len(ss[n])) % L
+		ss[n] = toStr(&buf[0], int(l))
 	}
-	return sb.Slice[string](ss)
+	return ss
 }
 
 // return sum of sortLenS() durations for 1..maxMaxGor goroutines
@@ -499,17 +495,15 @@ func implantLenB(buf []uint32) any {
 	n := uint(len(buf)) / t
 
 	t *= n // total []byte headers space
-	bs := sb.Slice[sb.InSlice](buf[:t:t])
+	bs := sb.Slice[[]byte](buf[:t:t])
 
 	for L := 4*uint(len(buf)) + 1; n > 0; {
 		n--
 		// []byte bodies start at &buf[0] with random lengths up to 4*len(buf) bytes
-		bs[n].Data = unsafe.Pointer(&buf[0])
-		l := bs[n].Len % L // random number from srcBuf
-		bs[n].Len = l
-		bs[n].Cap = l
+		l := uint(len(bs[n])) % L
+		bs[n] = toSlc[byte](unsafe.Pointer(&buf[0]), int(l))
 	}
-	return sb.Slice[[]byte](bs)
+	return bs
 }
 
 // return sum of sortLenB() durations for 1..maxMaxGor goroutines
@@ -522,12 +516,12 @@ func sumDurLenB(compStd bool) (sum float64) {
 }
 
 func sortLsw(ar any) {
-	slc, kind := extractSK(ar)
+	ptr, len, kind := extractSK(ar)
 	var lsw Lesswap
 
 	switch kind {
 	case reflect.Uint32:
-		buf := sb.Cast[uint32](slc)
+		buf := toSlc[uint32](ptr, len)
 		lsw = func(i, k, r, s int) bool {
 			if buf[i] < buf[k] {
 				if r != s {
@@ -538,7 +532,7 @@ func sortLsw(ar any) {
 			return false
 		}
 	case reflect.Float32:
-		buf := sb.Cast[float32](slc)
+		buf := toSlc[float32](ptr, len)
 		if NaNoption == NaNsmall {
 			lsw = func(i, k, r, s int) bool {
 				a, b := buf[i], buf[k]
@@ -563,7 +557,7 @@ func sortLsw(ar any) {
 			}
 		}
 	case reflect.String:
-		buf := sb.Cast[string](slc)
+		buf := toSlc[string](ptr, len)
 		lsw = func(i, k, r, s int) bool {
 			if buf[i] < buf[k] {
 				if r != s {
@@ -574,7 +568,7 @@ func sortLsw(ar any) {
 			return false
 		}
 	case sliceBias + reflect.Uint8:
-		buf := sb.Cast[[]byte](slc)
+		buf := toSlc[[]byte](ptr, len)
 		lsw = func(i, k, r, s int) bool {
 			if sb.String(buf[i]) < sb.String(buf[k]) {
 				if r != s {
@@ -588,7 +582,7 @@ func sortLsw(ar any) {
 		tsPtr.Fatal("unrecognized kind:", kind)
 	}
 
-	Sort(int(slc.Len), lsw)
+	Sort(len, lsw)
 }
 
 var sLswNames = [4]string{"sortyLsw-1", "sortyLsw-2", "sortyLsw-3", "sortyLsw-4"}

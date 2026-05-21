@@ -21,7 +21,7 @@ import (
 	"reflect"
 	"unsafe"
 
-	"github.com/jfcg/sixb/v2"
+	"github.com/jfcg/sixb/v3"
 )
 
 // MaxGor is the maximum number of goroutines (including caller) that can be
@@ -131,7 +131,7 @@ const sliceBias reflect.Kind = 100
 // extracts slice and element kind from ar
 //
 //go:nosplit
-func extractSK(ar any) (slc sixb.InSlice, kind reflect.Kind) {
+func extractSK(ar any) (ptr unsafe.Pointer, len int, kind reflect.Kind) {
 	tipe := reflect.TypeOf(ar)
 	if tipe.Kind() != reflect.Slice {
 		return
@@ -159,7 +159,15 @@ func extractSK(ar any) (slc sixb.InSlice, kind reflect.Kind) {
 	}
 
 	v := reflect.ValueOf(ar)
-	p, l := unsafe.Pointer(v.Pointer()), uint(v.Len())
-	slc = sixb.InSlice{Data: p, Len: l, Cap: l}
+	ptr, len = unsafe.Pointer(v.Pointer()), v.Len()
 	return
+}
+
+func toSlc[T any](ptr unsafe.Pointer, len int) []T {
+	return unsafe.Slice((*T)(ptr), len)
+}
+
+func toStr[T any](ptr *T, len int) string {
+	p := (unsafe.Pointer)(ptr)
+	return unsafe.String((*byte)(p), len)
 }
